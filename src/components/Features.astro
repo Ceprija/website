@@ -39,13 +39,18 @@ const {
     <div class="container mx-auto px-6">
         <h2
             class="text-3xl font-bold text-center mb-12 text-primary font-serif"
+            data-animate="fade-up"
         >
             {title}
         </h2>
         <div class="grid md:grid-cols-3 gap-8">
             {
-                features.map((feature) => (
-                    <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-t-4 border-secondary group">
+                features.map((feature, index) => (
+                    <div
+                        class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-t-4 border-secondary group"
+                        data-animate="fade-up"
+                        data-delay={index * 100}
+                    >
                         <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary transition-colors duration-300">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"

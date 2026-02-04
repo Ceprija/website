@@ -6,12 +6,15 @@ import { values } from "../data/values.js";
 
 <Layout pageId="about">
   <main class="container mx-auto px-6 py-12">
-    <h1 class="text-4xl font-bold text-primary mb-8 font-serif">
+    <h1
+      class="text-4xl font-bold text-primary mb-8 font-serif"
+      data-animate="fade-up"
+    >
       Sobre Nosotros
     </h1>
 
     <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
-      <div>
+      <div data-animate="fade-up" data-delay="100">
         <p class="text-lg text-gray-700 mb-6">
           En CEPRIJA creemos en la educación que forma profesionales listos para
           ejercer con técnica, ética y criterio.
@@ -27,7 +30,11 @@ import { values } from "../data/values.js";
           siempre guiados por principios éticos y humanistas.
         </p>
       </div>
-      <div class="relative h-64 rounded-xl overflow-hidden shadow-lg">
+      <div
+        class="relative h-64 rounded-xl overflow-hidden shadow-lg"
+        data-animate="zoom-in"
+        data-delay="200"
+      >
         <img
           src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=600&fit=crop"
           alt="Campus CEPRIJA"
@@ -39,6 +46,8 @@ import { values } from "../data/values.js";
     <div class="grid md:grid-cols-2 gap-8">
       <div
         class="bg-white p-8 rounded-xl shadow-sm border-l-4 border-secondary"
+        data-animate="fade-up"
+        data-delay="300"
       >
         <h2 class="text-2xl font-bold text-primary mb-4 font-serif">Misión</h2>
         <p class="text-gray-600">
@@ -50,6 +59,8 @@ import { values } from "../data/values.js";
       </div>
       <div
         class="bg-white p-8 rounded-xl shadow-sm border-l-4 border-secondary"
+        data-animate="fade-up"
+        data-delay="400"
       >
         <h2 class="text-2xl font-bold text-primary mb-4 font-serif">Visión</h2>
         <p class="text-gray-600">
@@ -61,7 +72,7 @@ import { values } from "../data/values.js";
         </p>
       </div>
     </div>
-    <div class="mt-16">
+    <div class="mt-16" data-animate="fade-up" data-delay="500">
       <Features title="Nuestros Valores" features={values} />
     </div>
   </main>

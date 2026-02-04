@@ -38,7 +38,7 @@ const slides = [
       
       <!-- Content -->
       <div class="relative z-20 container mx-auto px-6 h-full flex items-center">
-        <div class="max-w-3xl text-white animate-fade-in-up">
+        <div class="max-w-3xl text-white" data-animate="fade-up">
           <h1 class="text-5xl md:text-7xl font-semi-bold mb-6 font-serif leading-tight">
             {slide.title}
           </h1>
@@ -83,20 +83,6 @@ const slides = [
 </div>
 
 <style>
-  .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 </style>
 
 <script>

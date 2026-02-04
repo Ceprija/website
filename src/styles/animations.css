@@ -1,0 +1,56 @@
+/* Base Transition State */
+[data-animate] {
+    opacity: 0;
+    transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity, transform;
+}
+
+/* Initial States */
+[data-animate="fade-up"] {
+    transform: translateY(30px);
+}
+
+[data-animate="fade-in"] {
+    /* Just opacity: 0 from base */
+    transform: none;
+}
+
+[data-animate="zoom-in"] {
+    transform: scale(0.95);
+}
+
+/* Visible State */
+[data-animate].is-visible {
+    opacity: 1;
+    transform: translate(0) scale(1);
+}
+
+/* Delay Utils */
+[data-delay="100"] {
+    transition-delay: 100ms;
+}
+
+[data-delay="200"] {
+    transition-delay: 200ms;
+}
+
+[data-delay="300"] {
+    transition-delay: 300ms;
+}
+
+[data-delay="400"] {
+    transition-delay: 400ms;
+}
+
+[data-delay="500"] {
+    transition-delay: 500ms;
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+    [data-animate] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

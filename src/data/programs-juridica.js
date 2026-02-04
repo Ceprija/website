@@ -3,11 +3,12 @@ export const programs = [
     // Licenciaturas
     // Maestrías
     {
+        active: true,
         id: "maestria-derecho-penal",
         title: "Maestría en Derecho Penal y Litigación Oral Avanzada",
         level: "Maestría",
         description: "Especialízate en el sistema acusatorio y técnicas avanzadas de litigación oral.",
-        image: "bg-yellow-600",
+        image: "bg-[url('/images/programs/maestria-derecho-penal.png')] bg-cover bg-center",
         rvoe: "SICyT ESM142024142",
         duration: "6 cuatrimestres",
         modality: "Presencial / En línea",
@@ -73,11 +74,12 @@ export const programs = [
         fieldOfWork: "Defensoría, fiscalía, judicatura, consultoría penal."
     },
     {
+        active: true,
         id: "maestria-derecho-civil",
         title: "Maestría en Derecho Civil y Familiar",
         level: "Maestría",
         description: "Litiga con dominio del nuevo sistema de oralidad civil y familiar. Una maestría técnica, ética y centrada en la resolución práctica de conflictos",
-        image: "bg-yellow-500",
+        image: "bg-[url('/images/programs/maestria-derecho-civil.png')] bg-cover bg-center",
         rvoe: "SICyT ESM142024143",
         duration: "6 cuatrimestres",
         modality: "Presencial / En línea",
@@ -147,11 +149,12 @@ export const programs = [
         fieldOfWork: "Notarías, despachos civiles, mediación, consultoría patrimonial."
     },
     {
+        active: true,
         id: "maestria-derecho-internacional",
         title: "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico",
         level: "Maestría",
         description: "Genera nuevo conocimiento y lidera la evolución de los sistemas educativos.",
-        image: "bg-gray-700",
+        image: "bg-[url('/images/programs/maestria-derecho-internacional.png')] bg-cover bg-center",
         rvoe: "SICyT ESM142024140",
         duration: "6 cuatrimestres",
         modality: "Hiíbrida / En línea",
@@ -209,11 +212,12 @@ export const programs = [
         fieldOfWork: "Investigación, docencia universitaria, diseño de políticas, consultoría educativa."
     },
     {
+        active: true,
         id: "especialidad-criminalistica",
         title: "Especialidad en Criminalística y Ciencias Forenses",
         level: "Especialidad",
         description: "Integra la prueba científica al juicio penal. Una especialidad práctica que fortalece tu argumentación con base en evidencia forense.",
-        image: "bg-yellow-400",
+        image: "bg-[url('/images/programs/especialidad-criminalistica.png')] bg-cover bg-center",
         rvoe: "SICyT ESP142024141",
         duration: "3 cuatrimestres",
         modality: "Presencial /En línea",
@@ -251,11 +255,12 @@ export const programs = [
     },
     // Doctorados
     {
+        active: true,
         id: "doctorado-derecho-procesal",
         title: "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
         level: "Doctorado",
         description: "Estudia el proceso a fondo y lidera su evolución. Un doctorado técnico, comparado e innovador para transformar el sistema jurídico.",
-        image: "bg-gray-800",
+        image: "bg-[url('/images/programs/doctorado-derecho-procesal.png')] bg-cover bg-center",
         rvoe: "SICyT ESD142024139",
         duration: "4 semestres",
         modality: "Hiíbrida / En línea",

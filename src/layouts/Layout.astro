@@ -10,6 +10,7 @@ interface Props {
 		description?: string;
 		image?: string;
 	};
+	breadcrumbs?: { label: string; path: string }[];
 }
 
 import Header from "../components/Header.astro";
@@ -17,7 +18,10 @@ import Footer from "../components/Footer.astro";
 import WhatsAppButton from "../components/WhatsAppButton.astro";
 import AnalyticsHead from "../components/AnalyticsHead.astro";
 import AnalyticsBody from "../components/AnalyticsBody.astro";
+import CookieBanner from "../components/CookieBanner.astro";
+import SeoHead from "../components/SeoHead.astro";
 import { seoConfig } from "../data/seo";
+import "../styles/animations.css";
 
 const {
 	title: propTitle,
@@ -25,6 +29,7 @@ const {
 	image: propImage,
 	pageId,
 	seo: propSeo,
+	breadcrumbs,
 } = Astro.props;
 
 // 1. Get Base Defaults
@@ -76,26 +81,17 @@ const image =
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap"
 			rel="stylesheet"
 		/>
-		<!-- Brevo Conversations {literal} -->
-		<!-- <script>
-			(function (d, w, c) {
-				w.BrevoConversationsID = "69374727b23c8f954507528f";
-				w[c] =
-					w[c] ||
-					function () {
-						(w[c].q = w[c].q || []).push(arguments);
-					};
-				var s = d.createElement("script");
-				s.async = true;
-				s.src =
-					"https://conversations-widget.brevo.com/brevo-conversations.js";
-				if (d.head) d.head.appendChild(s);
-			})(document, window, "BrevoConversations");
-		</script> -->
-		<!-- /Brevo Conversations {/literal} -->
+
+		<SeoHead
+			title={title}
+			description={description}
+			image={image}
+			breadcrumbs={breadcrumbs}
+		/>
+
 		<AnalyticsHead />
 	</head>
 	<body
@@ -108,5 +104,27 @@ const image =
 		</div>
 		<Footer />
 		<WhatsAppButton />
+		<CookieBanner />
+		<script>
+			// Zero-dependency Scroll Animations
+			const observerOptions = {
+				root: null,
+				rootMargin: "0px",
+				threshold: 0.1,
+			};
+
+			const observer = new IntersectionObserver((entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						entry.target.classList.add("is-visible");
+						observer.unobserve(entry.target); // Run once
+					}
+				});
+			}, observerOptions);
+
+			document.querySelectorAll("[data-animate]").forEach((el) => {
+				observer.observe(el);
+			});
+		</script>
 	</body>
 </html>

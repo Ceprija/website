@@ -3,9 +3,17 @@ import Button from "./Button.astro";
 
 interface Props {
     programTitle?: string;
+    paymentLinks?: {
+        online: string;
+        presencial: string;
+    };
+    prices?: {
+        Presencial?: string;
+        Online?: string;
+    };
 }
 
-const { programTitle = "Curso/Taller" } = Astro.props;
+const { programTitle = "Curso/Taller", paymentLinks, prices } = Astro.props;
 ---
 
 <div
@@ -13,9 +21,13 @@ const { programTitle = "Curso/Taller" } = Astro.props;
 >
     <h3 class="text-2xl font-bold text-primary mb-2 font-serif">Inscripción</h3>
     <p class="text-gray-600 mb-6 text-sm">
-        Reserva tu lugar para: <span class="font-bold text-primary"
+        Inscripción para: <span class="font-bold text-primary"
             >{programTitle}</span
         >
+    </p>
+    <p class="text-gray-600 mb-6 text-sm">
+        Antes de la inscripción, por favor, realizar el pago y verificar que los
+        datos proporcionados sean correctos.
     </p>
 
     <form id="registration-form" class="space-y-4">
@@ -104,6 +116,84 @@ const { programTitle = "Curso/Taller" } = Astro.props;
                 </label>
             </div>
         </div>
+        {
+            paymentLinks && (
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <h4 class="text-sm font-bold text-primary">
+                        Información de Pago
+                    </h4>
+                    <p class="text-xs text-gray-600">
+                        Para realizar el pago mediante el método liga de pago,
+                        utilice los siguientes links:
+                    </p>
+
+                    <div id="payment-link-presencial" class="space-y-1">
+                        <p class="text-xs font-semibold text-gray-700">
+                            Presencial{" "}
+                            {prices?.Presencial ? `: ${prices.Presencial}` : ""}
+                        </p>
+                        <a
+                            href={paymentLinks.presencial}
+                            target="_blank"
+                            class="text-xs text-secondary hover:text-primary underline break-all"
+                        >
+                            {paymentLinks.presencial}
+                        </a>
+                    </div>
+
+                    <div id="payment-link-online" class="space-y-1 hidden">
+                        <p class="text-xs font-semibold text-gray-700">
+                            En línea{" "}
+                            {prices?.Online ? `: ${prices.Online}` : ""}
+                        </p>
+                        <a
+                            href={paymentLinks.online}
+                            target="_blank"
+                            class="text-xs text-secondary hover:text-primary underline break-all"
+                        >
+                            {paymentLinks.online}
+                        </a>
+                    </div>
+                </div>
+            )
+        }
+
+        <div>
+            <label
+                for="payment-proof"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Comprobante de Pago</label
+            >
+            <div class="relative">
+                <input
+                    type="file"
+                    id="payment-proof"
+                    name="paymentProof"
+                    accept="image/jpeg,image/png,application/pdf"
+                    required
+                    class="hidden"
+                />
+                <label
+                    for="payment-proof"
+                    class="w-full flex items-center gap-3 px-2 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group"
+                >
+                    <div
+                        class="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-lg group-hover:bg-blue-900 transition-colors whitespace-nowrap"
+                    >
+                        Seleccionar archivo
+                    </div>
+                    <span
+                        id="file-name"
+                        class="text-gray-500 text-sm truncate max-w-[200px]"
+                    >
+                        Ningún archivo seleccionado
+                    </span>
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                Formatos aceptados: JPG, PNG, PDF (máx. 5MB)
+            </p>
+        </div>
 
         <div class="flex items-start gap-2 pt-2">
             <div class="flex items-center h-5">
@@ -165,92 +255,131 @@ const { programTitle = "Curso/Taller" } = Astro.props;
             </svg>
         </Button>
     </form>
-</div>
 
-<script>
-    const form = document.getElementById(
-        "registration-form",
-    ) as HTMLFormElement;
-    const statusDiv = document.getElementById("form-status");
-    const submitBtn = document.getElementById(
-        "submit-btn",
-    ) as HTMLButtonElement;
-    const spinner = document.getElementById("loading-spinner");
-    const btnText = submitBtn?.querySelector("span");
+    <script>
+        const form = document.getElementById(
+            "registration-form",
+        ) as HTMLFormElement;
+        const statusDiv = document.getElementById("form-status");
+        const submitBtn = document.getElementById(
+            "submit-btn",
+        ) as HTMLButtonElement;
+        const spinner = document.getElementById("loading-spinner");
+        const btnText = submitBtn?.querySelector("span");
 
-    if (form) {
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+        const fileInput = document.getElementById("payment-proof");
+        const fileNameSpan = document.getElementById("file-name");
 
-            // Reset status
-            if (statusDiv) {
-                statusDiv.classList.add("hidden");
-                statusDiv.className = "hidden mb-4 p-3 rounded-lg text-sm";
-            }
-
-            // Loading state
-            if (submitBtn && spinner && btnText) {
-                submitBtn.disabled = true;
-                spinner.classList.remove("hidden");
-                btnText.textContent = "Procesando...";
-            }
-
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch("/api/register", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data),
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // Success
-                    if (statusDiv) {
-                        statusDiv.textContent =
-                            "¡Inscripción recibida! Te hemos enviado un correo con los detalles de pago y confirmación.";
-                        statusDiv.classList.remove("hidden");
-                        statusDiv.classList.add(
-                            "bg-green-100",
-                            "text-green-800",
-                            "border",
-                            "border-green-200",
-                        );
-                    }
-                    form.reset();
-                } else {
-                    // Error from server
-                    throw new Error(
-                        result.message || "Error al enviar el formulario",
-                    );
+        fileInput?.addEventListener("change", (e) => {
+            const target = e.target as HTMLInputElement;
+            if (target.files && target.files.length > 0) {
+                if (fileNameSpan) {
+                    fileNameSpan.textContent = target.files[0].name;
+                    fileNameSpan.classList.remove("text-gray-500");
+                    fileNameSpan.classList.add("text-gray-900");
                 }
-            } catch (error) {
-                // Network or other error
-                if (statusDiv) {
-                    statusDiv.textContent =
-                        "Hubo un error. Por favor contáctanos por WhatsApp para completar tu inscripción.";
-                    statusDiv.classList.remove("hidden");
-                    statusDiv.classList.add(
-                        "bg-red-100",
-                        "text-red-800",
-                        "border",
-                        "border-red-200",
-                    );
-                }
-                console.error("Error submitting form:", error);
-            } finally {
-                // Reset button state
-                if (submitBtn && spinner && btnText) {
-                    submitBtn.disabled = false;
-                    spinner.classList.add("hidden");
-                    btnText.textContent = "Inscribirme Ahora";
+            } else {
+                if (fileNameSpan) {
+                    fileNameSpan.textContent = "Ningún archivo seleccionado";
+                    fileNameSpan.classList.add("text-gray-500");
+                    fileNameSpan.classList.remove("text-gray-900");
                 }
             }
         });
-    }
-</script>
+
+        // Payment link toggle based on modality
+        const modalityRadios = document.querySelectorAll(
+            'input[name="modality"]',
+        );
+        const presencialLink = document.getElementById(
+            "payment-link-presencial",
+        );
+        const onlineLink = document.getElementById("payment-link-online");
+
+        modalityRadios.forEach((radio) => {
+            radio.addEventListener("change", (e) => {
+                const target = e.target as HTMLInputElement;
+                if (target.value === "Presencial") {
+                    presencialLink?.classList.remove("hidden");
+                    onlineLink?.classList.add("hidden");
+                } else {
+                    presencialLink?.classList.add("hidden");
+                    onlineLink?.classList.remove("hidden");
+                }
+            });
+        });
+
+        if (form) {
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                // Reset status
+                if (statusDiv) {
+                    statusDiv.classList.add("hidden");
+                    statusDiv.className = "hidden mb-4 p-3 rounded-lg text-sm";
+                }
+
+                // Loading state
+                if (submitBtn && spinner && btnText) {
+                    submitBtn.disabled = true;
+                    spinner.classList.remove("hidden");
+                    btnText.textContent = "Procesando...";
+                }
+
+                // Use FormData to handle file upload
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch("/api/register", {
+                        method: "POST",
+                        body: formData, // Send as multipart/form-data
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Success
+                        if (statusDiv) {
+                            statusDiv.textContent =
+                                "¡Inscripción recibida! Te hemos enviado un correo con los detalles de pago y confirmación.";
+                            statusDiv.classList.remove("hidden");
+                            statusDiv.classList.add(
+                                "bg-green-100",
+                                "text-green-800",
+                                "border",
+                                "border-green-200",
+                            );
+                        }
+                        form.reset();
+                    } else {
+                        // Error from server
+                        throw new Error(
+                            result.message || "Error al enviar el formulario",
+                        );
+                    }
+                } catch (error) {
+                    // Network or other error
+                    if (statusDiv) {
+                        statusDiv.textContent =
+                            "Hubo un error. Por favor contáctanos por WhatsApp para completar tu inscripción.";
+                        statusDiv.classList.remove("hidden");
+                        statusDiv.classList.add(
+                            "bg-red-100",
+                            "text-red-800",
+                            "border",
+                            "border-red-200",
+                        );
+                    }
+                    console.error("Error submitting form:", error);
+                } finally {
+                    // Reset button state
+                    if (submitBtn && spinner && btnText) {
+                        submitBtn.disabled = false;
+                        spinner.classList.add("hidden");
+                        btnText.textContent = "Inscribirme Ahora";
+                    }
+                }
+            });
+        }
+    </script>
+</div>

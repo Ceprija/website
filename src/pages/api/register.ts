@@ -3,38 +3,139 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import nodemailer from 'nodemailer';
 import { programs } from '../../data/programs';
+import Busboy from 'busboy';
+import { createWriteStream } from 'fs';
+import { mkdir } from 'fs/promises';
+import { join } from 'path';
+
+// Helper function to sanitize filename
+function sanitizeFilename(name: string): string {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with dash
+        .replace(/-+/g, '-') // Replace multiple dashes with single
+        .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+}
+
+// Helper function to parse multipart form data
+function parseFormData(request: Request): Promise<{ fields: Record<string, string>, file: { filepath: string, filename: string, mimetype: string } | null }> {
+    return new Promise((resolve, reject) => {
+        const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
+        const fields: Record<string, string> = {};
+        let fileInfo: { filepath: string, filename: string, mimetype: string } | null = null;
+
+        busboy.on('field', (fieldname: string, value: string) => {
+            fields[fieldname] = value;
+        });
+
+        busboy.on('file', async (fieldname: string, file: any, info: any) => {
+            if (fieldname !== 'paymentProof') {
+                file.resume();
+                return;
+            }
+
+            const { filename, mimeType } = info;
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+            if (!allowedTypes.includes(mimeType)) {
+                file.resume();
+                reject(new Error('Tipo de archivo no permitido'));
+                return;
+            }
+
+            // Create timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+            // Sanitize user name from fields (will be available after all fields are parsed)
+            const userName = fields.name || 'usuario';
+            const sanitizedName = sanitizeFilename(userName);
+
+            // Get file extension
+            const ext = filename.split('.').pop() || 'pdf';
+
+            // Create new filename
+            const newFilename = `${sanitizedName}_${timestamp}.${ext}`;
+            const uploadDir = join(process.cwd(), 'public', 'uploads', 'comprobantes');
+            const filepath = join(uploadDir, newFilename);
+
+            try {
+                // Ensure directory exists
+                await mkdir(uploadDir, { recursive: true });
+
+                // Save file
+                const writeStream = createWriteStream(filepath);
+                file.pipe(writeStream);
+
+                writeStream.on('finish', () => {
+                    fileInfo = { filepath, filename: newFilename, mimetype: mimeType };
+                });
+
+                writeStream.on('error', (err: Error) => {
+                    reject(err);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+
+        busboy.on('finish', () => {
+            // Wait a bit to ensure file write is complete
+            setTimeout(() => {
+                resolve({ fields, file: fileInfo });
+            }, 100);
+        });
+
+        busboy.on('error', (err) => {
+            reject(err);
+        });
+
+        // Pipe request body to busboy
+        request.body?.pipeTo(new WritableStream({
+            write(chunk) {
+                busboy.write(chunk);
+            },
+            close() {
+                busboy.end();
+            }
+        }));
+    });
+}
 
 export const POST: APIRoute = async ({ request }) => {
-    const data = await request.json();
-    const { name, email, phone, message, program: programTitle, type, modality } = data;
+    try {
+        const { fields, file } = await parseFormData(request);
+        const { name, email, phone, message, program: programTitle, type, modality } = fields;
 
-    // Find program details
-    const programDetails = programs.find(p => p.title === programTitle) || {};
-    const {
-        instructor = "Claustro Docente CEPRIJA",
-        startDate = "Por confirmar",
-        schedule = "Por confirmar",
-        address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
-        meetingLink = "Se enviará previo al evento"
-    } = programDetails;
+        // Find program details
+        const programDetails = programs.find(p => p.title === programTitle) || {};
+        const {
+            instructor = "Claustro Docente CEPRIJA",
+            startDate = "Por confirmar",
+            schedule = "Por confirmar",
+            address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+            meetingLink = "Se enviará previo al evento"
+        } = programDetails;
 
-    // 1. Configure Transporter
-    const transporter = nodemailer.createTransport({
-        host: import.meta.env.SMTP_HOST,
-        port: parseInt(import.meta.env.SMTP_PORT),
-        secure: import.meta.env.SMTP_SECURE === 'true',
-        auth: {
-            user: import.meta.env.SMTP_USER,
-            pass: import.meta.env.SMTP_PASS,
-        },
-    });
+        // 1. Configure Transporter
+        const transporter = nodemailer.createTransport({
+            host: import.meta.env.SMTP_HOST,
+            port: parseInt(import.meta.env.SMTP_PORT),
+            secure: import.meta.env.SMTP_SECURE === 'true',
+            auth: {
+                user: import.meta.env.SMTP_USER,
+                pass: import.meta.env.SMTP_PASS,
+            },
+        });
 
-    // 2. Send Admin Notification (Internal)
-    const adminMailOptions = {
-        from: `"Web Ceprija" <${import.meta.env.CONTACT_EMAIL}>`,
-        to: import.meta.env.CONTACT_EMAIL,
-        subject: `Nuevo ${type === 'registration' ? 'Registro' : 'Mensaje'}: ${programTitle || 'General'}`,
-        html: `
+        // 2. Send Admin Notification (Internal) with file attachment
+        const adminMailOptions: any = {
+            from: `"Web Ceprija" <${import.meta.env.CONTACT_EMAIL}>`,
+            to: import.meta.env.CONTACT_EMAIL,
+            subject: `Nuevo ${type === 'registration' ? 'Registro' : 'Mensaje'}: ${programTitle || 'General'}`,
+            html: `
       <h2>Nuevo contacto desde la web</h2>
       <p><strong>Tipo:</strong> ${type === 'registration' ? 'Inscripción' : 'Contacto General'}</p>
       <p><strong>Nombre:</strong> ${name}</p>
@@ -43,24 +144,33 @@ export const POST: APIRoute = async ({ request }) => {
       <p><strong>Programa:</strong> ${programTitle || 'N/A'}</p>
       <p><strong>Modalidad:</strong> ${modality || 'N/A'}</p>
       <p><strong>Mensaje:</strong> ${message || 'N/A'}</p>
+      ${file ? `<p><strong>Comprobante de pago:</strong> Adjunto</p>` : ''}
     `,
-    };
+        };
 
-    try {
-        await transporter.sendMail(adminMailOptions);
-    } catch (error) {
-        console.error('Error sending admin email:', error);
-    }
+        // Attach file if present
+        if (file) {
+            adminMailOptions.attachments = [{
+                filename: file.filename,
+                path: file.filepath
+            }];
+        }
 
-    // 3. Send User Confirmation Email (Only for Registrations)
-    if (type === 'registration') {
-        // Normalize logic to catch 'Online', 'En línea', 'en línea', etc.
-        const isOnline = (modality || '').toLowerCase().includes('línea') || (modality || '').toLowerCase().includes('online');
+        try {
+            await transporter.sendMail(adminMailOptions);
+        } catch (error) {
+            console.error('Error sending admin email:', error);
+        }
 
-        // Template Content
-        const emailSubject = `Confirmación de Registro - ${programTitle}`;
+        // 3. Send User Confirmation Email (Only for Registrations)
+        if (type === 'registration') {
+            // Normalize logic to catch 'Online', 'En línea', 'en línea', etc.
+            const isOnline = (modality || '').toLowerCase().includes('línea') || (modality || '').toLowerCase().includes('online');
 
-        const emailBody = `
+            // Template Content
+            const emailSubject = `Confirmación de Registro - ${programTitle}`;
+
+            const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <!-- Header -->
         <div style="background-color: #1e3a8a; padding: 20px; text-align: center;">
@@ -88,10 +198,10 @@ export const POST: APIRoute = async ({ request }) => {
                     <li style="margin-bottom: 8px;">📅 <strong>Fecha:</strong> ${startDate}</li>
                     <li style="margin-bottom: 8px;">⏰ <strong>Duración:</strong> ${schedule}</li>
                     ${isOnline
-                ? `<li style="margin-bottom: 8px;">💻 <strong>Modalidad en línea:</strong> <a href="${meetingLink}" style="color: #2563eb;">${meetingLink}</a></li>
+                    ? `<li style="margin-bottom: 8px;">💻 <strong>Modalidad en línea:</strong> <a href="${meetingLink}" style="color: #2563eb;">${meetingLink}</a></li>
                            <li style="margin-bottom: 8px;">🏢 <strong>Modalidad presencial:</strong> ${address}</li>`
-                : `<li style="margin-bottom: 8px;">🏢 <strong>Instalaciones:</strong> ${address}</li>`
-            }           </ul>
+                    : `<li style="margin-bottom: 8px;">🏢 <strong>Instalaciones:</strong> ${address}</li>`
+                }           </ul>
             </div>
 
             <p style="font-size: 14px; color: #666; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
@@ -110,49 +220,34 @@ export const POST: APIRoute = async ({ request }) => {
       </div>
     `;
 
-        try {
-            await transporter.sendMail({
-                from: `"CEPRIJA Académico" <${import.meta.env.CONTACT_EMAIL}>`,
-                to: email,
-                subject: emailSubject,
-                html: emailBody,
-            });
-        } catch (error) {
-            console.error('Error sending user confirmation email:', error);
-        }
-    }
-
-    // 4. Save to Google Sheets (Via Webhook)
-    if (type === 'registration') {
-        try {
-            const scriptUrl = import.meta.env.GOOGLE_SCRIPT_URL;
-            if (!scriptUrl) {
-                console.warn("GOOGLE_SCRIPT_URL missing in env.");
-            } else {
-                // Using global fetch (available in Astro/Node 18+)
-                await fetch(scriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        phone,
-                        program: programTitle,
-                        modality: modality || 'No definida'
-                    })
+            try {
+                await transporter.sendMail({
+                    from: `"CEPRIJA Académico" <${import.meta.env.CONTACT_EMAIL}>`,
+                    to: email,
+                    subject: emailSubject,
+                    html: emailBody,
                 });
+            } catch (error) {
+                console.error('Error sending user confirmation email:', error);
             }
-        } catch (sheetError) {
-            console.error('Error saving to Google Sheet via Webhook:', sheetError);
         }
-    }
 
-    return new Response(
-        JSON.stringify({
-            message: 'Recibido correctamente',
-        }),
-        { status: 200 }
-    );
+
+
+        return new Response(
+            JSON.stringify({
+                message: 'Recibido correctamente',
+            }),
+            { status: 200 }
+        );
+    } catch (error) {
+        console.error('Error processing registration:', error);
+        return new Response(
+            JSON.stringify({
+                message: 'Error al procesar la solicitud',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }),
+            { status: 500 }
+        );
+    }
 };

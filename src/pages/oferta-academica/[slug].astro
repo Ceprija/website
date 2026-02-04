@@ -5,10 +5,12 @@ import ContactForm from "../../components/ContactForm.astro";
 import RegistrationForm from "../../components/RegistrationForm.astro";
 
 export async function getStaticPaths() {
-    return programs.map((program) => ({
-        params: { slug: program.id },
-        props: { program },
-    }));
+    return programs
+        .filter((program) => program.active)
+        .map((program) => ({
+            params: { slug: program.id },
+            props: { program },
+        }));
 }
 
 const { program } = Astro.props;
@@ -22,22 +24,39 @@ const seo = {
 <Layout seo={seo}>
     <main class="bg-gray-50 min-h-screen">
         <!-- Hero Section -->
-        <section class={`${program.image} text-white py-20`}>
-            <div class="container mx-auto px-6">
+        <section
+            class="relative text-white py-20 min-h-[400px] flex items-center"
+        >
+            <div class={`absolute inset-0 ${program.image} z-0`}></div>
+            <div class="absolute inset-0 bg-slate-900/70 z-0"></div>
+            <div class="container mx-auto px-6 relative z-10">
                 <div class="max-w-4xl">
                     <span
                         class="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-4 py-2 rounded-full uppercase tracking-wide inline-block mb-4"
+                        data-animate="fade-up"
                     >
                         {program.level}
                     </span>
-                    <h1 class="text-4xl font-bold mb-6 font-serif">
+                    <h1
+                        class="text-4xl font-bold mb-6 font-serif"
+                        data-animate="fade-up"
+                        data-delay="100"
+                    >
                         {program.title}
                     </h1>
-                    <p class="text-xl text-gray-100 mb-8">
+                    <p
+                        class="text-xl text-gray-100 mb-8"
+                        data-animate="fade-up"
+                        data-delay="200"
+                    >
                         {program.description}
                     </p>
 
-                    <div class="flex flex-wrap gap-6 text-sm">
+                    <div
+                        class="flex flex-wrap gap-6 text-sm"
+                        data-animate="fade-up"
+                        data-delay="300"
+                    >
                         {
                             program.rvoe && (
                                 <div class="flex items-center gap-2">
@@ -158,7 +177,11 @@ const seo = {
                         <!-- Plan de Estudios -->
                         {
                             program.curriculum && (
-                                <div class="bg-white rounded-2xl shadow-sm p-8">
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="100"
+                                >
                                     <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -216,7 +239,11 @@ const seo = {
                         <!-- Perfil del Egresado -->
                         {
                             program.profile && (
-                                <div class="bg-white rounded-2xl shadow-sm p-8">
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="200"
+                                >
                                     <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -244,7 +271,11 @@ const seo = {
                         <!-- Campo Laboral -->
                         {
                             program.fieldOfWork && (
-                                <div class="bg-white rounded-2xl shadow-sm p-8">
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="300"
+                                >
                                     <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -271,7 +302,11 @@ const seo = {
 
                         {
                             program.price && (
-                                <div class="bg-white rounded-2xl shadow-sm p-8">
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="400"
+                                >
                                     <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -309,7 +344,11 @@ const seo = {
 
                         {
                             program.includes && (
-                                <div class="bg-white rounded-2xl shadow-sm p-8">
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="500"
+                                >
                                     <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -353,13 +392,19 @@ const seo = {
                         }
                     </div>
 
-                    <div class="lg:col-span-1">
+                    <div
+                        class="lg:col-span-1"
+                        data-animate="fade-up"
+                        data-delay="600"
+                    >
                         {
                             ["Curso", "Taller", "Diplomado"].includes(
                                 program.level,
                             ) ? (
                                 <RegistrationForm
                                     programTitle={program.title}
+                                    paymentLinks={program.paymentLinks}
+                                    prices={program.price}
                                 />
                             ) : (
                                 <ContactForm programTitle={program.title} />

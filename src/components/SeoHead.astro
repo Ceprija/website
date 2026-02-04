@@ -1,0 +1,93 @@
+---
+interface Props {
+    title?: string;
+    description?: string;
+    image?: string;
+    // Breadcrumbs: array of { label, path }
+    breadcrumbs?: { label: string; path: string }[];
+}
+
+const { title, description, image, breadcrumbs = [] } = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const siteUrl = Astro.site?.toString() || "https://ceprija.edu.mx/";
+const logoUrl = new URL("/logo-ceprija-web.svg", siteUrl).toString();
+
+// 1. WebSite Schema (Identity & Search)
+const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "CEPRIJA - Centro de Estudios Profesionales e Investigación Jurídica y Administrativa",
+    alternateName: "CEPRIJA",
+    url: siteUrl,
+    potentialAction: {
+        "@type": "SearchAction",
+        target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteUrl}search?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+    },
+};
+
+// 2. Organization Schema (Identity, Local Business info)
+const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    name: "CEPRIJA",
+    url: siteUrl,
+    logo: logoUrl,
+    description:
+        description ||
+        "Centro de Estudios Profesionales e Investigación Jurídica y Administrativa",
+    contactPoint: {
+        "@type": "ContactPoint",
+        telephone: "+52-33-4711-1307",
+        contactType: "customer service",
+        email: "contacto@ceprija.edu.mx",
+        areaServed: "MX",
+        availableLanguage: "es",
+    },
+    address: {
+        "@type": "PostalAddress",
+        streetAddress: "Lope de Vega #273, Colonia Americana Arcos",
+        addressLocality: "Guadalajara",
+        addressRegion: "Jalisco",
+        postalCode: "44500",
+        addressCountry: "MX",
+    },
+};
+
+// 3. Breadcrumb Schema
+let breadcrumbSchema = null;
+if (breadcrumbs && breadcrumbs.length > 0) {
+    breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs.map((crumb, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: crumb.label,
+            item: new URL(crumb.path, siteUrl).toString(),
+        })),
+    };
+}
+---
+
+<!-- Canonical URL -->
+<link rel="canonical" href={canonicalURL} />
+
+<!-- JSON-LD Schemas -->
+<script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+<script
+    type="application/ld+json"
+    set:html={JSON.stringify(organizationSchema)}
+/>
+{
+    breadcrumbSchema && (
+        <script
+            type="application/ld+json"
+            set:html={JSON.stringify(breadcrumbSchema)}
+        />
+    )
+}
