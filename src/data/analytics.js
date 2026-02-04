@@ -11,7 +11,7 @@ export const analyticsConfig = {
     },
     // Meta Pixel (Facebook)
     metaPixel: {
-        id: "XXXXXXXXXXXXXXX", // Replace with your Pixel ID
-        enabled: false,
+        id: "1526833965120534", // Replace with your Pixel ID
+        enabled: true,
     }
 };
