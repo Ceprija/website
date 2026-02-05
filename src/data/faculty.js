@@ -31,10 +31,10 @@ export const faculty = [
         degree: "Especialista en Derecho Corporativo",
         bio: "Magistrado en retiro del Tribunal Electoral del Estado de Jalisco, con trayectoria en justicia electoral.",
         fullBio: "Magistrado en retiro del Tribunal Electoral del Estado de Jalisco, con trayectoria en justicia electoral.",
-        education: [
+        /* education: [
             "Especialidad en Derecho Corporativo - UP",
             "Licenciatura en Derecho - Escuela Libre de Derecho"
-        ],
+        ], */
         image: "/jose-de-jesus-angulo-aguirre.avif"
     },
     {
@@ -43,11 +43,11 @@ export const faculty = [
         degree: "Doctora en Administración Pública",
         bio: "Juez Segundo de Ejecución Penal del Primer Distrito Judicial del Estado de Jalisco.",
         fullBio: "Juez Segundo de Ejecución Penal del Primer Distrito Judicial del Estado de Jalisco.",
-        education: [
+        /* education: [
             "Doctorado en Administración Pública - Universidad Anáhuac",
             "Maestría en Políticas Públicas - CIDE",
             "Licenciatura en Ciencias Políticas - UNAM"
-        ],
+        ], */
         image: "/jose-alberto-espinoza-herrera.avif"
     },
     {
@@ -56,11 +56,11 @@ export const faculty = [
         degree: "Doctora en Administración Pública",
         bio: "Jueza tercero de Control, Enjuiciamiento y justicia Integral para Adolescentes",
         fullBio: "Jueza tercero de Control, Enjuiciamiento y justicia Integral para Adolescentes",
-        education: [
+        /* education: [
             "Doctorado en Administración Pública - Universidad Anáhuac",
             "Maestría en Políticas Públicas - CIDE",
             "Licenciatura en Ciencias Políticas - UNAM"
-        ],
+        ], */
         image: "/ma-karina-dolores-rivas-gutierrez.avif"
     },
     {
@@ -69,11 +69,11 @@ export const faculty = [
         degree: "Doctora en Administración Pública",
         bio: "Maestra en Derecho con amplia trayectoria en el Poder Judicial de Jalisco. Docente en derecho penal y sistema acusatorio.",
         fullBio: "Maestra en Derecho con amplia trayectoria en el Poder Judicial de Jalisco. Docente en derecho penal y sistema acusatorio.",
-        education: [
+        /* education: [
             "Doctorado en Administración Pública - Universidad Anáhuac",
             "Maestría en Políticas Públicas - CIDE",
             "Licenciatura en Ciencias Políticas - UNAM"
-        ],
+        ], */
         image: "/martha-temores-sanchez.avif"
     }
 ];

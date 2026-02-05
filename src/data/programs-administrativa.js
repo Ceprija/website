@@ -125,7 +125,8 @@ export const programs = [
         instructor: "JDTiConsultores",
         address: "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
         meetingLink: "Se enviará previo al evento",
-        startDate: "Por confirmar",
+        startDate: "21 de Febrero del 2026",
+        endDate: "14 de Marzo del 2026",
         schedule: "10 sesiones de 2 horas c/u ó 4 Sesiones de 4 Horas c/u",
         price: {
             "Presencial": "$2,200.00 MXN",
