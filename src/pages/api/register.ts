@@ -23,15 +23,18 @@ function sanitizeFilename(name: string): string {
 // Helper function to parse multipart form data
 function parseFormData(request: Request): Promise<{ fields: Record<string, string>, file: { filepath: string, filename: string, mimetype: string } | null }> {
     return new Promise((resolve, reject) => {
+        console.log('Starting form parsing...');
         const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
         const fields: Record<string, string> = {};
         let fileInfo: { filepath: string, filename: string, mimetype: string } | null = null;
 
         busboy.on('field', (fieldname: string, value: string) => {
+            console.log(`Field received: ${fieldname}`);
             fields[fieldname] = value;
         });
 
         busboy.on('file', async (fieldname: string, file: any, info: any) => {
+            console.log(`File received: ${fieldname}, Filename: ${info.filename}, Mime: ${info.mimeType}`);
             if (fieldname !== 'paymentProof') {
                 file.resume();
                 return;
@@ -43,6 +46,7 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
             const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
             if (!allowedTypes.includes(mimeType)) {
                 file.resume();
+                console.error('Invalid file type:', mimeType);
                 reject(new Error('Tipo de archivo no permitido'));
                 return;
             }
@@ -78,6 +82,7 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
                     reject(err);
                 });
             } catch (err) {
+                console.error('Error in file processing block:', err);
                 reject(err);
             }
         });
@@ -90,6 +95,7 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
         });
 
         busboy.on('error', (err) => {
+            console.error('Busboy error:', err);
             reject(err);
         });
 
@@ -106,8 +112,10 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
 }
 
 export const POST: APIRoute = async ({ request }) => {
+    console.log('POST /api/register called');
     try {
         const { fields, file } = await parseFormData(request);
+        console.log('Form data parsed successfully. Fields:', Object.keys(fields), 'File:', file ? 'Yes' : 'No');
         const { name, email, phone, message, program: programTitle, type, modality } = fields;
 
         // Find program details
@@ -130,6 +138,8 @@ export const POST: APIRoute = async ({ request }) => {
                 pass: import.meta.env.SMTP_PASS,
             },
         });
+
+        console.log('SMTP Configured with host:', import.meta.env.SMTP_HOST);
 
         // 2. Send Admin Notification (Internal) with file attachment
         const adminMailOptions: any = {
@@ -159,12 +169,16 @@ export const POST: APIRoute = async ({ request }) => {
 
         try {
             await transporter.sendMail(adminMailOptions);
+            console.log('Admin email sent successfully');
         } catch (error) {
             console.error('Error sending admin email:', error);
+            // Don't fail the request if just admin email fails? Or should we?
+            // Continuing for now to try sending user email
         }
 
         // 3. Send User Confirmation Email (Only for Registrations)
         if (type === 'registration') {
+            console.log('Processing registration email for user...');
             // Normalize logic to catch 'Online', 'En línea', 'en línea', etc.
             const isOnline = (modality || '').toLowerCase().includes('línea') || (modality || '').toLowerCase().includes('online');
 
@@ -231,7 +245,10 @@ export const POST: APIRoute = async ({ request }) => {
             } catch (error) {
                 console.error('Error sending user confirmation email:', error);
             }
+        } else {
+            console.log('Type is not registration, skipping user email. Type:', type);
         }
+
 
         // Clean up temp file
         if (file) {
@@ -251,7 +268,7 @@ export const POST: APIRoute = async ({ request }) => {
             { status: 200 }
         );
     } catch (error) {
-        console.error('Error processing registration:', error);
+        console.error('CRITICAL Error processing registration:', error);
         return new Response(
             JSON.stringify({
                 message: 'Error al procesar la solicitud',
