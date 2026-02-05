@@ -5,8 +5,9 @@ import nodemailer from 'nodemailer';
 import { programs } from '../../data/programs';
 import Busboy from 'busboy';
 import { createWriteStream } from 'fs';
-import { mkdir } from 'fs/promises';
+import { mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
+import { tmpdir } from 'os';
 
 // Helper function to sanitize filename
 function sanitizeFilename(name: string): string {
@@ -58,7 +59,7 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
 
             // Create new filename
             const newFilename = `${sanitizedName}_${timestamp}.${ext}`;
-            const uploadDir = join(process.cwd(), 'public', 'uploads', 'comprobantes');
+            const uploadDir = join(tmpdir(), 'ceprija-uploads');
             const filepath = join(uploadDir, newFilename);
 
             try {
@@ -229,6 +230,15 @@ export const POST: APIRoute = async ({ request }) => {
                 });
             } catch (error) {
                 console.error('Error sending user confirmation email:', error);
+            }
+        }
+
+        // Clean up temp file
+        if (file) {
+            try {
+                await unlink(file.filepath);
+            } catch (cleanupError) {
+                console.error('Error cleaning up temp file:', cleanupError);
             }
         }
 
