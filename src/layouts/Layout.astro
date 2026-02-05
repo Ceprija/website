@@ -51,6 +51,7 @@ const description =
 	defaults.description;
 const image =
 	propImage || propSeo?.image || pageConfig?.image || defaults.image;
+const absoluteImage = new URL(image, Astro.site).toString();
 ---
 
 <!doctype html>
@@ -74,13 +75,13 @@ const image =
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
-		<meta property="og:image" content={image} />
+		<meta property="og:image" content={absoluteImage} />
 
 		<!-- Twitter -->
 		<meta property="twitter:card" content="summary_large_image" />
 		<meta property="twitter:title" content={title} />
 		<meta property="twitter:description" content={description} />
-		<meta property="twitter:image" content={image} />
+		<meta property="twitter:image" content={absoluteImage} />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

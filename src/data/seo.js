@@ -3,7 +3,7 @@ export const seoConfig = {
     default: {
         title: "CEPRIJA - Centro de Estudios Privados, Jurídicos y Alternativos",
         description: "Institución líder en formación jurídica y administrativa de alto nivel. Maestrías, diplomados y cursos especializados en Guadalajara.",
-        image: "/images/og-default.jpg",
+        image: "/images/og-image.jpg",
         keywords: "derecho, maestría, penal, administrativo, cursos, diplomados, guadalajara, ceprija, educación continua"
     },
     pages: {
@@ -20,7 +20,7 @@ export const seoConfig = {
             description: "Explora nuestros programas de posgrado y educación continua: Maestría en Derecho Penal, cursos especializados y diplomados.",
         },
         contact: {
-            title: "Contacto | CEPRIJA",
+            title: "Contáctanos",
             description: "Contáctanos para más información sobre nuestros programas. Estamos ubicados en la Colonia Americana, Guadalajara.",
         },
         privacy: {
