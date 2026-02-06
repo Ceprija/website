@@ -35,7 +35,7 @@ export const faculty = [
             "Especialidad en Derecho Corporativo - UP",
             "Licenciatura en Derecho - Escuela Libre de Derecho"
         ], */
-        image: "/jose-de-jesus-angulo-aguirre.avif"
+        image: "/jose_jesus_angulo_aguirre.jpg"
     },
     {
         id: "jose-alberto-espinoza-herrera",
