@@ -124,7 +124,7 @@ export const programs = [
         image: "bg-[url('/images/programs/taller-excel-basico-avanzado.png')] bg-cover bg-center",
         duration: "20 hrs",
         modality: "Presencial / En línea", // Asumiendo modalidad mixta dado el contexto del sitio
-        instructor: "JDTiConsultores",
+        instructor: "Julio Delgado Consultor TI",
         address: "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
         meetingLink: "Se enviará previo al evento",
         startDate: "21 de Marzo del 2026",
