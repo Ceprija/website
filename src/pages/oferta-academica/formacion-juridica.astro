@@ -65,7 +65,7 @@ import Button from "../../components/Button.astro";
               
               <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
                 <a href={`/oferta-academica/${program.id}`} class="text-primary font-bold hover:text-secondary transition-colors flex items-center gap-2">
-                  Ver Plan de Estudios
+                  {program.curriculum ? `Ver ${program.curriculumTitle || 'Plan de Estudios'}` : 'Ver más'}
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>

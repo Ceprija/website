@@ -14,6 +14,7 @@ export const programs = [
         modality: "Presencial / En línea",
         startDate: "Jueves 5 de Febrero del 2026",
         //endDate: "Viernes 24 de Mayo del 2026",
+        curriculumTitle: "Plan de Estudios",
         curriculum: [
             {
                 period: "1er Cuatrimestre",
@@ -83,6 +84,7 @@ export const programs = [
         rvoe: "SICyT ESM142024143",
         duration: "6 cuatrimestres",
         modality: "Presencial / En línea",
+        curriculumTitle: "Plan de Estudios",
         curriculum: [
             {
                 period: "1er Cuatrimestre",
@@ -158,6 +160,7 @@ export const programs = [
         rvoe: "SICyT ESM142024140",
         duration: "6 cuatrimestres",
         modality: "Hiíbrida / En línea",
+        curriculumTitle: "Plan de Estudios",
         curriculum: [
             {
                 period: "1er Cuatrimestre",
@@ -221,6 +224,7 @@ export const programs = [
         rvoe: "SICyT ESP142024141",
         duration: "3 cuatrimestres",
         modality: "Presencial /En línea",
+        curriculumTitle: "Plan de Estudios",
         curriculum: [
             {
                 period: "1er Cuatrimestre",
@@ -264,6 +268,7 @@ export const programs = [
         rvoe: "SICyT ESD142024139",
         duration: "4 semestres",
         modality: "Hiíbrida / En línea",
+        curriculumTitle: "Plan de Estudios",
         curriculum: [
             {
                 period: "1er Semestre",

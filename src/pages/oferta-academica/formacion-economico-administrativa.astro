@@ -110,7 +110,7 @@ const activePrograms = programs.filter((p) => p.active);
                                             href={`/oferta-academica/${program.id}`}
                                             class="text-primary font-bold hover:text-secondary transition-colors flex items-center gap-2"
                                         >
-                                            Ver Plan de Estudios
+                                            {program.curriculum ? `Ver ${program.curriculumTitle || 'Plan de Estudios'}` : 'Ver más'}
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 class="h-4 w-4 transform group-hover:translate-x-1 transition-transform"
