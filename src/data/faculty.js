@@ -74,6 +74,6 @@ export const faculty = [
             "Maestría en Políticas Públicas - CIDE",
             "Licenciatura en Ciencias Políticas - UNAM"
         ], */
-        image: "/martha-temores-sanchez.avif"
+        image: "/martha_temores_sanchez.jpg"
     }
 ];
