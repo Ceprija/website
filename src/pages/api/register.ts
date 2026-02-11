@@ -188,14 +188,13 @@ export const POST: APIRoute = async ({ request }) => {
 
             const emailBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <!-- Header -->
-                <div style="background-color: #1e3a8a; padding: 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">CEPRIJA</h1>
-                    <p style="color: #bfdbfe; margin: 5px 0 0;">Centro de Preparación Integral en Materia Jurídica y Administrativa</p>
+                <!-- Header con Logo -->
+                <div style="background-color: #f8fafc; padding: 30px 20px; text-align: center; border-bottom: 2px solid #1e3a8a;">
+                    <img src="https://ceprija.edu.mx/images/logo.png" alt="CEPRIJA" style="max-width: 200px; height: auto; margin: 0 auto; display: block;">
                 </div>
 
                 <!-- Body -->
-                <div style="padding: 30px 20px; background-color: #f8fafc;">
+                <div style="padding: 30px 20px; background-color: #ffffff;">
                     <p style="font-size: 16px; margin-bottom: 20px;">
                         <strong>${programTitle}</strong>
                     </p>
@@ -208,16 +207,16 @@ export const POST: APIRoute = async ({ request }) => {
                     
                     <p>A continuación le compartimos información valiosa para su asistencia.</p>
 
-                    <div style="background-color: white; border-left: 4px solid #1e3a8a; padding: 15px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 15px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         <h3 style="color: #1e3a8a; margin-top: 0;">Detalles del evento:</h3>
                         <ul style="list-style: none; padding: 0; margin: 0;">
                             <li style="margin-bottom: 8px;">📅 <strong>Fecha:</strong> ${startDate}</li>
                             <li style="margin-bottom: 8px;">⏰ <strong>Duración:</strong> ${schedule}</li>
                             ${isOnline
-                            ? `<li style="margin-bottom: 8px;">💻 <strong>Enlace en línea:</strong> <a href="${meetingLink}" style="color: #2563eb;">${meetingLink}</a></li>
+                    ? `<li style="margin-bottom: 8px;">💻 <strong>Enlace en línea:</strong> <a href="${meetingLink}" style="color: #2563eb;">${meetingLink}</a></li>
                                    <li style="margin-bottom: 8px;">📍 <strong>Alternativa presencial:</strong> ${address}</li>`
-                            : `<li style="margin-bottom: 8px;">📍 <strong>Instalaciones:</strong> ${address}</li>`
-                    }           </ul>
+                    : `<li style="margin-bottom: 8px;">📍 <strong>Instalaciones:</strong> ${address}</li>`
+                }           </ul>
                     </div>
 
                     <p style="font-size: 14px; color: #666; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
