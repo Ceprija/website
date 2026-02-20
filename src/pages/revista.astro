@@ -1,0 +1,85 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { posts } from "../data/posts.js";
+---
+
+<Layout title="Revista | CEPRIJA">
+  <main class="container mx-auto px-6 py-12">
+    <h1
+      class="text-4xl font-bold text-primary mb-12 font-serif text-center"
+      data-animate="fade-up"
+    >
+      Revista Ceprija
+    </h1>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {
+        posts.map((post, index) => (
+          <article
+            class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col h-full"
+            data-animate="fade-up"
+            data-delay={index * 100}
+          >
+            <div class="h-48 w-full overflow-hidden relative group">
+              <img
+                src={post.image}
+                alt={post.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute top-4 left-4">
+                <span class="bg-white/90 backdrop-blur-sm text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                  {post.category}
+                </span>
+              </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+              <h2 class="text-xl font-bold text-primary mt-2 mb-3 hover:text-blue-700 font-serif">
+                <a href={`/revista/${post.id}`}>{post.title}</a>
+              </h2>
+              <p class="text-gray-600 text-sm mb-4 flex-grow">{post.excerpt}</p>
+              <div class="flex justify-between items-center text-xs text-gray-500 pt-4 border-t border-gray-100">
+                <div class="flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span>{post.date}</span>
+                </div>
+                <a
+                  href={`/revista/${post.id}`}
+                  class="text-primary font-bold hover:text-secondary transition-colors flex items-center gap-1"
+                >
+                  Leer más
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </main>
+</Layout>

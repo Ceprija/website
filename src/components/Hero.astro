@@ -3,21 +3,21 @@ import Button from './Button.astro';
 
 const slides = [
   {
-    image: "https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=2070&auto=format&fit=crop",
+    image: "/ceprija_02.webp",
     title: "Formando Líderes con Excelencia",
     subtitle: "Licenciaturas, Maestrías y Doctorados con validez oficial. Tu futuro comienza aquí.",
     cta: "Ver Oferta Académica",
     link: "/oferta-academica"
   },
   {
-    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop",
+    image: "/ceprija_01.webp",
     title: "Educación Flexible y Moderna",
     subtitle: "Estudia a tu ritmo con nuestros modelos presenciales y en línea.",
     cta: "Conoce Más",
     link: "/nosotros"
   },
   {
-    image: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=2070&auto=format&fit=crop",
+    image: "/ceprija_03.jpg",
     title: "Alcanza tus Metas Profesionales",
     subtitle: "Únete a una comunidad de egresados exitosos en el sector público y privado.",
     cta: "Inscríbete Hoy",
@@ -49,9 +49,9 @@ const slides = [
               <Button href={slide.link} variant="secondary" size="lg" class="w-full sm:w-auto transform hover:scale-105 shadow-lg">
                 {slide.cta}
               </Button>
-              <Button href="/contacto" variant="outline" size="lg" class="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary hover:border-white">
+              {/* <Button href="/contacto" variant="outline" size="lg" class="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary hover:border-white">
                 Contáctanos
-              </Button>
+              </Button> */}
             </div>
         </div>
       </div>
@@ -135,7 +135,7 @@ const slides = [
   }
 
   function startAutoPlay() {
-    interval = window.setInterval(nextSlide, 5000);
+    interval = window.setInterval(nextSlide, 8000);
   }
 
   function stopAutoPlay() {

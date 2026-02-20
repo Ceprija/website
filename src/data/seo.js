@@ -8,7 +8,7 @@ export const seoConfig = {
     },
     pages: {
         home: {
-            title: "Inicio | CEPRIJA",
+            title: "CEPRIJA",
             description: "CEPRIJA forma líderes en el ámbito jurídico y administrativo con programas de excelencia académica y enfoque práctico.",
         },
         about: {
