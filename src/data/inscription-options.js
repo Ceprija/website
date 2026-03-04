@@ -15,7 +15,7 @@ export const states = [
 export const modalitiesStandard = ["En línea", "Presencial"];
 export const modalitiesCivil = ["En línea", "Híbrido"];
 
-export const studyGrades = ["Maestría", "Especialidad", "Doctorado"];
+export const studyGrades = ["Licenciatura", "Maestría", "Especialidad", "Doctorado"];
 
 export const yesNo = ["Sí", "No"];
 
