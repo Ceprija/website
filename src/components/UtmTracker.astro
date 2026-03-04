@@ -1,0 +1,110 @@
+---
+/**
+ * Componente para interceptar e inyectar parámetros UTM en los enlaces
+ * seleccionados durante la navegación del usuario.
+ */
+---
+
+<script>
+    import { utmConfig } from "../data/utm.js";
+
+    class UtmTracker {
+        private utmParams: string[];
+        private targetSelectors: string[];
+
+        constructor() {
+            // Utilizamos la configuración centralizada de utm.js
+            this.utmParams = utmConfig.paramsToTrack;
+            this.targetSelectors = utmConfig.targetSelectors;
+            this.init();
+        }
+
+        init() {
+            this.storeUtms();
+            this.appendUtms();
+        }
+
+        /**
+         * Almacena los parámetros UTM activos encontrados en la URL actual dentro del sessionStorage.
+         */
+        storeUtms() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            this.utmParams.forEach((param) => {
+                if (urlParams.has(param)) {
+                    const value = urlParams.get(param);
+                    if (value) {
+                        sessionStorage.setItem(param, value);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Inyecta los parámetros UTM previamente almacenados a enlaces específicos en la página.
+         */
+        appendUtms() {
+            // Seleccionamos los enlaces basados en la configuración
+            const selectorString = this.targetSelectors.join(", ");
+            const links =
+                document.querySelectorAll<HTMLAnchorElement>(selectorString);
+
+            links.forEach((link) => {
+                try {
+                    // Creamos una URL base para no afectar la estructura si es relativa
+                    const url = new URL(link.href, window.location.origin);
+                    let modified = false;
+
+                    this.utmParams.forEach((param) => {
+                        const storedValue = sessionStorage.getItem(param);
+                        // Solo añadimos si existe en session y no está ya presente en el href del enlace
+                        if (storedValue && !url.searchParams.has(param)) {
+                            url.searchParams.set(param, storedValue);
+                            modified = true;
+                        }
+                    });
+
+                    if (modified) {
+                        const originalHref = link.getAttribute("href") || "";
+                        // Conservamos el protocolo / estructura original según corresponda
+                        if (
+                            originalHref.startsWith("http") ||
+                            originalHref.startsWith("//") ||
+                            originalHref.startsWith("wa.me")
+                        ) {
+                            link.href = url.toString();
+                        } else if (
+                            originalHref.startsWith("/") ||
+                            originalHref.startsWith("./") ||
+                            originalHref.startsWith("../")
+                        ) {
+                            link.href = `${url.pathname}${url.search}${url.hash}`;
+                        } else {
+                            link.href = url.toString();
+                        }
+                    }
+                } catch (e) {
+                    // Ignora silenciosamente URLs inválidas
+                    console.warn(
+                        "[UTM Tracker] No se pudo procesar la URL para el enlace:",
+                        link.href,
+                    );
+                }
+            });
+        }
+    }
+
+    const setupUtms = () => {
+        new UtmTracker();
+    };
+
+    // Ejecución inicial
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupUtms);
+    } else {
+        setupUtms();
+    }
+
+    // Soporte para navegaciones de páginas de Astro (View Transitions)
+    document.addEventListener("astro:page-load", setupUtms);
+</script>

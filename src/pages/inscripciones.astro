@@ -1,0 +1,156 @@
+---
+import Layout from "../layouts/Layout.astro";
+import InscriptionForm from "../components/InscriptionForm.astro";
+
+const program = Astro.url.searchParams.get("programa") || "";
+---
+
+<Layout
+    title="Inscripción en Línea | CEPRIJA"
+    description="Portal oficial de inscripciones para programas jurídicos de CEPRIJA. Inicie su trayectoria académica hoy mismo."
+>
+    <!-- Background Accents -->
+    <div
+        class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-50 to-white -z-10"
+    >
+    </div>
+
+    <main class="container mx-auto px-4 py-20">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+            <h1
+                class="text-4xl md:text-5xl font-bold text-primary font-serif mb-6 leading-tight"
+                data-animate="fade-up"
+            >
+                Proceso de Inscripción
+            </h1>
+            <p
+                class="text-lg text-gray-600 leading-relaxed text-justify"
+                data-animate="fade-up"
+                data-delay="100"
+            >
+                Este formulario es el primer paso para integrar tu expediente
+                académico y garantizar la validez oficial de tu inscripción. En
+                CEPRIJA tratamos tu información con la máxima seriedad. Todos
+                los datos que proporciones serán utilizados únicamente para
+                fines académicos, administrativos y de comunicación
+                institucional, conforme a nuestro Aviso de Privacidad.
+            </p>
+        </div>
+        <div
+            class="text-left max-w-3xl mx-auto text-gray-600 leading-relaxed mb-10"
+            data-animate="fade-up"
+            data-delay="200"
+        >
+            <p>Documentos requeridos:</p>
+            <ul class="mt-2">
+                <li>⭐ Acta de Nacimiento (No mayor a 3 meses)</li>
+                <li>⭐ CURP (No mayor a 3 meses)</li>
+                <li>⭐ INE</li>
+                <li>⭐ Comprobante de Domicilio (No mayor a 3 meses)</li>
+                <li>⭐ Comprobante de Pago (No mayor a 3 meses)</li>
+            </ul>
+        </div>
+        <div
+            class="text-left max-w-3xl mx-auto text-gray-600 leading-relaxed mb-10"
+            data-animate="fade-up"
+            data-delay="200"
+        >
+            <p>📢 SOLO SE ACEPTAN DOCUMENTOS ORIGINALES:</p>
+            <ul class="mt-2">
+                <li>DESCARGADOS EN LÍNEA</li>
+                <li>ESCANEADOS</li>
+                <li>
+                    ❌ FOTOS DE DOCUMENTOS O ESCANEOS DE COPIAS NO SERÁN
+                    ACEPTADOS.
+                </li>
+            </ul>
+        </div>
+        <div data-animate="fade-up" data-delay="200">
+            <InscriptionForm selectedProgram={program} />
+        </div>
+
+        <div
+            class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
+            data-animate="fade-up"
+            data-delay="300"
+        >
+            <div
+                class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center"
+            >
+                <div
+                    class="w-12 h-12 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        ></path></svg
+                    >
+                </div>
+                <h4 class="font-bold text-gray-900 mb-2">Conexión Segura</h4>
+                <p class="text-sm text-gray-500">
+                    Sus datos personales y documentos están protegidos bajo
+                    protocolos de seguridad.
+                </p>
+            </div>
+            <div
+                class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center"
+            >
+                <div
+                    class="w-12 h-12 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path></svg
+                    >
+                </div>
+                <h4 class="font-bold text-gray-900 mb-2">
+                    Asistencia Continua
+                </h4>
+                <p class="text-sm text-gray-500">
+                    Si tiene dudas, nuestro equipo de soporte está listo para
+                    ayudarle vía WhatsApp.
+                </p>
+            </div>
+            <div
+                class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center"
+            >
+                <div
+                    class="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path></svg
+                    >
+                </div>
+                <h4 class="font-bold text-gray-900 mb-2">Registro Digital</h4>
+                <p class="text-sm text-gray-500">
+                    Ahorre tiempo completando su expediente de forma 100%
+                    digital y transparente.
+                </p>
+            </div>
+        </div>
+    </main>
+</Layout>

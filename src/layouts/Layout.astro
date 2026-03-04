@@ -20,6 +20,7 @@ import AnalyticsHead from "../components/AnalyticsHead.astro";
 import AnalyticsBody from "../components/AnalyticsBody.astro";
 import CookieBanner from "../components/CookieBanner.astro";
 import SeoHead from "../components/SeoHead.astro";
+import UtmTracker from "../components/UtmTracker.astro";
 import { seoConfig } from "../data/seo";
 import "../styles/animations.css";
 
@@ -110,6 +111,7 @@ const absoluteImage = new URL(image, Astro.site).toString();
 		<Footer />
 		<WhatsAppButton />
 		<CookieBanner />
+		<UtmTracker />
 		<script>
 			// Zero-dependency Scroll Animations
 			const observerOptions = {
