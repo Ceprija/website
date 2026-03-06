@@ -236,7 +236,7 @@ export const POST: APIRoute = async ({ request }) => {
             `;
 
             const userBody = {
-                sender: { email: senderEmail },
+                sender: { email: senderEmail, name: "Equipo CEPRIJA" },
                 to: [{ email: email }],
                 subject: emailSubject,
                 htmlContent: emailBody
