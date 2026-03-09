@@ -26,7 +26,8 @@ export const sources = ["Redes sociales", "Google", "Recomendación", "Prensa/Ra
 import { programs } from './programs.js';
 
 export const juridicPrograms = programs.filter(p =>
-    p.level === "Maestría" ||
-    p.level === "Especialidad" ||
-    p.level === "Doctorado"
+    p.activeForForm === true &&
+    (p.level === "Maestría" ||
+        p.level === "Especialidad" ||
+        p.level === "Doctorado")
 ).map(p => p.title);

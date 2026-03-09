@@ -1,6 +1,7 @@
 export const programs = [
     {
         active: true,
+        activeForForm: true,
         id: "diplomado-derecho-mercantil-oral",
         title: "Diplomado en Derecho Mercantil Oral",
         level: "Diplomado",

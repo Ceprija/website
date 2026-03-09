@@ -1,0 +1,214 @@
+---
+export const prerender = false;
+
+import Layout from "../layouts/Layout.astro";
+import ContinuousEducationForm from "../components/ContinuousEducationForm.astro";
+import { ecPrograms } from "../data/educacion-continua-options.js";
+
+const programIdParam = Astro.url.searchParams.get("id") || "";
+const programTitleParam = Astro.url.searchParams.get("programa") || "";
+
+const initialProgram = ecPrograms.find(
+    (p) => p.id === programIdParam || p.title === programTitleParam,
+);
+
+const seo = {
+    title: "Inscripción Educación Continua | CEPRIJA",
+    description:
+        "Portal de inscripción para cursos, talleres y diplomados de CEPRIJA. Inicia tu actualización profesional hoy mismo.",
+};
+---
+
+<Layout seo={seo}>
+    <main class="bg-gray-50 min-h-screen pb-20">
+        <!-- Hero Section -->
+        <section class="bg-primary text-white py-20 relative overflow-hidden">
+            <div
+                class="absolute top-0 right-0 w-1/3 h-full bg-secondary/10 -skew-x-12 translate-x-1/2"
+            >
+            </div>
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="max-w-3xl">
+                    <h1
+                        class="text-4xl md:text-5xl font-bold font-serif mb-6 animate-fade-up"
+                    >
+                        Certificación y Educación Continua
+                    </h1>
+                    <p
+                        class="text-xl text-blue-100 animate-fade-up"
+                        style="animation-delay: 100ms;"
+                    >
+                        Completa tu proceso de inscripción de forma digital para
+                        nuestros diplomados, cursos y talleres.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="container mx-auto px-6 -mt-10 relative z-20">
+            <div
+                class="bg-white rounded-3xl shadow-xl p-8 md:p-12 mb-12 border border-blue-50"
+            >
+                <div class="max-w-xl mx-auto mb-10 text-center">
+                    <label
+                        class="block text-sm font-bold text-primary uppercase tracking-widest mb-4"
+                        >Selecciona el Programa de Interés</label
+                    >
+                    <select
+                        id="main-program-selector"
+                        class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-lg font-bold text-gray-800 shadow-sm"
+                    >
+                        <option value="">-- SELECCIONA UN PROGRAMA --</option>
+                        {
+                            ecPrograms.map((p) => (
+                                <option
+                                    value={p.id}
+                                    selected={p.id === initialProgram?.id}
+                                    data-title={p.title}
+                                    data-prices={JSON.stringify(p.price)}
+                                    data-links={JSON.stringify(p.paymentLinks)}
+                                    data-address={
+                                        p.address ||
+                                        "Instalaciones de CEPRIJA - Lope de Vega #273"
+                                    }
+                                >
+                                    {p.level.toUpperCase()}:{" "}
+                                    {p.title.toUpperCase()}
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
+
+                <div id="form-container" class={initialProgram ? "" : "hidden"}>
+                    <ContinuousEducationForm
+                        programTitle={initialProgram?.title}
+                        programId={initialProgram?.id}
+                        prices={initialProgram?.price}
+                        paymentLinks={initialProgram?.paymentLinks}
+                        address={initialProgram?.address}
+                    />
+                </div>
+
+                <div
+                    id="empty-state"
+                    class={initialProgram
+                        ? "hidden"
+                        : "py-20 text-center animate-fade-in"}
+                >
+                    <div
+                        class="w-20 h-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-6"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-10 w-10"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                            ></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-400 font-medium italic">
+                        Por favor selecciona un programa para ver el formulario
+                        de inscripción
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+</Layout>
+
+<script is:inline>
+    const selector = document.getElementById("main-program-selector");
+    const formContainer = document.getElementById("form-container");
+    const emptyState = document.getElementById("empty-state");
+
+    function updateFormFromSelection() {
+        if (!selector) return;
+
+        const option = selector.selectedOptions[0];
+        const progId = selector.value;
+
+        if (!progId) {
+            formContainer.classList.add("hidden");
+            emptyState.classList.remove("hidden");
+            return;
+        }
+
+        const title = option.dataset.title;
+        const pricesJson = option.dataset.prices || "{}";
+        const linksJson = option.dataset.links || "{}";
+        const address = option.dataset.address;
+
+        // Propagate to internal form elements
+        const formProgramTitle = document.getElementById("form-program-title");
+        const programHeaderTitle = document.getElementById(
+            "program-header-title",
+        );
+        const programIdInput = document.getElementById("form-program-id");
+        const theForm = document.getElementById("ce-inscription-form");
+        const addressContainer = document.getElementById(
+            "form-address-display",
+        );
+
+        if (formProgramTitle) formProgramTitle.value = title;
+        if (programHeaderTitle) programHeaderTitle.textContent = title;
+        if (programIdInput) programIdInput.value = progId;
+
+        // Update payment links datasets
+        if (theForm) {
+            theForm.dataset.paymentLinks = linksJson;
+            theForm.dataset.prices = pricesJson;
+            theForm.dataset.address = address;
+        }
+
+        // Trigger change event to recalculate logic inside form
+        const modalityRadios = document.querySelectorAll(
+            'input[name="modality"]',
+        );
+        if (modalityRadios.length > 0) {
+            modalityRadios[0].dispatchEvent(new Event("change"));
+        }
+
+        // Update address text
+        if (addressContainer) addressContainer.textContent = address;
+
+        // Toggle visibility
+        emptyState.classList.add("hidden");
+        formContainer.classList.remove("hidden");
+
+        // Optional: Update the URL query quietly
+        const url = new URL(window.location);
+        url.searchParams.set("id", progId);
+        window.history.replaceState({}, "", url);
+    }
+
+    selector?.addEventListener("change", updateFormFromSelection);
+
+    // Initial check on load (fixes any SSG initialization issues)
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId = urlParams.get("id");
+        const urlPrograma = urlParams.get("programa");
+
+        if (urlId && selector) {
+            selector.value = urlId;
+            updateFormFromSelection();
+        } else if (urlPrograma && selector) {
+            // Fallback for old ?programa parameter
+            const matchingOption = Array.from(selector.options).find(
+                (opt) => opt.dataset.title === urlPrograma,
+            );
+            if (matchingOption) {
+                selector.value = matchingOption.value;
+                updateFormFromSelection();
+            }
+        }
+    });
+</script>

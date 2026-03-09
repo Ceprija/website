@@ -2,7 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { programs } from "../../data/programs.js";
 import ContactForm from "../../components/ContactForm.astro";
-import RegistrationForm from "../../components/RegistrationForm.astro";
+import ContinuousEducationForm from "../../components/ContinuousEducationForm.astro";
 
 export async function getStaticPaths() {
     return programs
@@ -402,10 +402,12 @@ const seo = {
                             ["Curso", "Taller", "Diplomado"].includes(
                                 program.level,
                             ) ? (
-                                <RegistrationForm
+                                <ContinuousEducationForm
                                     programTitle={program.title}
+                                    programId={program.id}
                                     paymentLinks={program.paymentLinks}
                                     prices={program.price}
+                                    address={program.address}
                                 />
                             ) : (
                                 <ContactForm programTitle={program.title} />

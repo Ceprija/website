@@ -4,6 +4,7 @@ export const programs = [
     // Maestrías
     {
         active: true,
+        activeForForm: false,
         id: "maestria-derecho-penal",
         title: "Maestría en Derecho Penal y Litigación Oral Avanzada",
         level: "Maestría",
@@ -76,6 +77,7 @@ export const programs = [
     },
     {
         active: true,
+        activeForForm: true,
         id: "maestria-derecho-civil",
         title: "Maestría en Derecho Civil y Familiar",
         level: "Maestría",
@@ -152,6 +154,7 @@ export const programs = [
     },
     {
         active: true,
+        activeForForm: true,
         id: "maestria-derecho-internacional",
         title: "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico",
         level: "Maestría",
@@ -216,6 +219,7 @@ export const programs = [
     },
     {
         active: true,
+        activeForForm: false,
         id: "especialidad-criminalistica",
         title: "Especialidad en Criminalística y Ciencias Forenses",
         level: "Especialidad",
@@ -260,6 +264,7 @@ export const programs = [
     // Doctorados
     {
         active: true,
+        activeForForm: false,
         id: "doctorado-derecho-procesal",
         title: "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
         level: "Doctorado",
