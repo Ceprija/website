@@ -264,7 +264,7 @@ export const programs = [
     // Doctorados
     {
         active: true,
-        activeForForm: false,
+        activeForForm: true,
         id: "doctorado-derecho-procesal",
         title: "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
         level: "Doctorado",

@@ -1,6 +1,7 @@
 export const programs = [
     {
         active: true,
+        activeForForm: true,
         id: "curso-penal-fiscal-2026",
         title: "Curso de Penal Fiscal 2026",
         level: "Curso",
@@ -77,6 +78,7 @@ export const programs = [
     },
     {
         active: true,
+        activeForForm: true,
         id: "cancelacion-sellos-digitales",
         title: "Cancelación de Sellos Digitales y su Estrategia para Desbloquearlos",
         level: "Curso",
@@ -117,6 +119,7 @@ export const programs = [
     },
     {
         active: true,
+        activeForForm: true,
         id: "taller-excel-basico-avanzado",
         title: "Taller de Excel Básico-Avanzado",
         level: "Taller",
@@ -202,13 +205,112 @@ export const programs = [
                 ]
             }
         ],
-        profile: "Profesionales de áreas administrativas (RH, Contabilidad, Finanzas, etc.) y usuarios de Excel para análisis de datos.",
+        profileAudience: "Personal de áreas Administrativas como R.H., Contabilidad, Finanzas, Presupuestos, Nóminas, Tesorería, Ventas, Almacén. Excel en su labor diaria como instrumento de análisis de Datos",
         fieldOfWork: "Empresas, consultoría, administración, finanzas.",
         benefits: [
             "De nivel Básico a Avanzado",
             "Asesoría permanente durante el curso",
             "100% práctico",
             "Conocimiento de atajos para eficiencia"
+        ]
+    },
+    {
+        active: true,
+        activeForForm: true,
+        id: "mi-futuro-mi-patrimonio",
+        title: "Mi Futuro, Mi Patrimonio",
+        level: "Curso",
+        description: "Aprende sobre conciencia financiera, administra un fondo de emergencia y construye tu patrimonio con estrategia.",
+        image: "bg-[url('/images/programs/mi-futuro-mi-patrimonio.png')] bg-cover bg-center",
+        duration: "2 horas",
+        modality: "Presencial / En línea",
+        instructor: "Mtra. Selene Laveaga",
+        address: "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+        meetingLink: "https://meet.google.com/dqw-vazs-hje",
+        startDate: "20 de Marzo de 2026",
+        endDate: "",
+        schedule: "1 sesión",
+        price: {
+            "Presencial": "$549.00 MXN",
+            "Online": "$449.00 MXN"
+        },
+        paymentLinks: {
+            online: "",
+            presencial: ""
+        },
+        includes: [
+            "Constancia de participación"
+        ],
+        curriculumTitle: "Temario",
+        curriculum: [
+            {
+                period: "",
+                subjects: [
+                    "Comienza con la conciencia financiera",
+                    "Define tus valores y virtudes",
+                    "Establece un fondo de emergencia",
+                    "Reduce y maneja las deudas",
+                    "Ahorra e invierte para el futuro",
+                    "Asegúrate a ti mismo y tus bienes",
+                    "Establece múltiples fuentes de ingresos",
+                    "Organiza un archivo y edita tu documento de legado",
+                    "Calcula tu patrimonio y tu gasto personal mensual",
+                    "Establece rutina diaria, semanal y mensual de control"
+                ]
+            }
+        ],
+        profileAudience: "Mujeres que busquen mejorar su relación con el dinero y crear su patrimonio.",
+        fieldOfWork: "",
+        benefits: [
+            ""
+        ]
+    },
+    {
+        active: true,
+        activeForForm: true,
+        id: "actualizacion-jurisprudencial-en-materia-fiscal",
+        title: "Actualización Jurisprudencial en Materia Fiscal",
+        level: "Curso",
+        description: "Domina las jurisprudencias fiscales más recientes y su impacto estratégico en el sector.",
+        image: "bg-[url('/images/programs/actualizacion-jurisprudencial-en-materia-fiscal.png')] bg-cover bg-center",
+        duration: "3 horas 30 minutos",
+        modality: "Presencial / En línea",
+        instructor: "Mtro. Alfonso Fabián Barajas y el Dr. Víctor Gumaro Correa Ortega",
+        address: "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+        meetingLink: "https://meet.google.com/oep-mrid-dze",
+        startDate: "19 de Marzo de 2026",
+        endDate: "",
+        schedule: "1 sesión",
+        price: {
+            "Presencial": "$800.00 MXN",
+            "Online": "$650.00 MXN"
+        },
+        paymentLinks: {
+            online: "",
+            presencial: ""
+        },
+        includes: [
+            "Constancia de participación"
+        ],
+        curriculumTitle: "Temario",
+        curriculum: [
+            {
+                period: "",
+                subjects: [
+                    "CFDI y sellos digitales",
+                    "69-B y listas negras",
+                    "Facultades de comprobación",
+                    "Notificaciones y buzón tributario",
+                    "Responsabilidad solidaria y penal",
+                    "Medios de defensa fiscal"
+                ]
+            }
+        ],
+        profile: "",
+        profileAudience: "Contadores, administradores, financieros y abogados",
+        fieldOfWork: "",
+        benefits: [
+            ""
         ]
     }
 ];
