@@ -5,7 +5,7 @@ import { analyticsConfig } from "../data/analytics";
 <!-- Google Tag Manager -->
 {
   analyticsConfig.gtm.enabled && analyticsConfig.gtm.id && (
-    <script is:inline define:vars={{ gtmId: analyticsConfig.gtm.id }}>
+    <script type="text/partytown" define:vars={{ gtmId: analyticsConfig.gtm.id }}>
       (function (w, d, s, l, i) {
         w[l] = w[l] || [];
         w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
@@ -25,10 +25,10 @@ import { analyticsConfig } from "../data/analytics";
   analyticsConfig.ga4.enabled && analyticsConfig.ga4.id && (
     <>
       <script
-        async
+        type="text/partytown"
         src={`https://www.googletagmanager.com/gtag/js?id=${analyticsConfig.ga4.id}`}
       ></script>
-      <script is:inline define:vars={{ gaId: analyticsConfig.ga4.id }}>
+      <script type="text/partytown" define:vars={{ gaId: analyticsConfig.ga4.id }}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {
           dataLayer.push(arguments);
@@ -44,7 +44,7 @@ import { analyticsConfig } from "../data/analytics";
 {
   analyticsConfig.metaPixel.enabled && analyticsConfig.metaPixel.id && (
     <>
-      <script is:inline define:vars={{ pixelId: analyticsConfig.metaPixel.id }}>
+      <script type="text/partytown" define:vars={{ pixelId: analyticsConfig.metaPixel.id }}>
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};

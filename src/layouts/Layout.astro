@@ -23,6 +23,21 @@ import SeoHead from "../components/SeoHead.astro";
 import UtmTracker from "../components/UtmTracker.astro";
 import { seoConfig } from "../data/seo";
 import "../styles/animations.css";
+import "@fontsource/ibm-plex-sans/100.css";
+import "@fontsource/ibm-plex-sans/200.css";
+import "@fontsource/ibm-plex-sans/300.css";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans/700.css";
+import "@fontsource/merriweather/300.css";
+import "@fontsource/merriweather/400.css";
+import "@fontsource/merriweather/700.css";
+import "@fontsource/merriweather/900.css";
+import "@fontsource/merriweather/300-italic.css";
+import "@fontsource/merriweather/400-italic.css";
+import "@fontsource/merriweather/700-italic.css";
+import "@fontsource/merriweather/900-italic.css";
 
 const {
 	title: propTitle,
@@ -83,13 +98,6 @@ const absoluteImage = new URL(image, Astro.site).toString();
 		<meta property="twitter:title" content={title} />
 		<meta property="twitter:description" content={description} />
 		<meta property="twitter:image" content={absoluteImage} />
-
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link
-			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap"
-			rel="stylesheet"
-		/>
 
 		<SeoHead
 			title={title}
