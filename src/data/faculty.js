@@ -23,7 +23,7 @@ export const faculty = [
             "CUCSH - Materia de Amparo Penal.",
             "CEPRIJA - Maestría en Derecho Penal y Litigación Oral Avanzada."
         ], */
-        image: "/manuel_espinoza_paredes.webp"
+        image: "/manuel_espinoza_paredes.png"
     },
     {
         id: "jose-de-jesus-angulo-aguirre",
@@ -36,7 +36,7 @@ export const faculty = [
             "ITESO - Profesor titular desde 2001.",
             "CEPRIJA - Maestría en Derecho Penal y Litigación Oral Avanzada."
         ], */
-        image: "/jose_jesus_angulo_aguirre.webp"
+        image: "/jose_jesus_angulo_aguirre.png"
     },
     {
         id: "yenni-alsina",
@@ -48,7 +48,7 @@ export const faculty = [
         /* experience_institutional: [
             "CEPRIJA - Imparte la materia de Actos de Investigación en la Maestría en Derecho Penal."
         ], */
-        image: "/yenni_alsina_wensy.webp"
+        image: "/yenni_alsina_wensy.png"
     },
     {
         id: "ma-karina-dolores-rivas-gutierrez",
@@ -72,7 +72,7 @@ export const faculty = [
         experience_institutional: [
             "CEPRIJA - Imparte la materia de Salidas Alternas y Terminación Anticipada en la Maestría en Derecho Penal."
         ],
-        image: "/blanca_estela_magdaleno_cortes.webp"
+        image: "/blanca_estela_magdaleno_cortes.png"
     },
     {
         id: "martha-temores-sanchez",
@@ -83,7 +83,7 @@ export const faculty = [
         /* experience_institutional: [
             "CEPRIJA - Imparte la materia de Formas de Terminación de la Investigación en la Maestría en Derecho Penal."
         ], */
-        image: "/martha_temores_sanchez.webp"
+        image: "/martha_temores_sanchez.png"
     },
     {
         id: "martha-leticia-padilla-enriquez",
@@ -95,7 +95,7 @@ export const faculty = [
         /* experience_institutional: [
             "CEPRIJA - Imparte la materia de Formas de Terminación de la Investigación en la Maestría en Derecho Penal y Litigación Oral Avanzada."
         ], */
-        image: "/martha_leticia_padilla.webp"
+        image: "/martha_leticia_padilla.png"
     },
     /* {
         id: "abraham-amiud-davila-rodriguez",
@@ -140,7 +140,7 @@ export const faculty = [
         /* experience_institutional: [
             "CEPRIJA - Imparte la materia de Introducción al Juicio Oral Familiar."
         ], */
-        image: "/veronica_ucaranza_sanchez.webp"
+        image: "/veronica_ucaranza_sanchez.png"
     }
 ];
 

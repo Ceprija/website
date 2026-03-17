@@ -41,15 +41,17 @@ const program = Astro.url.searchParams.get("programa") || "";
             data-animate="fade-up"
             data-delay="200"
         >
-            <p>Documentos requeridos:</p>
-            <ul class="mt-2">
-                <li>Acta de Nacimiento (expedida en los últimos 3 meses)</li>
-                <li>CURP Actualizada</li>
-                <li>Identificación oficial vigente (INE)</li>
-                <li>Comprobante de domicilio (no mayor a 3 meses)</li>
-                <li>Cédula profesional</li>
-                <li>Título profesional</li>
-            </ul>
+            <p><strong>Documentos requeridos:</strong></p>
+            <ol class="mt-2">
+                <li>
+                    1.- Acta de Nacimiento (expedida en los últimos 3 meses)
+                </li>
+                <li>2.- CURP Actualizada</li>
+                <li>3.- Identificación oficial vigente (INE)</li>
+                <li>4.- Comprobante de domicilio (no mayor a 3 meses)</li>
+                <li>5.- Cédula profesional</li>
+                <li>6.- Título profesional</li>
+            </ol>
         </div>
         <div
             class="text-left max-w-3xl mx-auto text-gray-600 leading-relaxed mb-10"
@@ -58,10 +60,13 @@ const program = Astro.url.searchParams.get("programa") || "";
         >
             <p>Nota: Solo se aceptan documentos originales:</p>
             <ul class="mt-2">
-                <li>Descargados en línea</li>
-                <li>Escaneados</li>
+                <li>Descargados en línea o escaneados</li>
+
                 <li>
-                    Fotos de documentos o escaneos de copias no serán aceptados.
+                    <i>
+                        Fotos de documentos o escaneos de copias no serán
+                        aceptados.
+                    </i>
                 </li>
             </ul>
         </div>
