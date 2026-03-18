@@ -1,13 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { privacyData } from "../data/privacy.js";
+import { termsData } from "../data/terms.js";
 ---
 
-<Layout pageId="privacy">
+<Layout pageId="terms">
     <main class="pt-20 pb-20 bg-gray-50">
         <div class="container mx-auto px-6 max-w-4xl">
             {
-                privacyData.map((notice, index) => (
+                termsData.map((notice, index) => (
                     <div
                         class={`bg-white p-8 md:p-12 rounded-2xl shadow-sm space-y-6 text-gray-700 leading-relaxed ${index !== 0 ? "mt-12" : ""}`}
                     >

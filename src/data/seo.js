@@ -24,8 +24,12 @@ export const seoConfig = {
             description: "Contáctanos para más información sobre nuestros programas. Estamos ubicados en la Colonia Americana, Guadalajara.",
         },
         privacy: {
-            title: "Avisos Legales | CEPRIJA",
-            description: "Consulta nuestros Términos y Condiciones, Aviso de Privacidad y Política de Cookies.",
+            title: "Aviso de Privacidad | CEPRIJA",
+            description: "Consulta nuestro Aviso de Privacidad Integral, política de cookies y uso de imagen.",
+        },
+        terms: {
+            title: "Términos y Condiciones | CEPRIJA",
+            description: "Consulta los Términos y Condiciones de uso del sitio web de CEPRIJA.",
         },
         faculty: {
             title: "Claustro Docente | CEPRIJA",
