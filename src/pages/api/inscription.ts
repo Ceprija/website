@@ -2,9 +2,6 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import Busboy from 'busboy';
-import { createWriteStream, existsSync } from 'fs';
-import { mkdir, appendFile, readFile } from 'fs/promises';
-import { join } from 'path';
 
 // Helper function to sanitize filename
 function sanitizeFilename(name: string): string {
@@ -18,11 +15,11 @@ function sanitizeFilename(name: string): string {
 }
 
 // Helper to parse multipart form data
-function parseFormData(request: Request): Promise<{ fields: Record<string, string>, files: Record<string, { filepath: string, filename: string, mimetype: string }> }> {
+function parseFormData(request: Request): Promise<{ fields: Record<string, string>, files: Record<string, { buffer: Buffer, filename: string, mimetype: string }> }> {
     return new Promise((resolve, reject) => {
         const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
         const fields: Record<string, string> = {};
-        const files: Record<string, { filepath: string, filename: string, mimetype: string }> = {};
+        const files: Record<string, { buffer: Buffer, filename: string, mimetype: string }> = {};
         const fileUploadPromises: Promise<void>[] = [];
 
         busboy.on('field', (fieldname: string, value: string) => {
@@ -41,21 +38,21 @@ function parseFormData(request: Request): Promise<{ fields: Record<string, strin
             const ext = filename.split('.').pop() || 'file';
             const newFilename = `${sanitizedUser}_${fieldname}_${timestamp}.${ext}`;
 
-            const uploadDir = join(process.cwd(), 'public', 'uploads', 'inscripciones');
-            const filepath = join(uploadDir, newFilename);
-
-            const filePromise = (async () => {
-                await mkdir(uploadDir, { recursive: true });
-                return new Promise<void>((fResolve, fReject) => {
-                    const writeStream = createWriteStream(filepath);
-                    file.pipe(writeStream);
-                    writeStream.on('finish', () => {
-                        files[fieldname] = { filepath, filename: newFilename, mimetype: mimeType };
-                        fResolve();
-                    });
-                    writeStream.on('error', fReject);
+            const filePromise = new Promise<void>((fResolve, fReject) => {
+                const chunks: Buffer[] = [];
+                file.on('data', (data: Buffer) => {
+                    chunks.push(data);
                 });
-            })();
+                file.on('end', () => {
+                    files[fieldname] = {
+                        buffer: Buffer.concat(chunks),
+                        filename: newFilename,
+                        mimetype: mimeType
+                    };
+                    fResolve();
+                });
+                file.on('error', fReject);
+            });
             fileUploadPromises.push(filePromise);
         });
 
@@ -84,10 +81,7 @@ export const POST: APIRoute = async ({ request }) => {
         const { fields, files } = await parseFormData(request);
         const { programTitle } = fields;
 
-        // 1. Save to CSV
-        const csvDir = join(process.cwd(), 'src', 'data', 'inscripciones');
-        await mkdir(csvDir, { recursive: true });
-        const csvPath = join(csvDir, `${sanitizeFilename(programTitle || 'general')}.csv`);
+        // 1. Generate CSV content
 
         const headers = [
             "Fecha Registro", "Programa", "Nombre", "Apellidos", "Género", "Teléfono", "Email",
@@ -160,38 +154,31 @@ export const POST: APIRoute = async ({ request }) => {
             return `"${processed.replace(/"/g, '""')}"`;
         }).join(',');
 
-        if (!existsSync(csvPath)) {
-            await appendFile(csvPath, headers.join(',') + '\n');
-        }
-        await appendFile(csvPath, row + '\n');
-
         // 2. Send Emails
         const brevoKey = import.meta.env.KEY_API_BREVO;
         const senderEmail = import.meta.env.SMTP_FROM || 'contacto@ceprija.edu.mx';
         const controlEscolar = import.meta.env.EMAIL_CONTROL_ESCOLAR || 'admin@ceprija.edu.mx';
+        const controlAdmin = import.meta.env.CONTACT_EMAIL || 'admin@ceprija.edu.mx';
         const soporteWeb = import.meta.env.EMAIL_SOPORTE_WEB || 'soporte@ceprija.edu.mx';
 
-        // Read CSV
-        const csvContent = await readFile(csvPath);
-        const csvBase64 = csvContent.toString('base64');
+        // Create CSV in memory
+        const csvContent = headers.join(',') + '\n' + row + '\n';
+        const csvBase64 = Buffer.from(csvContent).toString('base64');
         const attachments = [
             { name: `${sanitizeFilename(programTitle || 'inscripcion')}.csv`, content: csvBase64 }
         ];
 
         // Attach all uploaded files
         for (const [key, file] of Object.entries(files)) {
-            if (existsSync(file.filepath)) {
-                const fileContent = await readFile(file.filepath);
-                attachments.push({
-                    name: file.filename,
-                    content: fileContent.toString('base64')
-                });
-            }
+            attachments.push({
+                name: file.filename,
+                content: file.buffer.toString('base64')
+            });
         }
 
         const adminBody = {
             sender: { email: senderEmail },
-            to: [{ email: controlEscolar }, { email: soporteWeb }],
+            to: [{ email: controlEscolar }, { email: soporteWeb }, { email: controlAdmin }],
             subject: `Nueva Inscripción: ${programTitle}`,
             htmlContent: `<h2>Nueva inscripción recibida</h2><p>Se adjunta el archivo CSV con los registros y los documentos adjuntos de <b>${fields.nombre} ${fields.apellidos}</b>.</p>`,
             attachment: attachments

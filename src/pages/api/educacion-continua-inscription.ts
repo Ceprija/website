@@ -4,9 +4,6 @@ import type { APIRoute } from 'astro';
 import { programs } from '../../data/programs';
 import emailTemplates from '../../data/email-templates-educacion-continua.json';
 import Busboy from 'busboy';
-import { createWriteStream, appendFileSync, existsSync } from 'fs';
-import { mkdir, readFile } from 'fs/promises';
-import { join } from 'path';
 
 function sanitizeFilename(name: string): string {
     return name
@@ -19,16 +16,16 @@ function sanitizeFilename(name: string): string {
 }
 
 async function parseFormData(request: Request) {
-    return new Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, filepath: string, filename: string, mimetype: string }> }>((resolve, reject) => {
+    return new Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> }>((resolve, reject) => {
         const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
         const fields: Record<string, string> = {};
-        const files: Array<{ fieldname: string, filepath: string, filename: string, mimetype: string }> = [];
+        const files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> = [];
 
         busboy.on('field', (fieldname, value) => {
             fields[fieldname] = value;
         });
 
-        busboy.on('file', async (fieldname, file, info) => {
+        busboy.on('file', (fieldname, file, info) => {
             const { filename, mimeType } = info;
 
             if (!filename) {
@@ -42,20 +39,22 @@ async function parseFormData(request: Request) {
             const ext = filename.split('.').pop() || 'file';
 
             const newFilename = `${fieldname}_${sanitizedName}_${timestamp}.${ext}`;
-            const uploadDir = join(process.cwd(), 'public', 'uploads', 'educacion-continua');
-            const filepath = join(uploadDir, newFilename);
 
-            try {
-                await mkdir(uploadDir, { recursive: true });
-                const writeStream = createWriteStream(filepath);
-                file.pipe(writeStream);
-
-                writeStream.on('finish', () => {
-                    files.push({ fieldname, filepath, filename: newFilename, mimetype: mimeType });
+            const chunks: Buffer[] = [];
+            file.on('data', (data: Buffer) => {
+                chunks.push(data);
+            });
+            file.on('end', () => {
+                files.push({ 
+                    fieldname, 
+                    buffer: Buffer.concat(chunks), 
+                    filename: newFilename, 
+                    mimetype: mimeType 
                 });
-            } catch (err) {
+            });
+            file.on('error', (err: Error) => {
                 reject(err);
-            }
+            });
         });
 
         busboy.on('finish', () => {
@@ -90,16 +89,8 @@ export const POST: APIRoute = async ({ request }) => {
 
         const programDetails = programs.find(p => p.id === programId || p.title === programTitle) || {};
 
-        // CSV Storage
-        const csvDir = join(process.cwd(), 'src', 'data', 'inscripciones');
-        await mkdir(csvDir, { recursive: true });
-        const csvPath = join(csvDir, `${sanitizeFilename(programTitle || 'ec-general')}.csv`);
-
+        // CSV in-memory generation
         const header = "FECHA,NOMBRE,EMAIL,TELEFONO,MODALIDAD,FACTURA,EMAIL FACTURA\n";
-        if (!existsSync(csvPath)) {
-            appendFileSync(csvPath, header);
-        }
-
         const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
         const csvRow = [
             `"${now}"`,
@@ -111,7 +102,7 @@ export const POST: APIRoute = async ({ request }) => {
             (invoiceEmail || '').toLowerCase()
         ].join(',') + '\n';
 
-        appendFileSync(csvPath, csvRow);
+        const csvContent = header + csvRow;
 
         // Brevo API Key
         const brevoKey = import.meta.env.KEY_API_BREVO;
@@ -145,18 +136,17 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Add attachments to admin email
         for (const f of files) {
-            const content = await readFile(f.filepath);
             adminBody.attachment.push({
                 name: f.filename,
-                content: content.toString('base64')
+                content: f.buffer.toString('base64')
             });
         }
 
         // Also attach the CSV
-        const csvData = await readFile(csvPath);
+        const csvBase64 = Buffer.from(csvContent).toString('base64');
         adminBody.attachment.push({
-            name: `${sanitizeFilename(programTitle)}.csv`,
-            content: csvData.toString('base64')
+            name: `${sanitizeFilename(programTitle || 'ec-general')}.csv`,
+            content: csvBase64
         });
 
         await fetch('https://api.brevo.com/v3/smtp/email', {
