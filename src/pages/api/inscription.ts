@@ -156,10 +156,10 @@ export const POST: APIRoute = async ({ request }) => {
 
         // 2. Send Emails
         const brevoKey = import.meta.env.KEY_API_BREVO;
-        const senderEmail = import.meta.env.SMTP_FROM || 'contacto@ceprija.edu.mx';
-        const controlEscolar = import.meta.env.EMAIL_CONTROL_ESCOLAR || 'admin@ceprija.edu.mx';
-        const controlAdmin = import.meta.env.CONTACT_EMAIL || 'admin@ceprija.edu.mx';
-        const soporteWeb = import.meta.env.EMAIL_SOPORTE_WEB || 'soporte@ceprija.edu.mx';
+        const senderEmail = import.meta.env.SMTP_FROM;
+        const controlEscolar = import.meta.env.EMAIL_CONTROL_ESCOLAR;
+        const controlAdmin = import.meta.env.CONTACT_EMAIL;
+        const soporteWeb = import.meta.env.EMAIL_SOPORTE_WEB;
 
         // Create CSV in memory
         const csvContent = headers.join(',') + '\n' + row + '\n';
@@ -178,19 +178,112 @@ export const POST: APIRoute = async ({ request }) => {
 
         const adminBody = {
             sender: { email: senderEmail },
-            to: [{ email: controlEscolar }, { email: soporteWeb }, { email: controlAdmin }],
+            to: [{ email: soporteWeb }, { email: controlEscolar }, { email: controlAdmin }],
             subject: `Nueva Inscripción: ${programTitle}`,
             htmlContent: `<h2>Nueva inscripción recibida</h2><p>Se adjunta el archivo CSV con los registros y los documentos adjuntos de <b>${fields.nombre} ${fields.apellidos}</b>.</p>`,
             attachment: attachments
         };
 
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
-            body: JSON.stringify(adminBody)
-        });
+        const sendToBrevo = async () => {
+            try {
+                const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
+                    body: JSON.stringify(adminBody)
+                });
+                if (!brevoRes.ok) console.error('Brevo Error:', await brevoRes.text());
+            } catch (err) {
+                console.error('Error enviando a Brevo:', err);
+            }
+        };
 
-        if (!brevoRes.ok) console.error('Brevo Error:', await brevoRes.text());
+        const sendToLaravel = async () => {
+            try {
+                const apiUrl = import.meta.env.URL_BASE_API;
+                if (!apiUrl) return;
+
+                const formPayload = new FormData();
+                const isTrue = (val: string) => val === 'Sí' || val === 'Si' || val === 'true' || val === '1' ? '1' : '0';
+
+                // Text fields
+                const appendIfExists = (key: string, val: any) => { if (val) formPayload.append(key, val); };
+
+                appendIfExists('programa_interes', programTitle);
+                appendIfExists('nombre', fields.nombre);
+                appendIfExists('apellidos', fields.apellidos);
+                appendIfExists('genero', fields.genero || 'Otro');
+                appendIfExists('telefono', fields.telefono);
+                appendIfExists('email', fields.email);
+                appendIfExists('fecha_nacimiento', fields.fechaNacimiento);
+                appendIfExists('curp', fields.curp);
+                appendIfExists('nacionalidad', fields.nacionalidad || 'Mexicana');
+                appendIfExists('entidad_nacimiento', fields.entidadNacimiento);
+                appendIfExists('estado_civil', fields.estadoCivil);
+
+                appendIfExists('calle', fields.calle);
+                appendIfExists('colonia', fields.colonia);
+                appendIfExists('codigo_postal', fields.cp);
+                appendIfExists('ciudad', fields.ciudad);
+                appendIfExists('estado_direccion', fields.estadoDireccion);
+
+                appendIfExists('modalidad_estudio', fields.modalidadEstudio);
+                appendIfExists('ultimo_grado', fields.ultimoGrado);
+                appendIfExists('carrera_previa', fields.carrera);
+                appendIfExists('institucion_egreso', fields.institucion);
+                appendIfExists('fecha_inicio_lic', fields.fechaInicioLic);
+                appendIfExists('fecha_fin_lic', fields.fechaFinLic);
+                appendIfExists('estado_licenciatura', fields.estadoLic);
+                appendIfExists('cedula_numero', fields.cedulaNum);
+
+                appendIfExists('capacidad_diferente', isTrue(fields.capacidadDif));
+                appendIfExists('detalle_capacidad', fields.detalleCapacidad);
+                appendIfExists('enfermedad_cronica', isTrue(fields.enfCronica));
+                appendIfExists('detalle_enfermedad', fields.detalleEnf);
+                appendIfExists('alergia', isTrue(fields.alergia));
+                appendIfExists('detalle_alergia', fields.detalleAlergia);
+                appendIfExists('tratamiento_medico', isTrue(fields.tratamiento));
+                appendIfExists('detalle_tratamiento', fields.detalleTratamiento);
+
+                appendIfExists('nombre_contacto', fields.contactoEmergencia);
+                appendIfExists('parentesco', fields.parentesco);
+                appendIfExists('telefono_contacto', fields.telEmergencia);
+                appendIfExists('lengua_indigena', isTrue(fields.lenguaIndigena));
+                appendIfExists('ocupacion', fields.ocupacion);
+                appendIfExists('plantel', '01km1cdp5ee1tcw6phg5mm8sp8');
+
+                appendIfExists('origen', fields.origen || 'Web');
+
+                // Files (Native multipart, NO Base64 needed!)
+                const appendFile = (key: string, fileObj: any) => {
+                    if (fileObj && fileObj.buffer) {
+                        formPayload.append(key, new Blob([fileObj.buffer], { type: fileObj.mimetype }), fileObj.filename);
+                    }
+                };
+
+                appendFile('acta_nacimiento_doc', files.actaNacimiento);
+                appendFile('curp_doc', files.curpDoc);
+                appendFile('comprobante_dom_doc', files.comprobanteDom);
+                appendFile('ine_doc', files.ineDoc);
+                appendFile('cedula_doc', files.cedulaDoc);
+
+                console.log(`Sending FAST Multipart formData to API: ${apiUrl}prospectos/registro`);
+                const apiRes = await fetch(`${apiUrl}prospectos/registro`, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }, // We don't set Content-Type here, let fetch generate the 'multipart/form-data; boundary=...'
+                    body: formPayload
+                });
+
+                if (!apiRes.ok) {
+                    console.error('Laravel API Error response:', await apiRes.text());
+                } else {
+                    console.log('Successfully saved to Laravel API');
+                }
+            } catch (apiError) {
+                console.error('Failed to send data to Laravel API:', apiError);
+            }
+        };
+
+        await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
 
         return new Response(JSON.stringify({ message: 'Inscripción exitosa' }), { status: 200 });
     } catch (error) {
