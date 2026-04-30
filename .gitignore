@@ -26,4 +26,6 @@ pnpm-debug.log*
 #files
 public/uploads/*
 data/inscripciones/*
+# Stripe idempotency files (written at runtime by processedStripeStore)
+data/stripe-*.json
 tmp/*
