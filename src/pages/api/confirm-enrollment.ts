@@ -33,6 +33,31 @@ function paymentIntentId(session: Stripe.Checkout.Session): string {
   return "";
 }
 
+/** Maps Brevo API error body to a clearer message for the success page. */
+function brevoParticipantErrorMessage(status: number, errBody: string): string {
+  let msg = "";
+  try {
+    const j = JSON.parse(errBody) as { message?: string; code?: string };
+    msg = (j.message ?? "").toLowerCase();
+  } catch {
+    /* raw text */
+  }
+  const combined = `${errBody} ${msg}`.toLowerCase();
+  if (
+    status === 401 &&
+    (combined.includes("unrecognised ip") ||
+      combined.includes("unrecognized ip") ||
+      combined.includes("authorised_ips") ||
+      combined.includes("authorized_ips"))
+  ) {
+    return "Brevo bloqueó la petición: tu IP no está en la lista autorizada. Entra a Brevo → Seguridad → IPs autorizadas y añade tu IP actual, o desactiva la restricción para desarrollo.";
+  }
+  if (status === 401) {
+    return "Brevo rechazó la clave API (401). Revisa KEY_API_BREVO y que la IP esté autorizada en Brevo.";
+  }
+  return "Brevo no pudo enviar el correo (remitente no verificado, cuota, etc.). Revisa la consola del servidor para el detalle.";
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = (await request.json().catch(() => null)) as Record<
@@ -228,11 +253,15 @@ export const POST: APIRoute = async ({ request }) => {
     const safeModality = escapeHtml(modalityLabel);
     const safeEmail = escapeHtml(customerEmail);
 
-    const brevoKey = KEY_API_BREVO;
+    const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail =
-      EMAIL_SOPORTE_WEB ?? "desarrolloweb@ceprija.edu.mx";
+      (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar =
-      EMAIL_CONTROL_ESCOLAR ?? "control.escolar@ceprija.edu.mx";
+      (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
+
+    const adminNotificationRecipients = [
+      ...new Set([controlEscolar, senderEmail]),
+    ].map((email) => ({ email }));
 
     const piId = paymentIntentId(session);
     const amountStr = session.amount_total
@@ -297,40 +326,81 @@ export const POST: APIRoute = async ({ request }) => {
             </html>
         `;
 
-    let emailsOk = true;
+    if (!brevoKey) {
+      console.error(
+        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. Revisa .env y reinicia `astro dev`.",
+      );
+      return new Response(
+        JSON.stringify({
+          error:
+            "Correo no configurado en el servidor (KEY_API_BREVO). Añádelo a .env y reinicia el servidor de desarrollo.",
+          code: "brevo_not_configured",
+        }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    if (brevoKey) {
-      try {
-        const userEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
+    try {
+      const userEmailResponse = await fetch(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          method: "POST",
+          headers: {
+            "api-key": brevoKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { email: senderEmail, name: "CEPRIJA" },
+            to: [{ email: customerEmail }],
+            subject: `Confirmación de Inscripción - ${programTitle}`,
+            htmlContent: userEmailBody,
+          }),
+        },
+      );
+
+      if (!userEmailResponse.ok) {
+        const errBody = await userEmailResponse.text();
+        console.error(
+          "[confirm-enrollment] Brevo rechazó el correo al participante:",
+          userEmailResponse.status,
+          errBody,
+        );
+        const friendly = brevoParticipantErrorMessage(
+          userEmailResponse.status,
+          errBody,
+        );
+        return new Response(
+          JSON.stringify({
+            error: friendly,
+            code: "brevo_user_failed",
+          }),
           {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "CEPRIJA" },
-              to: [{ email: customerEmail }],
-              subject: `Confirmación de Inscripción - ${programTitle}`,
-              htmlContent: userEmailBody,
-            }),
+            status: 502,
+            headers: { "Content-Type": "application/json" },
           },
         );
-
-        if (!userEmailResponse.ok) {
-          emailsOk = false;
-          console.error(
-            "Failed to send user confirmation email:",
-            await userEmailResponse.text(),
-          );
-        }
-      } catch (emailError) {
-        emailsOk = false;
-        console.error("Error sending user confirmation email:", emailError);
       }
+    } catch (emailError) {
+      console.error(
+        "[confirm-enrollment] Error de red al llamar a Brevo:",
+        emailError,
+      );
+      return new Response(
+        JSON.stringify({
+          error: "Error al contactar Brevo. Intenta de nuevo en unos minutos.",
+          code: "brevo_network_error",
+        }),
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
-      const adminEmailBody = `
+    const adminEmailBody = `
                 <h2>Nueva Inscripción PAGADA</h2>
                 <h3>Información del Estudiante:</h3>
                 <p><strong>Nombre:</strong> ${safeName}</p>
@@ -352,42 +422,39 @@ export const POST: APIRoute = async ({ request }) => {
                 <p><a href="https://dashboard.stripe.com/payments/${encodeURIComponent(piId)}" target="_blank" rel="noopener noreferrer">Ver en Stripe Dashboard</a></p>
             `;
 
-      try {
-        const adminEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "Sistema CEPRIJA" },
-              to: [{ email: controlEscolar }, { email: senderEmail }],
-              subject: `✅ Nueva Inscripción PAGADA - ${programTitle}`,
-              htmlContent: adminEmailBody,
-            }),
+    try {
+      const adminEmailResponse = await fetch(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          method: "POST",
+          headers: {
+            "api-key": brevoKey,
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            sender: { email: senderEmail, name: "Sistema CEPRIJA" },
+            to: adminNotificationRecipients,
+            subject: `✅ Nueva Inscripción PAGADA - ${programTitle}`,
+            htmlContent: adminEmailBody,
+          }),
+        },
+      );
 
-        if (!adminEmailResponse.ok) {
-          console.error(
-            "Failed to send admin notification email:",
-            await adminEmailResponse.text(),
-          );
-        }
-      } catch (emailError) {
-        console.error("Error sending admin notification email:", emailError);
+      if (!adminEmailResponse.ok) {
+        console.error(
+          "[confirm-enrollment] Brevo rechazó el correo a administración:",
+          adminEmailResponse.status,
+          await adminEmailResponse.text(),
+        );
       }
-    } else {
-      console.warn(
-        "KEY_API_BREVO not configured, skipping email notifications",
+    } catch (emailError) {
+      console.error(
+        "[confirm-enrollment] Error enviando correo a administración:",
+        emailError,
       );
     }
 
-    if (emailsOk || !brevoKey) {
-      markEnrollmentConfirmed(stripeSessionId);
-    }
+    markEnrollmentConfirmed(stripeSessionId);
 
     return new Response(
       JSON.stringify({
