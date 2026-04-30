@@ -5,6 +5,13 @@ import { programs } from '../../data/legacy/programs';
 import emailTemplates from '../../data/forms/email-templates-educacion-continua.json';
 import Busboy from 'busboy';
 
+type UploadedFile = {
+    fieldname: string;
+    buffer: Buffer;
+    filename: string;
+    mimetype: string;
+};
+
 function sanitizeFilename(name: string): string {
     return name
         .toLowerCase()
@@ -16,10 +23,10 @@ function sanitizeFilename(name: string): string {
 }
 
 async function parseFormData(request: Request) {
-    return new Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> }>((resolve, reject) => {
+    return new Promise<{ fields: Record<string, string>, files: UploadedFile[] }>((resolve, reject) => {
         const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
         const fields: Record<string, string> = {};
-        const files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> = [];
+        const files: UploadedFile[] = [];
 
         busboy.on('field', (fieldname, value) => {
             fields[fieldname] = value;
@@ -63,10 +70,15 @@ async function parseFormData(request: Request) {
 
         busboy.on('error', reject);
 
-        request.body?.pipeTo(new WritableStream({
+        if (!request.body) {
+            reject(new Error('Empty request body'));
+            return;
+        }
+
+        request.body.pipeTo(new WritableStream({
             write(chunk) { busboy.write(chunk); },
             close() { busboy.end(); }
-        }));
+        })).catch(reject);
     });
 }
 
@@ -79,13 +91,49 @@ function replacePlaceholders(template: string, data: Record<string, string>) {
     return result;
 }
 
+function asNonEmptyString(v: unknown): string {
+    return typeof v === 'string' ? v.trim() : '';
+}
+
+function toEmailList(...emails: Array<string | undefined | null>): Array<{ email: string }> {
+    const uniq = new Set(
+        emails
+            .map((e) => (typeof e === 'string' ? e.trim() : ''))
+            .filter(Boolean),
+    );
+    return [...uniq].map((email) => ({ email }));
+}
+
 export const POST: APIRoute = async ({ request }) => {
     try {
         const { fields, files } = await parseFormData(request);
-        const {
-            name, email, phone, programTitle, programId, modality,
-            requiresInvoice, invoiceEmail
-        } = fields;
+        const name = asNonEmptyString(fields.name);
+        const email = asNonEmptyString(fields.email);
+        const phone = asNonEmptyString(fields.phone);
+        const programTitle = asNonEmptyString(fields.programTitle);
+        const programId = asNonEmptyString(fields.programId);
+        const modality = asNonEmptyString(fields.modality);
+        const requiresInvoice = asNonEmptyString(fields.requiresInvoice);
+        const invoiceEmail = asNonEmptyString(fields.invoiceEmail);
+
+        const missing: string[] = [];
+        if (!name) missing.push('name');
+        if (!email) missing.push('email');
+        if (!phone) missing.push('phone');
+        if (!programTitle && !programId) missing.push('programTitle/programId');
+        if (!modality) missing.push('modality');
+        if (!requiresInvoice) missing.push('requiresInvoice');
+
+        if (missing.length > 0) {
+            return new Response(
+                JSON.stringify({
+                    error: 'Faltan campos requeridos',
+                    code: 'missing_fields',
+                    missing,
+                }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } },
+            );
+        }
 
         const programDetails = programs.find(p => p.id === programId || p.title === programTitle) || {};
 
@@ -105,12 +153,22 @@ export const POST: APIRoute = async ({ request }) => {
         const csvContent = header + csvRow;
 
         // Brevo API Key
-        const brevoKey = import.meta.env.KEY_API_BREVO;
-        if (!brevoKey) throw new Error('Falta KEY_API_BREVO');
+        const brevoKey = asNonEmptyString(import.meta.env.KEY_API_BREVO);
+        if (!brevoKey) {
+            return new Response(
+                JSON.stringify({
+                    error: 'Correo no configurado (KEY_API_BREVO)',
+                    code: 'brevo_not_configured',
+                }),
+                { status: 503, headers: { 'Content-Type': 'application/json' } },
+            );
+        }
 
-        const senderEmail = import.meta.env.SMTP_FROM || import.meta.env.CONTACT_EMAIL;
-        const adminEmail1 = import.meta.env.EMAIL_EDUCACION_CONTINUA || import.meta.env.CONTACT_EMAIL;
-        const adminEmail2 = import.meta.env.EMAIL_SOPORTE_WEB;
+        const senderEmail = asNonEmptyString(import.meta.env.SMTP_FROM) || asNonEmptyString(import.meta.env.CONTACT_EMAIL);
+        const adminEmail1 = asNonEmptyString(import.meta.env.EMAIL_EDUCACION_CONTINUA) || asNonEmptyString(import.meta.env.CONTACT_EMAIL);
+        const adminEmail2 = asNonEmptyString(import.meta.env.EMAIL_SOPORTE_WEB);
+
+        const warnings: string[] = [];
 
         // 1. Admin Email
         const sendToBrevo = async () => {
@@ -127,19 +185,17 @@ export const POST: APIRoute = async ({ request }) => {
                     ${requiresInvoice === 'Sí' ? `<p><strong>Email Factura:</strong> ${invoiceEmail}</p>` : ''}
                 `;
 
-                const adminBody: any = {
+                const adminBody: Record<string, unknown> = {
                     sender: { email: senderEmail, name: "CEPRIJA Web" },
-                    to: [{ email: adminEmail1 }, { email: adminEmail2 }],
+                    to: toEmailList(adminEmail1, adminEmail2),
                     subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
                     htmlContent: adminHtml,
-                    attachment: []
+                    attachment: [] as Array<{ name: string; content: string }>
                 };
-
-                if (adminEmail2) adminBody.to.push({ email: adminEmail2 });
 
                 // Add attachments to admin email
                 for (const f of files) {
-                    adminBody.attachment.push({
+                    (adminBody.attachment as Array<{ name: string; content: string }>).push({
                         name: f.filename,
                         content: f.buffer.toString('base64')
                     });
@@ -147,16 +203,20 @@ export const POST: APIRoute = async ({ request }) => {
 
                 // Also attach the CSV
                 const csvBase64 = Buffer.from(csvContent).toString('base64');
-                adminBody.attachment.push({
+                (adminBody.attachment as Array<{ name: string; content: string }>).push({
                     name: `${sanitizeFilename(programTitle || 'ec-general')}.csv`,
                     content: csvBase64
                 });
 
-                await fetch('https://api.brevo.com/v3/smtp/email', {
+                const adminRes = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
                     body: JSON.stringify(adminBody)
                 });
+                if (!adminRes.ok) {
+                    warnings.push('brevo_admin_failed');
+                    console.error('Brevo Error (admin):', adminRes.status, await adminRes.text());
+                }
 
                 // 2. User Confirmation Email
                 const templateSet = (emailTemplates as any)[programId] || emailTemplates.default;
@@ -176,7 +236,7 @@ export const POST: APIRoute = async ({ request }) => {
                 const userHtml = replacePlaceholders(template.body, templateData);
                 const userSubject = replacePlaceholders(template.subject, templateData);
 
-                await fetch('https://api.brevo.com/v3/smtp/email', {
+                const userRes = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
                     body: JSON.stringify({
@@ -186,7 +246,12 @@ export const POST: APIRoute = async ({ request }) => {
                         htmlContent: userHtml
                     })
                 });
+                if (!userRes.ok) {
+                    warnings.push('brevo_user_failed');
+                    console.error('Brevo Error (user):', userRes.status, await userRes.text());
+                }
             } catch (err) {
+                warnings.push('brevo_exception');
                 console.error('Error enviando a Brevo:', err);
             }
         };
@@ -229,11 +294,13 @@ export const POST: APIRoute = async ({ request }) => {
                 });
 
                 if (!apiRes.ok) {
+                    warnings.push('laravel_failed');
                     console.error('Laravel API Error response:', await apiRes.text());
                 } else {
                     console.log('Successfully saved EC registration to Laravel API.');
                 }
             } catch (apiError) {
+                warnings.push('laravel_exception');
                 console.error('Failed to send EC data to Laravel API:', apiError);
             }
         };
@@ -241,9 +308,22 @@ export const POST: APIRoute = async ({ request }) => {
 
         await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
 
-        return new Response(JSON.stringify({ message: 'Ok' }), { status: 200 });
+        return new Response(
+            JSON.stringify({
+                success: true,
+                message: 'Ok',
+                ...(warnings.length > 0 ? { warnings } : {}),
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
     } catch (error: any) {
         console.error(error);
-        return new Response(JSON.stringify({ message: error.message }), { status: 500 });
+        return new Response(
+            JSON.stringify({
+                error: error?.message || 'Error interno',
+                code: 'internal_error',
+            }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+        );
     }
 };
