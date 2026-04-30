@@ -42,6 +42,8 @@ const seo = {
                 </div>
             )}
 
+            <p id="enrollment-email-status" class="hidden max-w-xl mx-auto text-sm rounded-xl px-4 py-3 mb-6" role="status"></p>
+
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a 
                     href="/" 
@@ -63,11 +65,11 @@ const seo = {
                     Nuestro equipo está disponible para resolver cualquier duda sobre tu inscripción.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center text-sm">
-                    <a href="mailto:control.escolar@ceprija.edu.mx" class="text-primary hover:underline flex items-center justify-center gap-2">
+                    <a href="mailto:controlescolar@ceprija.edu.mx" class="text-primary hover:underline flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        control.escolar@ceprija.edu.mx
+                        controlescolar@ceprija.edu.mx
                     </a>
                     <a href="/contacto" class="text-primary hover:underline flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -83,21 +85,48 @@ const seo = {
 
 <script>
     const sessionId = new URLSearchParams(window.location.search).get("session_id");
-
+    const statusEl = document.getElementById("enrollment-email-status");
+    
+    function showBanner(kind: "error" | "success", message: string) {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.classList.remove("hidden");
+        statusEl.classList.remove(
+            "bg-amber-50", "text-amber-900", "border-amber-200",
+            "bg-green-50", "text-green-900", "border-green-200"
+        );
+        
+        if (kind === "error") {
+            statusEl.classList.add("bg-amber-50", "text-amber-900", "border", "border-amber-200");
+        } else {
+            statusEl.classList.add("bg-green-50", "text-green-900", "border", "border-green-200");
+        }
+    }
+    
     if (sessionId) {
         fetch("/api/confirm-enrollment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stripeSessionId: sessionId }),
         })
-            .then((response) => {
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                
                 if (response.ok) {
-                    console.log("Enrollment confirmed successfully");
+                    if (data.duplicate) {
+                        showBanner("success", "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.");
+                    } else {
+                        showBanner("success", "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).");
+                    }
+                    console.log("confirm-enrollment:", data);
                 } else {
-                    console.error("Failed to confirm enrollment");
+                    const msg = data.error || "No se pudo enviar la confirmación por correo.";
+                    showBanner("error", msg);
+                    console.error("confirm-enrollment failed:", response.status, data);
                 }
             })
             .catch((error) => {
+                showBanner("error", "Error de red al confirmar la inscripción. Recarga la página o contacta soporte.");
                 console.error("Error confirming enrollment:", error);
             });
     }
