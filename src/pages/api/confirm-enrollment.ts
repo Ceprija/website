@@ -326,81 +326,54 @@ export const POST: APIRoute = async ({ request }) => {
             </html>
         `;
 
+    markEnrollmentConfirmed(stripeSessionId);
+
+    let emailWarnings: string[] = [];
+
     if (!brevoKey) {
-      console.error(
-        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. Revisa .env y reinicia `astro dev`.",
+      console.warn(
+        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. No se enviarán correos.",
       );
-      return new Response(
-        JSON.stringify({
-          error:
-            "Correo no configurado en el servidor (KEY_API_BREVO). Añádelo a .env y reinicia el servidor de desarrollo.",
-          code: "brevo_not_configured",
-        }),
-        {
-          status: 503,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    try {
-      const userEmailResponse = await fetch(
-        "https://api.brevo.com/v3/smtp/email",
-        {
-          method: "POST",
-          headers: {
-            "api-key": brevoKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sender: { email: senderEmail, name: "CEPRIJA" },
-            to: [{ email: customerEmail }],
-            subject: `Confirmación de Inscripción - ${programTitle}`,
-            htmlContent: userEmailBody,
-          }),
-        },
-      );
-
-      if (!userEmailResponse.ok) {
-        const errBody = await userEmailResponse.text();
-        console.error(
-          "[confirm-enrollment] Brevo rechazó el correo al participante:",
-          userEmailResponse.status,
-          errBody,
-        );
-        const friendly = brevoParticipantErrorMessage(
-          userEmailResponse.status,
-          errBody,
-        );
-        return new Response(
-          JSON.stringify({
-            error: friendly,
-            code: "brevo_user_failed",
-          }),
+      emailWarnings.push("email_not_configured");
+    } else {
+      try {
+        const userEmailResponse = await fetch(
+          "https://api.brevo.com/v3/smtp/email",
           {
-            status: 502,
-            headers: { "Content-Type": "application/json" },
+            method: "POST",
+            headers: {
+              "api-key": brevoKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sender: { email: senderEmail, name: "CEPRIJA" },
+              to: [{ email: customerEmail }],
+              subject: `Confirmación de Inscripción - ${programTitle}`,
+              htmlContent: userEmailBody,
+            }),
           },
         );
+
+        if (!userEmailResponse.ok) {
+          const errBody = await userEmailResponse.text();
+          console.error(
+            "[confirm-enrollment] Brevo rechazó el correo al participante:",
+            userEmailResponse.status,
+            errBody,
+          );
+          emailWarnings.push("user_email_failed");
+        }
+      } catch (emailError) {
+        console.error(
+          "[confirm-enrollment] Error de red al llamar a Brevo:",
+          emailError,
+        );
+        emailWarnings.push("user_email_network_error");
       }
-    } catch (emailError) {
-      console.error(
-        "[confirm-enrollment] Error de red al llamar a Brevo:",
-        emailError,
-      );
-      return new Response(
-        JSON.stringify({
-          error: "Error al contactar Brevo. Intenta de nuevo en unos minutos.",
-          code: "brevo_network_error",
-        }),
-        {
-          status: 502,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
     }
 
-    const adminEmailBody = `
+    if (brevoKey) {
+      const adminEmailBody = `
                 <h2>Nueva Inscripción PAGADA</h2>
                 <h3>Información del Estudiante:</h3>
                 <p><strong>Nombre:</strong> ${safeName}</p>
@@ -422,44 +395,46 @@ export const POST: APIRoute = async ({ request }) => {
                 <p><a href="https://dashboard.stripe.com/payments/${encodeURIComponent(piId)}" target="_blank" rel="noopener noreferrer">Ver en Stripe Dashboard</a></p>
             `;
 
-    try {
-      const adminEmailResponse = await fetch(
-        "https://api.brevo.com/v3/smtp/email",
-        {
-          method: "POST",
-          headers: {
-            "api-key": brevoKey,
-            "Content-Type": "application/json",
+      try {
+        const adminEmailResponse = await fetch(
+          "https://api.brevo.com/v3/smtp/email",
+          {
+            method: "POST",
+            headers: {
+              "api-key": brevoKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sender: { email: senderEmail, name: "Sistema CEPRIJA" },
+              to: adminNotificationRecipients,
+              subject: `✅ Nueva Inscripción PAGADA - ${programTitle}`,
+              htmlContent: adminEmailBody,
+            }),
           },
-          body: JSON.stringify({
-            sender: { email: senderEmail, name: "Sistema CEPRIJA" },
-            to: adminNotificationRecipients,
-            subject: `✅ Nueva Inscripción PAGADA - ${programTitle}`,
-            htmlContent: adminEmailBody,
-          }),
-        },
-      );
-
-      if (!adminEmailResponse.ok) {
-        console.error(
-          "[confirm-enrollment] Brevo rechazó el correo a administración:",
-          adminEmailResponse.status,
-          await adminEmailResponse.text(),
         );
-      }
-    } catch (emailError) {
-      console.error(
-        "[confirm-enrollment] Error enviando correo a administración:",
-        emailError,
-      );
-    }
 
-    markEnrollmentConfirmed(stripeSessionId);
+        if (!adminEmailResponse.ok) {
+          console.error(
+            "[confirm-enrollment] Brevo rechazó el correo a administración:",
+            adminEmailResponse.status,
+            await adminEmailResponse.text(),
+          );
+          emailWarnings.push("admin_email_failed");
+        }
+      } catch (emailError) {
+        console.error(
+          "[confirm-enrollment] Error enviando correo a administración:",
+          emailError,
+        );
+        emailWarnings.push("admin_email_network_error");
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: "Enrollment confirmed successfully",
+        ...(emailWarnings.length > 0 && { emailWarnings }),
       }),
       {
         status: 200,

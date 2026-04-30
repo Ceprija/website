@@ -115,12 +115,15 @@ const seo = {
                 if (response.ok) {
                     if (data.duplicate) {
                         showBanner("success", "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.");
+                    } else if (data.emailWarnings && data.emailWarnings.length > 0) {
+                        showBanner("success", "Tu inscripción está confirmada. Nota: hubo un problema al enviar el correo. Contacta a soporte si no lo recibes.");
+                        console.warn("Email warnings:", data.emailWarnings);
                     } else {
                         showBanner("success", "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).");
                     }
                     console.log("confirm-enrollment:", data);
                 } else {
-                    const msg = data.error || "No se pudo enviar la confirmación por correo.";
+                    const msg = data.error || "No se pudo confirmar la inscripción.";
                     showBanner("error", msg);
                     console.error("confirm-enrollment failed:", response.status, data);
                 }
