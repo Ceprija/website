@@ -1,4 +1,5 @@
 import { defineCollection, z } from 'astro:content';
+import { PROGRAMA_NIVELES_TUPLE } from './lib/programNiveles';
 
 const revista = defineCollection({
   schema: z.object({
@@ -20,7 +21,7 @@ const programas = defineCollection({
     excerpt: z.string(),
     image: z.string(),
     escuela: z.enum(["juridica", "economica", "integral"]),
-    nivel: z.enum(["doctorado", "maestria", "diplomado", "curso", "especialidad"]),
+    nivel: z.enum(PROGRAMA_NIVELES_TUPLE),
     rvoe: z.string(),
     horario: z.string(),
     startDate: z.string(),
@@ -48,6 +49,7 @@ const programas = defineCollection({
       online: z.string().optional(),
       presencial: z.string().optional()
     }).optional(),
+    requiresVerification: z.boolean().optional().default(false),
     address: z.string().optional(),
     instructor: z.string().optional(),
     schedule: z.string().optional(),

@@ -1,0 +1,9 @@
+{
+  "bankName": "Banco Nacional de México",
+  "accountHolder": "Centro de Preparación Integral CEPRIJA A.C.",
+  "accountNumber": "1234567890",
+  "clabe": "012345678901234567",
+  "swiftCode": "BNMXMXMM",
+  "currency": "MXN",
+  "referencePrefix": "CEPRIJA"
+}
