@@ -1,0 +1,104 @@
+---
+import Layout from "../layouts/Layout.astro";
+const sessionId = Astro.url.searchParams.get("session_id");
+
+const seo = {
+    title: "Pago Exitoso | CEPRIJA",
+    description: "Tu pago ha sido procesado exitosamente",
+};
+---
+
+<Layout seo={seo}>
+    <main class="container mx-auto px-6 py-20 min-h-screen flex items-center justify-center">
+        <div class="max-w-2xl w-full text-center">
+            <div class="mb-8 animate-bounce">
+                <svg class="w-24 h-24 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            
+            <h1 class="text-4xl md:text-5xl font-bold text-primary mb-4 font-serif">
+                ¡Pago Exitoso!
+            </h1>
+            
+            <div class="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8">
+                <p class="text-xl text-gray-700 mb-4 leading-relaxed">
+                    Tu inscripción ha sido procesada correctamente. 
+                </p>
+                <p class="text-gray-600 mb-4">
+                    Recibirás un correo de confirmación en los próximos minutos con todos los detalles de tu inscripción.
+                </p>
+                <p class="text-sm text-gray-500 mt-4">
+                    Si no recibes el correo en los próximos 10 minutos, revisa tu carpeta de spam o contacta a nuestro equipo de soporte.
+                </p>
+            </div>
+
+            {sessionId && (
+                <div class="bg-gray-50 rounded-xl p-4 mb-8">
+                    <p class="text-xs text-gray-500 mb-2">ID de transacción:</p>
+                    <code class="text-xs bg-white px-3 py-2 rounded border border-gray-200 inline-block break-all">
+                        {sessionId}
+                    </code>
+                </div>
+            )}
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a 
+                    href="/" 
+                    class="inline-block bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl"
+                >
+                    Volver al Inicio
+                </a>
+                <a 
+                    href="/oferta-academica" 
+                    class="inline-block bg-white text-primary border-2 border-primary px-8 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all"
+                >
+                    Ver Otros Programas
+                </a>
+            </div>
+
+            <div class="mt-12 pt-8 border-t border-gray-200">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">¿Necesitas ayuda?</h3>
+                <p class="text-gray-600 mb-4">
+                    Nuestro equipo está disponible para resolver cualquier duda sobre tu inscripción.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center text-sm">
+                    <a href="mailto:control.escolar@ceprija.edu.mx" class="text-primary hover:underline flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        control.escolar@ceprija.edu.mx
+                    </a>
+                    <a href="/contacto" class="text-primary hover:underline flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Formulario de Contacto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+</Layout>
+
+<script>
+    const sessionId = new URLSearchParams(window.location.search).get("session_id");
+
+    if (sessionId) {
+        fetch("/api/confirm-enrollment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stripeSessionId: sessionId }),
+        })
+            .then((response) => {
+                if (response.ok) {
+                    console.log("Enrollment confirmed successfully");
+                } else {
+                    console.error("Failed to confirm enrollment");
+                }
+            })
+            .catch((error) => {
+                console.error("Error confirming enrollment:", error);
+            });
+    }
+</script>
