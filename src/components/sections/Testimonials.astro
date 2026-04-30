@@ -1,0 +1,73 @@
+---
+import {
+    sectionSurface,
+    containerNarrow,
+    headingSection,
+    gridThree,
+} from "@lib/landingSectionStyles";
+
+const testimonials = [
+    {
+        name: "Lic. Ana García",
+        role: "Egresada de Derecho",
+        image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=faces",
+        quote: "Estudiar en CEPRIJA me dio las herramientas prácticas que necesitaba para litigar con confianza desde el primer día. La calidad de los docentes es excepcional.",
+    },
+    {
+        name: "Mtro. Carlos Ruiz",
+        role: "Maestría en Derecho Penal",
+        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=faces",
+        quote: "La flexibilidad del modelo educativo me permitió trabajar y estudiar mi maestría al mismo tiempo. Hoy soy director jurídico gracias a esta oportunidad.",
+    },
+    {
+        name: "Dr. Miguel Ángel Torres",
+        role: "Doctorado en Derecho Procesal",
+        image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces",
+        quote: "El doctorado en CEPRIJA transformó mi visión del derecho procesal. El networking con compañeros y profesores fue invaluable para mi carrera.",
+    },
+];
+---
+
+<section class={sectionSurface}>
+    <div class={containerNarrow}>
+        <h2
+            class={headingSection}
+            data-animate="fade-up"
+        >
+            Voces de Éxito
+        </h2>
+        <div class={gridThree}>
+            {
+                testimonials.map((testimonial, index) => (
+                    <div
+                        class="bg-gray-50 p-8 rounded-xl relative hover:shadow-lg transition-shadow duration-300"
+                        data-animate="fade-up"
+                        data-delay={index * 100}
+                    >
+                        <div class="text-secondary text-4xl font-serif absolute top-4 left-4">
+                            "
+                        </div>
+                        <p class="text-gray-600 mb-6 italic relative z-10 pt-4">
+                            {testimonial.quote}
+                        </p>
+                        <div class="flex items-center gap-4">
+                            <img
+                                src={testimonial.image}
+                                alt={testimonial.name}
+                                class="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            />
+                            <div>
+                                <h4 class="font-bold text-primary font-serif">
+                                    {testimonial.name}
+                                </h4>
+                                <p class="text-sm text-gray-500">
+                                    {testimonial.role}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ))
+            }
+        </div>
+    </div>
+</section>

@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { programs } from '../../data/programs';
+import { programs } from '../../data/legacy/programs';
 import Busboy from 'busboy';
 import { createWriteStream } from 'fs';
 import { mkdir } from 'fs/promises';

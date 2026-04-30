@@ -1,0 +1,59 @@
+---
+const accreditations = [
+    {
+        title: "Programas con RVOE",
+        description:
+            "Cada uno de nuestros programas cuenta con Reconocimiento de Validez Oficial de Estudios (RVOE) otorgado por la Secretaría de Innovación, Ciencia y Tecnología (SICYT).",
+        icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+    },
+    {
+        title: "Cédula Estatal y Federal",
+        description:
+            "Al egresar, obtendrás tu titulación oficial con Clave de Centro de Trabajo (14PSU0495P), permitiéndote ejercer profesionalmente en todo el territorio nacional.",
+        icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
+    },
+];
+---
+
+<section class="py-14">
+    <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {
+                accreditations.map((item) => (
+                    <div class="relative group overflow-hidden rounded-2xl bg-white p-8 shadow-lg border-l-4 border-secondary hover:shadow-xl transition-all duration-300">
+                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-secondary/10 rounded-full blur-2xl group-hover:bg-secondary/20 transition-colors" />
+
+                        <div class="relative z-10 flex items-start gap-6">
+                            <div class="flex-shrink-0">
+                                <div class="w-14 h-14 bg-primary text-secondary rounded-xl flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-8 w-8"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d={item.icon}
+                                        />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-primary mb-3 font-serif group-hover:text-blue-900 transition-colors">
+                                    {item.title}
+                                </h3>
+                                <p class="text-gray-600 leading-relaxed text-sm">
+                                    {item.description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ))
+            }
+        </div>
+    </div>
+</section>

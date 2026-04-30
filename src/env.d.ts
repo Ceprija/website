@@ -11,6 +11,13 @@ interface ImportMetaEnv {
     readonly GOOGLE_SERVICE_ACCOUNT_EMAIL: string;
     readonly GOOGLE_PRIVATE_KEY: string;
     readonly GOOGLE_SHEET_ID: string;
+    readonly STRIPE_SECRET_KEY?: string;
+    readonly STRIPE_WEBHOOK_SECRET?: string;
+    readonly STRIPE_ALLOWED_PRICE_IDS?: string;
+    readonly SITE_URL?: string;
+    readonly KEY_API_BREVO?: string;
+    readonly EMAIL_CONTROL_ESCOLAR?: string;
+    readonly EMAIL_SOPORTE_WEB?: string;
 }
 
 interface ImportMeta {

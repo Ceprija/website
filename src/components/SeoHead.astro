@@ -11,7 +11,7 @@ const { title, description, image, breadcrumbs = [] } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const siteUrl = Astro.site?.toString() || "https://ceprija.edu.mx/";
-const logoUrl = new URL("/logo-ceprija-web.svg", siteUrl).toString();
+const logoUrl = new URL("/images/branding/logos/logo-ceprija-web.svg", siteUrl).toString();
 
 // 1. WebSite Schema (Identity & Search)
 const websiteSchema = {

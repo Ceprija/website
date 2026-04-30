@@ -1,0 +1,249 @@
+---
+import { faculty } from "../../data/legacy/faculty.js";
+import {
+    sectionMutedOverflow,
+    containerNarrow,
+    headingSectionCompact,
+    lead,
+} from "@lib/landingSectionStyles";
+
+interface Props {
+    limit?: number;
+    showTitle?: boolean;
+    isSlider?: boolean;
+}
+
+const { limit, showTitle = true, isSlider = false } = Astro.props;
+
+// If it's a slider, we show everyone by default as requested "para que muestren todos"
+const visibleFaculty = limit && !isSlider ? faculty.slice(0, limit) : faculty;
+---
+
+<section class={sectionMutedOverflow}>
+    <div class={containerNarrow}>
+        {
+            showTitle && (
+                <>
+                    <h2
+                        class={headingSectionCompact}
+                        data-animate="fade-up"
+                    >
+                        Claustro Docente
+                    </h2>
+                    <p class={lead}>
+                        Nuestro cuerpo académico está formado por expertos con
+                        amplia trayectoria profesional y docente, comprometidos
+                        con tu formación.
+                    </p>
+                </>
+            )
+        }
+
+        {
+            isSlider ? (
+                <div class="swiper faculty-swiper !pb-12">
+                    <div class="swiper-wrapper">
+                        {visibleFaculty.map((member, index) => (
+                            <div class="swiper-slide !h-auto">
+                                <a
+                                    href={`/docentes/${member.id}`}
+                                    class="block group h-full px-2"
+                                >
+                                    <div class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
+                                        <div class="aspect-square overflow-hidden relative">
+                                            <img
+                                                src={member.image}
+                                                alt={member.name}
+                                                class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                                                loading="lazy"
+                                            />
+                                            <div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                                                <span class="text-white font-medium text-sm flex items-center gap-2">
+                                                    Ver perfil completo
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        class="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                                        />
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="p-6 flex-grow flex flex-col">
+                                            <h3 class="text-xl font-bold text-primary mb-1 group-hover:text-secondary transition-colors font-serif">
+                                                {member.name}
+                                            </h3>
+                                            <p class="text-secondary font-medium text-sm mb-4 font-serif">
+                                                {member.degree}
+                                            </p>
+                                            <p class="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 font-sans flex-grow">
+                                                {member.bio}
+                                            </p>
+                                            <span class="inline-flex items-center text-primary font-bold text-sm group-hover:text-secondary transition-colors mt-auto">
+                                                Ver perfil
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                                    />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        ))}
+                    </div>
+                    <div class="swiper-pagination" />
+                </div>
+            ) : (
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {visibleFaculty.map((member, index) => (
+                        <a
+                            href={`/docentes/${member.id}`}
+                            class="block group max-w-[80%] mx-auto"
+                            data-animate="zoom-in"
+                            data-delay={index * 100}
+                        >
+                            <div class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full">
+                                <div class="aspect-square overflow-hidden relative">
+                                    <img
+                                        src={member.image}
+                                        alt={member.name}
+                                        class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    <div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                                        <span class="text-white font-medium text-sm flex items-center gap-2">
+                                            Ver perfil completo
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                                />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <h3 class="text-xl font-bold text-primary mb-1 group-hover:text-secondary transition-colors font-serif">
+                                        {member.name}
+                                    </h3>
+                                    <p class="text-secondary font-medium text-sm mb-4 font-serif">
+                                        {member.degree}
+                                    </p>
+                                    <p class="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 font-sans">
+                                        {member.bio}
+                                    </p>
+                                    <span class="inline-flex items-center text-primary font-bold text-sm group-hover:text-secondary transition-colors">
+                                        Ver perfil
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                            />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    ))}
+                </div>
+            )
+        }
+
+        {
+            !isSlider && limit && faculty.length > limit && (
+                <div class="text-center mt-12">
+                    <a
+                        href="/docentes"
+                        class="inline-block bg-primary text-white font-bold py-3 px-8 rounded-full hover:bg-blue-900 transition-colors shadow-lg hover:shadow-xl"
+                    >
+                        Ver todo el claustro
+                    </a>
+                </div>
+            )
+        }
+    </div>
+</section>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+/>
+
+<script
+    is:inline
+    src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script is:inline>
+    function initFacultySlider() {
+        const swiperEl = document.querySelector(".faculty-swiper");
+        if (swiperEl && typeof Swiper !== "undefined") {
+            new Swiper(".faculty-swiper", {
+                slidesPerView: 1,
+                spaceBetween: 20,
+                loop: true,
+                autoplay: {
+                    delay: 3000,
+                    disableOnInteraction: false,
+                },
+                pagination: {
+                    el: ".swiper-pagination",
+                    clickable: true,
+                },
+                breakpoints: {
+                    640: {
+                        slidesPerView: 2,
+                    },
+                    1024: {
+                        slidesPerView: 3,
+                    },
+                },
+            });
+        }
+    }
+
+    // Run on initial load
+    document.addEventListener("DOMContentLoaded", initFacultySlider);
+
+    // Run on View Transitions load (if enabled)
+    document.addEventListener("astro:page-load", initFacultySlider);
+</script>
+
+<style>
+    .faculty-swiper :global(.swiper-pagination-bullet-active) {
+        background: theme("colors.primary");
+    }
+</style>

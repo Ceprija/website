@@ -1,0 +1,63 @@
+---
+import { getLatestPosts } from "@lib/posts";
+import {
+  sectionMuted,
+  containerNarrow,
+  rowHeader,
+  headingRow,
+  linkSecondary,
+  gridThree,
+  cardInteractive,
+} from "@lib/landingSectionStyles";
+
+const posts = await getLatestPosts(3);
+---
+
+<section class={sectionMuted}>
+  <div class={containerNarrow}>
+    <div class={rowHeader}>
+      <h2 class={headingRow}>Noticias y Revista</h2>
+      <a href="/revista" class={linkSecondary}> Ver todas → </a>
+    </div>
+
+    <div class={gridThree}>
+      {
+        posts.map((post) => (
+          <a
+            href={`/revista/${post.slug}`}
+            class={cardInteractive}
+          >
+            {/* Imagen */}
+            {post.data.image && (
+              <div class="h-48 w-full overflow-hidden relative group">
+                <img
+                  src={post.data.image}
+                  alt={post.data.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div class="absolute top-4 left-4">
+                  <span class="bg-white/90 backdrop-blur-sm text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                    {post.data.category}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Contenido */}
+            <div class="p-4">
+              <p class="text-sm text-gray-500 mb-2">
+                {new Date(post.data.date).toLocaleDateString()}
+              </p>
+
+              <h3 class="font-semibold text-lg group-hover:text-primary transition">
+                {post.data.title}
+              </h3>
+
+              <p class="text-gray-600 text-sm mt-2">{post.data.excerpt}</p>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>

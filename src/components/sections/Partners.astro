@@ -1,0 +1,40 @@
+---
+import { partners } from "@data/partners";
+import {
+  sectionMuted,
+  containerNarrow,
+  headingSectionCompact,
+  lead,
+  gridPartners,
+  cardPartnerLink,
+} from "@lib/landingSectionStyles";
+---
+
+<section class={sectionMuted}>
+  <div class={containerNarrow}>
+    <h2 class={headingSectionCompact}>Convenios y Alianzas</h2>
+
+    <p class={lead}>
+      Colaboramos con instituciones y empresas para ofrecer programas de alta
+      calidad.
+    </p>
+
+    <div class={gridPartners}>
+      {
+        partners.map((p) => (
+          <a
+            href={p.url}
+            target="_blank"
+            class={cardPartnerLink}
+          >
+            <img
+              src={p.logo}
+              alt={p.name}
+              class="h-12 object-contain grayscale-0 opacity-100 group-hover:grayscale group-hover:opacity-50 transition duration-300"
+            />
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>

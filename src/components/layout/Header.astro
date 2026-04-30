@@ -1,0 +1,237 @@
+---
+import Button from "../ui/Button.astro";
+import { images } from "@lib/assets"
+---
+
+<header class="bg-white shadow-sm sticky top-0 z-50">
+  <nav class="container mx-auto px-6 py-4">
+    <div class="flex justify-between items-center">
+      <a href="/" class="flex items-center gap-2">
+        <img src={images.logosvg} alt="Logo CEPRIJA" class="w-32" />
+      </a>
+
+      <!-- Desktop Menu -->
+      <div class="hidden lg:flex gap-8 items-center">
+        <a
+          href="/"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Inicio</a
+        >
+        <a
+          href="/nosotros"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Nosotros</a
+        >
+        <div class="relative group">
+          <a
+            href="/oferta-academica"
+            class="text-gray-700 hover:text-primary font-medium transition-colors flex items-center gap-1"
+          >
+            Oferta Académica
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </a>
+          <div
+            class="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50 border border-gray-100"
+          >
+            <div class="py-2">
+              <a
+                href="/oferta-academica/formacion-juridica"
+                class="block px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+              >
+                <span class="font-bold block text-sm">Formación Jurídica</span>
+                <span class="text-xs text-gray-500"
+                  >Maestrías, Especialidades y Doctorados</span
+                >
+              </a>
+              <a
+                href="/oferta-academica/formacion-economico-administrativa"
+                class="block px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors border-t border-gray-50"
+              >
+                <span class="font-bold block text-sm"
+                  >Formación Económico-Administrativo</span
+                >
+                <span class="text-xs text-gray-500"
+                  >Gestión, Liderazgo y Finanzas</span
+                >
+              </a>
+              <a
+                href="/oferta-academica/formacion-integral"
+                class="block px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors border-t border-gray-50"
+              >
+                <span class="font-bold block text-sm">Formación Integral</span>
+                <span class="text-xs text-gray-500">Cursos y Talleres</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <a
+          href="/docentes"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Docentes</a
+        >
+        <!-- <a
+          href="/admisiones"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Admisiones</a
+        > -->
+        <a
+          href="/revista"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Revista</a
+        >
+        <a
+          href="/aviso-de-privacidad"
+          class="text-gray-700 hover:text-primary font-medium transition-colors"
+          >Aviso de Privacidad</a
+        >
+        <Button href="/contacto" variant="primary" class="font-medium">
+          Contacto
+        </Button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button
+        id="mobile-menu-button"
+        class="lg:hidden text-gray-700 focus:outline-none"
+      >
+        <svg
+          id="menu-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <svg
+          id="close-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6 hidden"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden lg:hidden mt-4 pb-4">
+      <div class="flex flex-col space-y-3">
+        <a
+          href="/"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Inicio</a
+        >
+        <a
+          href="/nosotros"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Nosotros</a
+        >
+        <div class="space-y-1">
+          <a
+            href="/oferta-academica"
+            class="block px-4 py-2 text-sm font-bold text-gray-700 uppercase tracking-wider hover:text-primary hover:bg-gray-50 rounded"
+            >Oferta Académica</a
+          >
+          <a
+            href="/oferta-academica/formacion-juridica"
+            class="block pl-8 pr-4 py-2 text-gray-700 hover:text-primary font-medium transition-colors hover:bg-gray-50"
+            >Formación Jurídica</a
+          >
+          <a
+            href="/oferta-academica/formacion-economico-administrativa"
+            class="block pl-8 pr-4 py-2 text-gray-700 hover:text-primary font-medium transition-colors hover:bg-gray-50"
+            >Formación Económico-Administrativo</a
+          >
+          <a
+            href="/oferta-academica/formacion-integral"
+            class="block pl-8 pr-4 py-2 text-gray-700 hover:text-primary font-medium transition-colors hover:bg-gray-50"
+            >Formación Integral</a
+          >
+        </div>
+        <a
+          href="/docentes"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Docentes</a
+        >
+        <!-- <a
+          href="/admisiones"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Admisiones</a
+        > -->
+        <a
+          href="/revista"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Revista</a
+        >
+        <a
+          href="/aviso-de-privacidad"
+          class="text-gray-700 hover:text-primary font-medium transition-colors py-2 px-4 rounded hover:bg-gray-50"
+          >Aviso de Privacidad</a
+        >
+        <Button
+          href="/contacto"
+          variant="primary"
+          class="font-medium text-center w-full"
+        >
+          Contacto
+        </Button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<script>
+  const mobileMenuButton = document.getElementById("mobile-menu-button");
+  const mobileMenu = document.getElementById("mobile-menu");
+  const menuIcon = document.getElementById("menu-icon");
+  const closeIcon = document.getElementById("close-icon");
+
+  mobileMenuButton?.addEventListener("click", () => {
+    const isHidden = mobileMenu?.classList.contains("hidden");
+
+    if (isHidden) {
+      mobileMenu?.classList.remove("hidden");
+      menuIcon?.classList.add("hidden");
+      closeIcon?.classList.remove("hidden");
+    } else {
+      mobileMenu?.classList.add("hidden");
+      menuIcon?.classList.remove("hidden");
+      closeIcon?.classList.add("hidden");
+    }
+  });
+
+  // Close menu when clicking on a link
+  const mobileLinks = mobileMenu?.querySelectorAll("a");
+  mobileLinks?.forEach((link) => {
+    link.addEventListener("click", () => {
+      mobileMenu?.classList.add("hidden");
+      menuIcon?.classList.remove("hidden");
+      closeIcon?.classList.add("hidden");
+    });
+  });
+</script>

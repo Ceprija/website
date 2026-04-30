@@ -2,15 +2,14 @@
 export const prerender = false;
 
 import Layout from "../layouts/Layout.astro";
-import ContinuousEducationForm from "../components/ContinuousEducationForm.astro";
-import { ecPrograms } from "../data/educacion-continua-options.js";
+import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
+import { getAllPrograms } from "@lib/schools.ts";
+import { nivelesLabel } from "@data/programsType.ts";
 
+const allPrograms = await getAllPrograms();
 const programIdParam = Astro.url.searchParams.get("id") || "";
-const programTitleParam = Astro.url.searchParams.get("programa") || "";
 
-const initialProgram = ecPrograms.find(
-    (p) => p.id === programIdParam || p.title === programTitleParam,
-);
+const initialProgram = allPrograms.find((p) => p.slug === programIdParam);
 
 const seo = {
     title: "Inscripción Educación Continua | CEPRIJA",
@@ -60,20 +59,13 @@ const seo = {
                     >
                         <option value="">-- SELECCIONA UN PROGRAMA --</option>
                         {
-                            ecPrograms.map((p) => (
+                            allPrograms.map((p) => (
                                 <option
-                                    value={p.id}
-                                    selected={p.id === initialProgram?.id}
-                                    data-title={p.title}
-                                    data-prices={JSON.stringify(p.price)}
-                                    data-links={JSON.stringify(p.paymentLinks)}
-                                    data-address={
-                                        p.address ||
-                                        "Instalaciones de CEPRIJA - Lope de Vega #273"
-                                    }
+                                    value={p.slug}
+                                    selected={p.slug === initialProgram?.slug}
                                 >
-                                    {p.level.toUpperCase()}:{" "}
-                                    {p.title.toUpperCase()}
+                                    {p.data.nivel.toUpperCase()}:{" "}
+                                    {p.data.title.toUpperCase()}
                                 </option>
                             ))
                         }
@@ -82,12 +74,12 @@ const seo = {
 
                 <div id="form-container" class={initialProgram ? "" : "hidden"}>
                     <ContinuousEducationForm
-                        programTitle={initialProgram?.title}
+                        programTitle={initialProgram?.data.title}
                         programId={initialProgram?.id}
-                        prices={initialProgram?.price}
-                        paymentLinks={initialProgram?.paymentLinks}
-                        address={initialProgram?.address}
                     />
+                    <!--prices={initialProgram?.data.price} -->
+                    <!--  paymentLinks={initialProgram?.paymentLinks} -->
+                    <!--  address={initialProgram?.address} -->
                 </div>
 
                 <div
