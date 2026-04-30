@@ -4,6 +4,7 @@ import { getCollection } from "astro:content";
 import ContactForm from "@components/forms/ContactForm.astro";
 import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programHasStripeCheckout } from "@lib/stripeAllowedPrices";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -442,8 +443,9 @@ const seo = {
                         data-delay="600"
                     >
                         {
-                            ["curso", "taller", "diplomado", "maestria", "doctorado", "especialidad"].includes(
-                                program.data.nivel.toLowerCase(),
+                            /* Stripe if stripePriceIds look valid; else ContactForm (lead-only) */
+                            programHasStripeCheckout(
+                                program.data.stripePriceIds,
                             ) ? (
                                 <ContinuousEducationForm
                                     programTitle={program.data.title}
@@ -456,6 +458,7 @@ const seo = {
                                         }) || { Presencial: "", Online: "" }
                                     }
                                     address={program.data.address}
+                                    requiresVerification={program.data.requiresVerification}
                                 />
                             ) : (
                                 <ContactForm

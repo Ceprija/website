@@ -1,6 +1,7 @@
 ---
 import Button from "@components/ui/Button.astro";
 import { ecConsentLabels } from "@data/forms/educacion-continua-options";
+import bankInfo from "@data/bank-info.json";
 
 interface Props {
     programTitle?: string;
@@ -14,6 +15,7 @@ interface Props {
         Online?: string;
     };
     address?: string;
+    requiresVerification?: boolean;
 }
 
 const {
@@ -22,6 +24,7 @@ const {
     stripePriceIds,
     prices,
     address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+    requiresVerification = false,
 } = Astro.props;
 ---
 
@@ -53,6 +56,8 @@ const {
         data-stripe-price-ids={JSON.stringify(stripePriceIds || null)}
         data-prices={JSON.stringify(prices || null)}
         data-address={address}
+        data-bank-info={JSON.stringify(bankInfo)}
+        data-requires-verification={requiresVerification ? "1" : "0"}
         class="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden"
     >
         <input
@@ -67,6 +72,8 @@ const {
             id="form-program-title"
             value={programTitle}
         />
+        <input type="hidden" name="paymentMethod" id="payment-method" value="stripe" />
+        <input type="hidden" name="wireReference" id="wire-reference" value="" />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
         <div class="step-section p-8 md:p-12" id="step-1">
@@ -247,10 +254,57 @@ const {
                 </p>
             </div>
 
+            <!-- Método de pago -->
+            <div class="mb-8">
+                <label class="block text-sm font-semibold text-gray-700 mb-3"
+                    >Método de pago *</label
+                >
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label
+                        class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                    >
+                        <input
+                            type="radio"
+                            name="paymentMethodChoice"
+                            value="stripe"
+                            checked
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900"
+                                >Pago en línea (Stripe)</span
+                            >
+                            <span class="text-xs text-gray-500"
+                                >Confirmación automática</span
+                            >
+                        </div>
+                    </label>
+                    <label
+                        class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                    >
+                        <input
+                            type="radio"
+                            name="paymentMethodChoice"
+                            value="wire"
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900"
+                                >Transferencia bancaria</span
+                            >
+                            <span class="text-xs text-gray-500"
+                                >Sube tu comprobante (pago en revisión)</span
+                            >
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <!-- Métodos de Pago UI -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
                 <div
                     class="p-6 bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-sm"
+                    id="wire-panel"
                 >
                     <div class="flex items-center gap-3 mb-4 text-primary">
                         <svg
@@ -271,16 +325,81 @@ const {
                             Transferencia
                         </h4>
                     </div>
-                    <div class="space-y-1 text-xs text-gray-600">
-                        <p><strong>Banco:</strong> Santander</p>
-                        <p><strong>No. Cuenta:</strong> 65-51080859-3</p>
-                        <p><strong>CLABE:</strong> 014320655108085938</p>
-                        <p><strong>Titular:</strong> CEPRIJA AC.</p>
+                    <div class="space-y-2 text-xs text-gray-600">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>Banco:</strong> {bankInfo.bankName}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.bankName}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>Titular:</strong> {bankInfo.accountHolder}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.accountHolder}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>No. Cuenta:</strong> {bankInfo.accountNumber}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.accountNumber}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>CLABE:</strong> {bankInfo.clabe}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.clabe}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        {bankInfo.swiftCode && (
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="truncate">
+                                    <strong>SWIFT:</strong> {bankInfo.swiftCode}
+                                </p>
+                                <button
+                                    type="button"
+                                    class="text-primary font-bold hover:underline"
+                                    data-copy={bankInfo.swiftCode}
+                                >
+                                    Copiar
+                                </button>
+                            </div>
+                        )}
+                        <div class="pt-3 mt-3 border-t border-gray-200">
+                            <p class="text-xs text-gray-600">
+                                <strong>Referencia:</strong>
+                                <span id="wire-reference-preview"></span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 <div
                     class="p-8 bg-gradient-to-br from-blue-50 to-white border-2 border-primary/20 rounded-2xl lg:scale-105"
+                    id="stripe-panel"
                 >
                     <div class="flex items-center gap-3 mb-4 text-primary">
                         <svg
@@ -353,6 +472,23 @@ const {
                         >
                     </p>
                 </div> -->
+            </div>
+
+            <!-- Wire proof upload (required when wire selected) -->
+            <div id="wire-proof-section" class="hidden">
+                <div class="p-6 bg-white rounded-2xl border border-gray-200 mb-10">
+                    <h4 class="font-bold text-gray-900 mb-2">Comprobante de pago</h4>
+                    <p class="text-xs text-gray-600 mb-4">
+                        Sube tu comprobante de transferencia. Tu pago quedará en revisión.
+                    </p>
+                    <input
+                        type="file"
+                        id="payment-proof-input"
+                        name="paymentProof"
+                        accept=".pdf,image/*"
+                        class="w-full text-sm"
+                    />
+                </div>
             </div>
 
             <div class="grid grid-cols-1 gap-8 items-center">
@@ -620,12 +756,20 @@ const {
 
     // Modality selection
     const modalityRadios = document.querySelectorAll('input[name="modality"]');
+    const paymentMethodRadios = document.querySelectorAll('input[name="paymentMethodChoice"]');
+    const paymentMethodHidden = document.getElementById("payment-method");
+    const wireReferenceHidden = document.getElementById("wire-reference");
+    const wireReferencePreview = document.getElementById("wire-reference-preview");
+    const wireProofSection = document.getElementById("wire-proof-section");
+    const paymentProofInput = document.getElementById("payment-proof-input");
+    const stripePanel = document.getElementById("stripe-panel");
+    const wirePanel = document.getElementById("wire-panel");
 
     let currentStep = 1;
     const totalSteps = 3;
     const stepNames = [
         "Datos del Participante",
-        "Realizar Pago",
+        "Método de Pago",
         "Finalizar Inscripción",
     ];
 
@@ -706,6 +850,14 @@ const {
     }
 
     stripeCheckoutBtn?.addEventListener("click", async () => {
+        const method =
+            document.querySelector('input[name="paymentMethodChoice"]:checked')
+                ?.value || "stripe";
+        if (method !== "stripe") {
+            alert("Selecciona 'Pago en línea (Stripe)' para pagar en línea.");
+            return;
+        }
+
         const modality = document.querySelector('input[name="modality"]:checked')?.value;
         if (!modality) {
             alert("Por favor selecciona una modalidad (Presencial o En línea)");
@@ -790,6 +942,74 @@ const {
         }
     });
 
+    function generateWireReference() {
+        let bank = {};
+        try {
+            bank = JSON.parse(form.dataset.bankInfo || "{}");
+        } catch {
+            /* ignore */
+        }
+        const prefix = bank.referencePrefix || "CEPRIJA";
+        const program = String(
+            document.getElementById("form-program-id")?.value || "programa",
+        )
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "");
+        const stamp = new Date();
+        const y = String(stamp.getFullYear());
+        const m = String(stamp.getMonth() + 1).padStart(2, "0");
+        const d = String(stamp.getDate()).padStart(2, "0");
+        const t = Math.floor(stamp.getTime() / 1000) % 46656; // 36^3
+        const suffix = t.toString(36).toUpperCase().padStart(3, "0");
+        return `${prefix}-${program}-${y}${m}${d}${suffix}`;
+    }
+
+    function applyPaymentMethodUI() {
+        const method =
+            document.querySelector('input[name="paymentMethodChoice"]:checked')
+                ?.value || "stripe";
+        if (paymentMethodHidden) paymentMethodHidden.value = method;
+
+        const isWire = method === "wire";
+        wireProofSection?.classList.toggle("hidden", !isWire);
+        stripePanel?.classList.toggle("hidden", isWire);
+        wirePanel?.classList.toggle("hidden", !isWire);
+
+        if (isWire) {
+            const ref = generateWireReference();
+            if (wireReferenceHidden) wireReferenceHidden.value = ref;
+            if (wireReferencePreview) wireReferencePreview.textContent = ref;
+            if (paymentProofInput) paymentProofInput.required = true;
+        } else {
+            if (wireReferenceHidden) wireReferenceHidden.value = "";
+            if (wireReferencePreview) wireReferencePreview.textContent = "";
+            if (paymentProofInput) paymentProofInput.required = false;
+        }
+    }
+
+    paymentMethodRadios.forEach((r) =>
+        r.addEventListener("change", applyPaymentMethodUI),
+    );
+    applyPaymentMethodUI();
+
+    // Copy-to-clipboard for bank fields
+    document.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const value = btn.getAttribute("data-copy") || "";
+            try {
+                await navigator.clipboard.writeText(value);
+            } catch {
+                const ta = document.createElement("textarea");
+                ta.value = value;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                ta.remove();
+            }
+        });
+    });
+
     // Uppercase & Number validations (already in HTML but reinforced)
     document.querySelectorAll('input[type="text"], textarea').forEach((el) => {
         el.addEventListener("input", (e) => {
@@ -826,13 +1046,13 @@ const {
 
         try {
             const formData = new FormData(form);
-            const response = await fetch(
-                "/api/educacion-continua-inscription",
-                {
-                    method: "POST",
-                    body: formData,
-                },
-            );
+            const method = String(formData.get("paymentMethod") || "stripe");
+            const endpoint =
+                method === "wire"
+                    ? "/api/payments/wire-proof"
+                    : "/api/educacion-continua-inscription";
+
+            const response = await fetch(endpoint, { method: "POST", body: formData });
 
             if (response.ok) {
                 form.classList.add("hidden");
