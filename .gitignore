@@ -26,6 +26,6 @@ pnpm-debug.log*
 #files
 public/uploads/*
 data/inscripciones/*
-data/stripe-enrollment-session-ids.json
-data/stripe-webhook-event-ids.json
+# Stripe idempotency files (written at runtime by processedStripeStore)
+data/stripe-*.json
 tmp/*
