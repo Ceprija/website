@@ -1,8 +1,8 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { programs } from '../../data/programs';
-import emailTemplates from '../../data/email-templates-educacion-continua.json';
+import { programs } from '../../data/legacy/programs';
+import emailTemplates from '../../data/forms/email-templates-educacion-continua.json';
 import Busboy from 'busboy';
 
 function sanitizeFilename(name: string): string {

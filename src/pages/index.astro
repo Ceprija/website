@@ -1,18 +1,24 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Hero from "../components/Hero.astro";
-import Faculty from "../components/Faculty.astro";
-import Features from "../components/Features.astro";
-import Testimonials from "../components/Testimonials.astro";
-import Location from "../components/Location.astro";
+import Hero from "@components/sections/Hero.astro";
+import AcademicProgram from "@components/sections/AcademicProgram.astro";
+import Faculty from "@components/sections/Faculty.astro";
+import Partners from "@components/sections/Partners.astro";
+import Features from "@components/sections/Features.astro";
+import NewsPreview from "@components/sections/NewsPreview.astro";
+import Testimonials from "@components/sections/Testimonials.astro";
+import Location from "@components/sections/Location.astro";
 ---
 
 <Layout pageId="home">
 	<main>
 		<Hero />
-		<Features />
+		<AcademicProgram />
 		<Faculty isSlider={true} />
+		<Partners />
+		<Features />
+		<NewsPreview />
 		<!-- <Testimonials /> -->
-		<Location />
+		<!-- <Location /> -->
 	</main>
 </Layout>

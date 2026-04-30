@@ -1,152 +1,45 @@
 ---
-import Layout from "../../layouts/Layout.astro";
-import { posts } from "../../data/posts.js";
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-    return posts.map((post) => ({
-        params: { slug: post.id },
-        props: { post },
-    }));
+  const posts = await getCollection('revista');
+
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
 }
 
 const { post } = Astro.props;
+const { Content } = await post.render();
 ---
 
-<Layout title={`${post.title} | Revista CEPRIJA`}>
-    <main class="bg-gray-50 min-h-screen pb-20">
-        <!-- Hero Image -->
-        <div class="h-96 w-full relative">
-            <img
-                src={post.image}
-                alt={post.title}
-                class="w-full h-full object-cover"
-            />
-            <div class="absolute inset-0 bg-blue-950/60"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                <div class="container mx-auto px-6 text-center text-white">
-                    <span
-                        class="bg-secondary text-primary font-bold px-4 py-1 rounded-full text-sm uppercase tracking-wider mb-4 inline-block"
-                        data-animate="fade-up"
-                    >
-                        {post.category}
-                    </span>
-                    <h1
-                        class="text-5xl font-semibold font-serif max-w-4xl mx-auto leading-tight"
-                        data-animate="fade-up"
-                        data-delay="100"
-                    >
-                        {post.title}
-                    </h1>
-                    <div
-                        class="mt-6 flex items-center justify-center gap-6 text-sm md:text-base text-gray-200"
-                        data-animate="fade-up"
-                        data-delay="200"
-                    >
-                        <div class="flex items-center gap-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                ></path>
-                            </svg>
-                            <span>{post.date}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                ></path>
-                            </svg>
-                            <span>{post.author}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<Layout title={post.data.title} description={post.data.excerpt}>
 
-        <!-- Content -->
-        <article class="container mx-auto px-6 -mt-20 relative z-10">
-            <div
-                class="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-4xl mx-auto"
-                data-animate="fade-up"
-                data-delay="300"
-            >
-                <div
-                    class="prose prose-lg prose-blue max-w-none text-gray-700"
-                    set:html={post.content}
-                />
+  <article class="max-w-3xl mx-auto py-16 px-4">
+    
+    <h1 class="text-3xl font-bold mb-4">
+      {post.data.title}
+    </h1>
 
-                <!-- Share / Back -->
-                <div
-                    class="mt-12 pt-8 border-t border-gray-100 flex justify-between items-center"
-                >
-                    <a
-                        href="/revista"
-                        class="inline-flex items-center gap-2 text-primary font-bold hover:text-secondary transition-colors group"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver a Revista
-                    </a>
+    <span>{post.data.category}</span>
 
-                    <div class="flex gap-4">
-                        <button
-                            class="text-gray-400 hover:text-[#1877F2] transition-colors"
-                        >
-                            <span class="sr-only">Facebook</span>
-                            <svg
-                                class="h-6 w-6"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                                ><path
-                                    d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-                                ></path></svg
-                            >
-                        </button>
-                        <button
-                            class="text-gray-400 hover:text-[#1DA1F2] transition-colors"
-                        >
-                            <span class="sr-only">Twitter</span>
-                            <svg
-                                class="h-6 w-6"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                                ><path
-                                    d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"
-                                ></path></svg
-                            >
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </article>
-    </main>
+    <p class="text-gray-500 mb-6">
+      {new Date(post.data.date).toLocaleDateString()}
+    </p>
+
+    {post.data.image && (
+      <img 
+        src={post.data.image} 
+        class="w-full rounded-xl mb-8"
+      />
+    )}
+
+    <div class="prose max-w-none">
+      <Content />
+    </div>
+
+  </article>
+
 </Layout>

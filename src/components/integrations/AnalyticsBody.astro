@@ -1,0 +1,16 @@
+---
+import { analyticsConfig } from "../../data/config/analytics";
+---
+
+<!-- Google Tag Manager (noscript) -->{
+    analyticsConfig.gtm.enabled && analyticsConfig.gtm.id && (
+        <noscript>
+            <iframe
+                src={`https://www.googletagmanager.com/ns.html?id=${analyticsConfig.gtm.id}`}
+                height="0"
+                width="0"
+                style="display:none;visibility:hidden"
+            />
+        </noscript>
+    )
+}

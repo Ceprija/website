@@ -1,0 +1,224 @@
+---
+import Button from "../ui/Button.astro";
+
+interface Props {
+    programTitle?: string;
+}
+
+const { programTitle = "General Inquiry" } = Astro.props;
+---
+
+<div class="bg-white rounded-2xl shadow-lg p-8 sticky top-24">
+    <h3 class="text-2xl font-bold text-primary mb-6 font-serif">
+        Solicita Información
+    </h3>
+
+    <form id="contact-form" class="space-y-4">
+        <input type="hidden" name="program" value={programTitle} />
+
+        <div>
+            <label
+                for="name"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Nombre completo</label
+            >
+            <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                placeholder="Tu nombre"
+            />
+        </div>
+
+        <div>
+            <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Correo electrónico</label
+            >
+            <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                placeholder="tu@email.com"
+            />
+        </div>
+
+        <div>
+            <label
+                for="phone"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Teléfono</label
+            >
+            <input
+                type="tel"
+                id="phone"
+                name="phone"
+                required
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                placeholder="55 1234 5678"
+            />
+        </div>
+
+        <div>
+            <label
+                for="message"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Mensaje</label
+            >
+            <textarea
+                id="message"
+                name="message"
+                rows="3"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                placeholder="¿Qué te gustaría saber?"></textarea>
+        </div>
+
+        <div id="form-status" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+        <Button
+            type="submit"
+            id="submit-btn"
+            variant="secondary"
+            class="w-full flex justify-center items-center gap-2"
+        >
+            <span>Enviar Solicitud</span>
+            <svg
+                class="animate-spin h-5 w-5 text-primary hidden"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                id="loading-spinner"
+            >
+                <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"></circle>
+                <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+            </svg>
+        </Button>
+    </form>
+
+    <div class="mt-8 pt-8 border-t border-gray-200">
+        <a
+            href="/oferta-academica"
+            class="inline-flex items-center gap-3 text-gray-600 hover:text-primary font-medium transition-colors group"
+        >
+            <div
+                class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </div>
+            <span>Ver todos los programas</span>
+        </a>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("contact-form") as HTMLFormElement;
+    const statusDiv = document.getElementById("form-status");
+    const submitBtn = document.getElementById(
+        "submit-btn",
+    ) as HTMLButtonElement;
+    const spinner = document.getElementById("loading-spinner");
+    const btnText = submitBtn?.querySelector("span");
+
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            // Reset status
+            if (statusDiv) {
+                statusDiv.classList.add("hidden");
+                statusDiv.className = "hidden mb-4 p-3 rounded-lg text-sm";
+            }
+
+            // Loading state
+            if (submitBtn && spinner && btnText) {
+                submitBtn.disabled = true;
+                spinner.classList.remove("hidden");
+                btnText.textContent = "Enviando...";
+            }
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch("/api/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Success
+                    if (statusDiv) {
+                        statusDiv.textContent =
+                            "¡Gracias! Tu solicitud ha sido enviada correctamente. Nos pondremos en contacto contigo pronto.";
+                        statusDiv.classList.remove("hidden");
+                        statusDiv.classList.add(
+                            "bg-green-100",
+                            "text-green-800",
+                            "border",
+                            "border-green-200",
+                        );
+                    }
+                    form.reset();
+                } else {
+                    // Error from server
+                    throw new Error(
+                        result.message || "Error al enviar el formulario",
+                    );
+                }
+            } catch (error) {
+                // Network or other error
+                if (statusDiv) {
+                    statusDiv.textContent =
+                        "Hubo un error al enviar tu solicitud. Por favor intenta nuevamente o contáctanos por teléfono.";
+                    statusDiv.classList.remove("hidden");
+                    statusDiv.classList.add(
+                        "bg-red-100",
+                        "text-red-800",
+                        "border",
+                        "border-red-200",
+                    );
+                }
+                console.error("Error submitting form:", error);
+            } finally {
+                // Reset button state
+                if (submitBtn && spinner && btnText) {
+                    submitBtn.disabled = false;
+                    spinner.classList.add("hidden");
+                    btnText.textContent = "Enviar Solicitud";
+                }
+            }
+        });
+    }
+</script>

@@ -1,23 +1,23 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { programs } from "../../data/programs.js";
-import ContactForm from "../../components/ContactForm.astro";
-import ContinuousEducationForm from "../../components/ContinuousEducationForm.astro";
+import { getCollection } from "astro:content";
+import ContactForm from "@components/forms/ContactForm.astro";
+import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 export async function getStaticPaths() {
-    return programs
-        .filter((program) => program.active)
-        .map((program) => ({
-            params: { slug: program.id },
-            props: { program },
-        }));
+    const programs = await getCollection("programas");
+    return programs.map((program) => ({
+        params: { slug: getProgramPathSlug(program) },
+        props: { program },
+    }));
 }
 
 const { program } = Astro.props;
 
 const seo = {
-    title: `${program.title} | CEPRIJA`,
-    description: program.description,
+    title: `${program.data.title} | CEPRIJA`,
+    description: program.data.description,
 };
 ---
 
@@ -27,7 +27,13 @@ const seo = {
         <section
             class="relative text-white py-20 min-h-[400px] flex items-center"
         >
-            <div class={`absolute inset-0 ${program.image} z-0`}></div>
+            <div class="absolute inset-0 z-0">
+                <img
+                    src={program.data.image}
+                    alt={program.data.title}
+                    class="w-full h-full object-cover"
+                />
+            </div>
             <div class="absolute inset-0 bg-blue-950/60 z-0"></div>
             <div class="container mx-auto px-6 relative z-10">
                 <div class="max-w-4xl">
@@ -35,21 +41,21 @@ const seo = {
                         class="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-4 py-2 rounded-full uppercase tracking-wide inline-block mb-4"
                         data-animate="fade-up"
                     >
-                        {program.level}
+                        {program.data.nivel}
                     </span>
                     <h1
                         class="text-4xl font-bold mb-6 font-serif"
                         data-animate="fade-up"
                         data-delay="100"
                     >
-                        {program.title}
+                        {program.data.title}
                     </h1>
                     <p
                         class="text-xl text-gray-100 mb-8"
                         data-animate="fade-up"
                         data-delay="200"
                     >
-                        {program.description}
+                        {program.data.description}
                     </p>
 
                     <div
@@ -58,11 +64,11 @@ const seo = {
                         data-delay="300"
                     >
                         {
-                            program.rvoe && (
+                            program.data.rvoe && (
                                 <div class="flex items-center gap-2">
                                     <span>RVOE: </span>
                                     <span class="italic font-bold">
-                                        {program.rvoe}
+                                        {program.data.rvoe}
                                     </span>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -83,7 +89,7 @@ const seo = {
                         }
 
                         {
-                            program.startDate && (
+                            program.data.startDate && (
                                 <div class="flex items-center gap-2">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -100,7 +106,7 @@ const seo = {
                                         />
                                     </svg>
                                     <span class="font-bold">
-                                        {program.startDate}
+                                        {program.data.startDate}
                                     </span>
                                 </div>
                             )
@@ -121,11 +127,11 @@ const seo = {
                                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                                 ></path>
                             </svg>
-                            <span>{program.duration}</span>
+                            <span>{program.data.duracion}</span>
                         </div>
 
                         {
-                            program.schedule && (
+                            program.data.horario && (
                                 <div class="flex items-center gap-2">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -141,7 +147,7 @@ const seo = {
                                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                                         />
                                     </svg>
-                                    <span>{program.schedule}</span>
+                                    <span>{program.data.horario}</span>
                                 </div>
                             )
                         }
@@ -161,7 +167,7 @@ const seo = {
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                                 ></path>
                             </svg>
-                            <span>{program.modality}</span>
+                            <span>{program.data.modalidad}</span>
                         </div>
                     </div>
                 </div>
@@ -176,7 +182,7 @@ const seo = {
                     <div class="lg:col-span-2 space-y-12">
                         <!-- Plan de Estudios -->
                         {
-                            program.curriculum && (
+                            program.data.curriculum && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -197,11 +203,11 @@ const seo = {
                                                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                                             />
                                         </svg>
-                                        {program.curriculumTitle ||
+                                        {program.data.curriculumTitle ||
                                             "Plan de Estudios"}
                                     </h2>
                                     <div class="space-y-8">
-                                        {program.curriculum.map(
+                                        {program.data.curriculum.map(
                                             (semester: {
                                                 period: unknown;
                                                 subjects: any[];
@@ -239,7 +245,7 @@ const seo = {
                         }
                         <!-- Perfil del Egresado -->
                         {
-                            program.profile && (
+                            program.data.profile && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -263,14 +269,14 @@ const seo = {
                                         Perfil del Egresado
                                     </h2>
                                     <p class="text-gray-700 leading-relaxed text-lg">
-                                        {program.profile}
+                                        {program.data.profile}
                                     </p>
                                 </div>
                             )
                         }
-                        <!-- Perfil del Egresado -->
+                        <!-- Dirigido a -->
                         {
-                            program.profileAudience && (
+                            program.data.profileAudience && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -294,7 +300,7 @@ const seo = {
                                         Dirigido a
                                     </h2>
                                     <p class="text-gray-700 leading-relaxed text-lg">
-                                        {program.profileAudience}
+                                        {program.data.profileAudience}
                                     </p>
                                 </div>
                             )
@@ -302,7 +308,7 @@ const seo = {
 
                         <!-- Campo Laboral -->
                         {
-                            program.fieldOfWork && (
+                            program.data.fieldOfWork && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -326,14 +332,14 @@ const seo = {
                                         Campo Laboral
                                     </h2>
                                     <p class="text-gray-700 leading-relaxed text-lg">
-                                        {program.fieldOfWork}
+                                        {program.data.fieldOfWork}
                                     </p>
                                 </div>
                             )
                         }
 
                         {
-                            program.price && (
+                            program.data.price && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -356,9 +362,11 @@ const seo = {
                                         </svg>
                                         Inversión
                                     </h2>
-                                    <div class="space-y-4">
-                                        {Object.entries(program.price).map(
-                                            ([key, value]) => (
+                                    {typeof program.data.price === "object" ? (
+                                        <div class="space-y-4">
+                                            {Object.entries(
+                                                program.data.price,
+                                            ).map(([key, value]) => (
                                                 <div class="flex justify-between items-center border-b border-gray-100 pb-2">
                                                     <span class="text-gray-600 font-medium capitalize">
                                                         {key}:
@@ -367,15 +375,19 @@ const seo = {
                                                         {value}
                                                     </span>
                                                 </div>
-                                            ),
-                                        )}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p class="text-primary font-bold text-2xl">
+                                            ${program.data.price}
+                                        </p>
+                                    )}
                                 </div>
                             )
                         }
 
                         {
-                            program.includes && (
+                            program.data.includes && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -399,7 +411,7 @@ const seo = {
                                         Incluye
                                     </h2>
                                     <ul class="space-y-2">
-                                        {program.includes.map(
+                                        {program.data.includes.map(
                                             (item: unknown) => (
                                                 <li class="flex items-center gap-2 text-gray-700">
                                                     <svg
@@ -430,18 +442,25 @@ const seo = {
                         data-delay="600"
                     >
                         {
-                            ["Curso", "Taller", "Diplomado"].includes(
-                                program.level,
+                            ["curso", "taller", "diplomado", "maestria", "doctorado", "especialidad"].includes(
+                                program.data.nivel.toLowerCase(),
                             ) ? (
                                 <ContinuousEducationForm
-                                    programTitle={program.title}
-                                    programId={program.id}
-                                    paymentLinks={program.paymentLinks}
-                                    prices={program.price}
-                                    address={program.address}
+                                    programTitle={program.data.title}
+                                    programId={getProgramPathSlug(program)}
+                                    stripePriceIds={program.data.stripePriceIds}
+                                    prices={
+                                        (program.data.price as {
+                                            Presencial?: string;
+                                            Online?: string;
+                                        }) || { Presencial: "", Online: "" }
+                                    }
+                                    address={program.data.address}
                                 />
                             ) : (
-                                <ContactForm programTitle={program.title} />
+                                <ContactForm
+                                    programTitle={program.data.title}
+                                />
                             )
                         }
                     </div>
