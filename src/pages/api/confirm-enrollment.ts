@@ -17,14 +17,8 @@ import {
 import Stripe from "stripe";
 import { hasEnrollmentBeenConfirmed, markEnrollmentConfirmed } from "@lib/processedStripeStore";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
+import { escapeHtml } from "@lib/htmlEscape";
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -33,47 +27,23 @@ function paymentIntentId(session: Stripe.Checkout.Session): string {
   return "";
 }
 
-/** Maps Brevo API error body to a clearer message for the success page. */
-function brevoParticipantErrorMessage(status: number, errBody: string): string {
-  let msg = "";
-  try {
-    const j = JSON.parse(errBody) as { message?: string; code?: string };
-    msg = (j.message ?? "").toLowerCase();
-  } catch {
-    /* raw text */
-  }
-  const combined = `${errBody} ${msg}`.toLowerCase();
-  if (
-    status === 401 &&
-    (combined.includes("unrecognised ip") ||
-      combined.includes("unrecognized ip") ||
-      combined.includes("authorised_ips") ||
-      combined.includes("authorized_ips"))
-  ) {
-    return "Brevo bloqueó la petición: tu IP no está en la lista autorizada. Entra a Brevo → Seguridad → IPs autorizadas y añade tu IP actual, o desactiva la restricción para desarrollo.";
-  }
-  if (status === 401) {
-    return "Brevo rechazó la clave API (401). Revisa KEY_API_BREVO y que la IP esté autorizada en Brevo.";
-  }
-  return "Brevo no pudo enviar el correo (remitente no verificado, cuota, etc.). Revisa la consola del servidor para el detalle.";
-}
-
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = (await request.json().catch(() => null)) as Record<
       string,
       unknown
     > | null;
-    const stripeSessionId =
+    const stripeSessionIdRaw =
       typeof body?.stripeSessionId === "string"
         ? body.stripeSessionId.trim()
         : "";
 
-    if (!stripeSessionId) {
+    const sessionErr = validateStripeCheckoutSessionId(stripeSessionIdRaw);
+    if (sessionErr) {
       return new Response(
         JSON.stringify({
-          error: "Falta stripeSessionId",
-          code: "missing_session",
+          error: sessionErr.error,
+          code: sessionErr.code,
         }),
         {
           status: 400,
@@ -81,6 +51,8 @@ export const POST: APIRoute = async ({ request }) => {
         },
       );
     }
+
+    const stripeSessionId = stripeSessionIdRaw;
 
     if (hasEnrollmentBeenConfirmed(stripeSessionId)) {
       return new Response(
@@ -201,7 +173,17 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const stripeIds = program.data.stripePriceIds;
+    const rawStripeIds = program.data.stripePriceIds;
+    const stripeIds =
+      rawStripeIds &&
+      typeof rawStripeIds === "object" &&
+      "presencial" in rawStripeIds &&
+      "online" in rawStripeIds &&
+      typeof (rawStripeIds as { presencial: unknown }).presencial === "string" &&
+      typeof (rawStripeIds as { online: unknown }).online === "string"
+        ? (rawStripeIds as { presencial: string; online: string })
+        : null;
+
     if (!stripeIds) {
       return new Response(
         JSON.stringify({
@@ -245,8 +227,9 @@ export const POST: APIRoute = async ({ request }) => {
     const participantPhone =
       session.metadata?.participantPhone?.trim() || "No proporcionado";
 
-    const programTitle = program.data.title;
+    const programTitle = String(program.data.title ?? "");
     const programId = program.slug;
+    const requiresVerification = !!program.data.requiresVerification;
 
     const safeName = escapeHtml(participantName);
     const safeTitle = escapeHtml(programTitle);
@@ -291,7 +274,11 @@ export const POST: APIRoute = async ({ request }) => {
                     <div class="content">
                         <h2>Confirmación de Inscripción</h2>
                         <p>Hola <strong>${safeName}</strong>,</p>
-                        <p>Tu inscripción al programa ha sido confirmada exitosamente.</p>
+                        ${
+                          requiresVerification
+                            ? "<p>Tu pago ha sido confirmado exitosamente.</p><p><strong>Nota:</strong> Tu información y requisitos serán revisados por nuestro equipo. Te contactaremos si necesitamos documentación adicional.</p>"
+                            : "<p>Tu inscripción al programa ha sido confirmada exitosamente.</p>"
+                        }
                         
                         <div class="info-box">
                             <h3 style="margin-top: 0;">Detalles de tu Inscripción:</h3>
@@ -374,7 +361,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (brevoKey) {
       const adminEmailBody = `
-                <h2>Nueva Inscripción PAGADA</h2>
+                <h2>Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""}</h2>
                 <h3>Información del Estudiante:</h3>
                 <p><strong>Nombre:</strong> ${safeName}</p>
                 <p><strong>Email:</strong> ${safeEmail}</p>
@@ -407,7 +394,7 @@ export const POST: APIRoute = async ({ request }) => {
             body: JSON.stringify({
               sender: { email: senderEmail, name: "Sistema CEPRIJA" },
               to: adminNotificationRecipients,
-              subject: `✅ Nueva Inscripción PAGADA - ${programTitle}`,
+              subject: `✅ Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""} - ${programTitle}`,
               htmlContent: adminEmailBody,
             }),
           },

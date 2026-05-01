@@ -1,208 +1,148 @@
 export const prerender = false;
 
-import type { APIRoute } from 'astro';
-import { programs } from '../../data/legacy/programs';
-import Busboy from 'busboy';
-import { createWriteStream } from 'fs';
-import { mkdir } from 'fs/promises';
-import { join } from 'path';
-import { readFile } from 'fs/promises';
-
-// Helper function to sanitize filename
-function sanitizeFilename(name: string): string {
-    return name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove accents
-        .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with dash
-        .replace(/-+/g, '-') // Replace multiple dashes with single
-        .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-}
-
-// Helper function to parse multipart form data
-function parseFormData(request: Request): Promise<{ fields: Record<string, string>, file: { filepath: string, filename: string, mimetype: string } | null }> {
-    return new Promise((resolve, reject) => {
-        const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
-        const fields: Record<string, string> = {};
-        let fileInfo: { filepath: string, filename: string, mimetype: string } | null = null;
-
-        busboy.on('field', (fieldname: string, value: string) => {
-            fields[fieldname] = value;
-        });
-
-        busboy.on('file', async (fieldname: string, file: any, info: any) => {
-            if (fieldname !== 'paymentProof') {
-                file.resume();
-                return;
-            }
-
-            const { filename, mimeType } = info;
-
-            // Validate file type
-            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-            if (!allowedTypes.includes(mimeType)) {
-                file.resume();
-                reject(new Error('Tipo de archivo no permitido'));
-                return;
-            }
-
-            // Create timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-
-            // Sanitize user name from fields (will be available after all fields are parsed)
-            const userName = fields.name || 'usuario';
-            const sanitizedName = sanitizeFilename(userName);
-
-            // Get file extension
-            const ext = filename.split('.').pop() || 'pdf';
-
-            // Create new filename
-            const newFilename = `${sanitizedName}_${timestamp}.${ext}`;
-            const uploadDir = join(process.cwd(), 'public', 'uploads', 'comprobantes');
-            const filepath = join(uploadDir, newFilename);
-
-            try {
-                // Ensure directory exists
-                await mkdir(uploadDir, { recursive: true });
-
-                // Save file
-                const writeStream = createWriteStream(filepath);
-                file.pipe(writeStream);
-
-                writeStream.on('finish', () => {
-                    fileInfo = { filepath, filename: newFilename, mimetype: mimeType };
-                });
-
-                writeStream.on('error', (err: Error) => {
-                    reject(err);
-                });
-            } catch (err) {
-                reject(err);
-            }
-        });
-
-        busboy.on('finish', () => {
-            // Wait a bit to ensure file write is complete
-            setTimeout(() => {
-                resolve({ fields, file: fileInfo });
-            }, 100);
-        });
-
-        busboy.on('error', (err) => {
-            reject(err);
-        });
-
-        // Pipe request body to busboy
-        request.body?.pipeTo(new WritableStream({
-            write(chunk) {
-                busboy.write(chunk);
-            },
-            close() {
-                busboy.end();
-            }
-        }));
-    });
-}
+import type { APIRoute } from "astro";
+import { getCollection } from "astro:content";
+import { parseWireRegistrationMultipart } from "@lib/multipart/parseWireRegistration";
+import { escapeHtml } from "@lib/htmlEscape";
+import { validateUploadBuffer } from "@lib/uploads/fileValidation";
+import { parseWireRegisterFields } from "@lib/validation/enrollment";
+import { CONTACT_EMAIL, KEY_API_BREVO, SMTP_FROM } from "astro:env/server";
 
 export const POST: APIRoute = async ({ request }) => {
-    try {
-        const { fields, file } = await parseFormData(request);
-        const { name, email, phone, message, program: programTitle, type, modality } = fields;
+  try {
+    const { fields, paymentProof } = await parseWireRegistrationMultipart(request);
 
-        // Find program details
-        const programDetails = programs.find(p => p.title === programTitle) || {};
-        const {
-            instructor = "Claustro Docente CEPRIJA",
-            startDate = "Por confirmar",
-            schedule = "Por confirmar",
-            address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
-            meetingLink = "Se enviará previo al evento"
-        } = programDetails;
+    const parsed = parseWireRegisterFields(fields);
+    if (!parsed.ok) {
+      return new Response(
+        JSON.stringify({
+          message: parsed.err.error,
+          code: parsed.err.code,
+          ...(parsed.err.field && { field: parsed.err.field }),
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-        // Obtener clave de API de Brevo
-        const brevoKey = import.meta.env.KEY_API_BREVO;
-        if (!brevoKey) {
-            throw new Error('Falta KEY_API_BREVO en .env');
-        }
+    const { name, email, phone, message, program: programTitle, type, modality } =
+      parsed.data;
 
-        const senderEmail = import.meta.env.SMTP_FROM || import.meta.env.CONTACT_EMAIL;
+    if (paymentProof) {
+      const fileCheck = validateUploadBuffer(paymentProof.buffer, paymentProof.mimetype, {
+        field: "paymentProof",
+      });
+      if (!fileCheck.ok) {
+        return new Response(
+          JSON.stringify({
+            message: fileCheck.err.error,
+            code: fileCheck.err.code,
+            ...(fileCheck.err.field && { field: fileCheck.err.field }),
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
 
-        // 1. Send Admin Notification (Internal) with file attachment via Brevo API
-        const adminHtml = `
+    // Get program details from content collection
+    const programs = await getCollection("programas");
+    const program = programs.find((p) => p.data.title === programTitle);
+    
+    const instructor = String(program?.data.instructor || "Claustro Docente CEPRIJA");
+    const startDate = String(program?.data.startDate || "Por confirmar");
+    const schedule = String(program?.data.schedule || "Por confirmar");
+    const address = String(program?.data.address || "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500");
+    const meetingLink = String((program?.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al evento");
+
+    const brevoKey = KEY_API_BREVO;
+    if (!brevoKey) {
+      throw new Error("Falta KEY_API_BREVO en .env");
+    }
+
+    const senderEmail = SMTP_FROM || CONTACT_EMAIL;
+
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = escapeHtml(phone);
+    const safeProgram = escapeHtml(programTitle || "N/A");
+    const safeMessage = escapeHtml(message || "N/A");
+    const modalityDisplay = type === "contact" ? "No aplica" : modality;
+    const safeModality = escapeHtml(modalityDisplay);
+
+    const adminHtml = `
             <h2>Nuevo contacto desde la web</h2>
-            <p><strong>Tipo:</strong> ${type === 'registration' ? 'Inscripción' : 'Contacto General'}</p>
-            <p><strong>Nombre:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Teléfono:</strong> ${phone}</p>
-            <p><strong>Programa:</strong> ${programTitle || 'N/A'}</p>
-            <p><strong>Modalidad:</strong> ${modality || 'N/A'}</p>
-            <p><strong>Mensaje:</strong> ${message || 'N/A'}</p>
-            ${file ? `<p><strong>Comprobante de pago:</strong> Adjunto</p>` : ''}
+            <p><strong>Tipo:</strong> ${type === "registration" ? "Inscripción" : "Contacto General"}</p>
+            <p><strong>Nombre:</strong> ${safeName}</p>
+            <p><strong>Email:</strong> ${safeEmail}</p>
+            <p><strong>Teléfono:</strong> ${safePhone}</p>
+            <p><strong>Programa:</strong> ${safeProgram}</p>
+            <p><strong>Modalidad:</strong> ${safeModality}</p>
+            <p><strong>Mensaje:</strong> ${safeMessage}</p>
+            ${paymentProof ? `<p><strong>Comprobante de pago:</strong> Adjunto</p>` : ""}
         `;
 
-        const adminBody: any = {
-            sender: { email: senderEmail },
-            to: [{ email: import.meta.env.CONTACT_EMAIL }],
-            subject: `Nuevo ${type === 'registration' ? 'Registro' : 'Mensaje'}: ${programTitle || 'General'}`,
-            htmlContent: adminHtml
-        };
+    const adminBody: Record<string, unknown> = {
+      sender: { email: senderEmail },
+      to: [{ email: CONTACT_EMAIL }],
+      subject: `Nuevo ${type === "registration" ? "Registro" : "Mensaje"}: ${programTitle || "General"}`,
+      htmlContent: adminHtml,
+    };
 
-        // Adjuntar archivo si existe
-        if (file && file.filepath) {
-            try {
-                const fileData = await readFile(file.filepath);
-                const base64 = fileData.toString('base64');
-                adminBody.attachment = [{ name: file.filename, content: base64 }];
-            } catch (e) {
-                console.warn('No se pudo leer archivo adjunto:', e);
-            }
-        }
+    if (paymentProof?.buffer.length) {
+      adminBody.attachment = [
+        {
+          name: paymentProof.filename,
+          content: paymentProof.buffer.toString("base64"),
+        },
+      ];
+    }
 
-        try {
-            const adminRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': brevoKey
-                },
-                body: JSON.stringify(adminBody)
-            });
+    try {
+      const adminRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": brevoKey,
+        },
+        body: JSON.stringify(adminBody),
+      });
 
-            if (!adminRes.ok) {
-                const txt = await adminRes.text();
-                console.error('ERROR Brevo (admin):', adminRes.status, txt);
-            } else {
-                console.log('Admin email sent via Brevo');
-            }
-        } catch (error) {
-            console.error('Error sending admin email:', error);
-        }
+      if (!adminRes.ok) {
+        const txt = await adminRes.text();
+        console.error("ERROR Brevo (admin):", adminRes.status, txt);
+      } else {
+        console.log("Admin email sent via Brevo");
+      }
+    } catch (error) {
+      console.error("Error sending admin email:", error);
+    }
 
-        // 2. Send User Confirmation Email (Only for Registrations)
-        if (type === 'registration' && email) {
-            // Normalize logic to catch 'Online', 'En línea', 'en línea', etc.
-            const isOnline = (modality || '').toLowerCase().includes('línea') || (modality || '').toLowerCase().includes('online');
+    if (type === "registration" && email) {
+      const isOnline = modality === "En línea";
 
-            // Template Content
-            const emailSubject = `Confirmación de Registro - ${programTitle}`;
+      const emailSubject = `Confirmación de Registro - ${programTitle}`;
 
-            const emailBody = `
+      const safeInstructor = escapeHtml(instructor);
+      const safeStart = escapeHtml(startDate);
+      const safeSchedule = escapeHtml(schedule);
+      const safeAddress = escapeHtml(address);
+      const safeMeeting = escapeHtml(meetingLink);
+      const safeProgramTitle = escapeHtml(programTitle);
+
+      const emailBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <!-- Header con Logo -->
                 <div style="background-color: #f8fafc; padding: 30px 20px; text-align: center; border-bottom: 2px solid #1e3a8a;">
                     <img src="https://ceprija.edu.mx/images/logo.png" alt="CEPRIJA" style="max-width: 200px; height: auto; margin: 0 auto; display: block;">
                 </div>
 
-                <!-- Body -->
                 <div style="padding: 30px 20px; background-color: #ffffff;">
                     <p style="font-size: 16px; margin-bottom: 20px;">
-                        <strong>${programTitle}</strong>
+                        <strong>${safeProgramTitle}</strong>
                     </p>
-                    <p>Estimado(a): <strong>${name}</strong></p>
+                    <p>Estimado(a): <strong>${safeName}</strong></p>
                     
                     <p>Reciba un cordial saludo, le notificamos por este medio que se ha confirmado su participación 
-                    <strong>${isOnline ? 'en línea' : 'presencial'}</strong> para el <strong>${programTitle}</strong> 
-                    con el <strong>${instructor}</strong>. Su participación es muy valiosa para nosotros 
+                    <strong>${isOnline ? "en línea" : "presencial"}</strong> para el <strong>${safeProgramTitle}</strong> 
+                    con el <strong>${safeInstructor}</strong>. Su participación es muy valiosa para nosotros 
                     y estamos seguros de que esta capacitación será de mucho aprendizaje para usted.</p>
                     
                     <p>A continuación le compartimos información valiosa para su asistencia.</p>
@@ -210,13 +150,15 @@ export const POST: APIRoute = async ({ request }) => {
                     <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 15px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         <h3 style="color: #1e3a8a; margin-top: 0;">Detalles del evento:</h3>
                         <ul style="list-style: none; padding: 0; margin: 0;">
-                            <li style="margin-bottom: 8px;">📅 <strong>Fecha:</strong> ${startDate}</li>
-                            <li style="margin-bottom: 8px;">⏰ <strong>Duración:</strong> ${schedule}</li>
-                            ${isOnline
-                    ? `<li style="margin-bottom: 8px;">💻 <strong>Enlace en línea:</strong> <a href="${meetingLink}" style="color: #2563eb;">${meetingLink}</a></li>
-                                   <li style="margin-bottom: 8px;">📍 <strong>Alternativa presencial:</strong> ${address}</li>`
-                    : `<li style="margin-bottom: 8px;">📍 <strong>Instalaciones:</strong> ${address}</li>`
-                }           </ul>
+                            <li style="margin-bottom: 8px;">📅 <strong>Fecha:</strong> ${safeStart}</li>
+                            <li style="margin-bottom: 8px;">⏰ <strong>Duración:</strong> ${safeSchedule}</li>
+                            ${
+                              isOnline
+                                ? `<li style="margin-bottom: 8px;">💻 <strong>Enlace en línea:</strong> <a href="${escapeHtml(meetingLink)}" style="color: #2563eb;">${safeMeeting}</a></li>
+                                   <li style="margin-bottom: 8px;">📍 <strong>Alternativa presencial:</strong> ${safeAddress}</li>`
+                                : `<li style="margin-bottom: 8px;">📍 <strong>Instalaciones:</strong> ${safeAddress}</li>`
+                            }
+                        </ul>
                     </div>
 
                     <p style="font-size: 14px; color: #666; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
@@ -235,50 +177,62 @@ export const POST: APIRoute = async ({ request }) => {
             </div>
             `;
 
-            const userBody = {
-                sender: { email: senderEmail, name: "Equipo CEPRIJA" },
-                to: [{ email: email }],
-                subject: emailSubject,
-                htmlContent: emailBody
-            };
+      const userBody = {
+        sender: { email: senderEmail, name: "Equipo CEPRIJA" },
+        to: [{ email: email }],
+        subject: emailSubject,
+        htmlContent: emailBody,
+      };
 
-            try {
-                const userRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'api-key': brevoKey
-                    },
-                    body: JSON.stringify(userBody)
-                });
+      try {
+        const userRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": brevoKey,
+          },
+          body: JSON.stringify(userBody),
+        });
 
-                if (!userRes.ok) {
-                    const txt = await userRes.text();
-                    console.error('ERROR Brevo (user):', userRes.status, txt);
-                } else {
-                    console.log('User confirmation email sent via Brevo');
-                }
-            } catch (error) {
-                console.error('Error sending user confirmation email:', error);
-            }
+        if (!userRes.ok) {
+          const txt = await userRes.text();
+          console.error("ERROR Brevo (user):", userRes.status, txt);
+        } else {
+          console.log("User confirmation email sent via Brevo");
         }
-
-
-
-        return new Response(
-            JSON.stringify({
-                message: 'Recibido correctamente',
-            }),
-            { status: 200 }
-        );
-    } catch (error) {
-        console.error('Error processing registration:', error);
-        return new Response(
-            JSON.stringify({
-                message: 'Error al procesar la solicitud',
-                error: error instanceof Error ? error.message : 'Unknown error'
-            }),
-            { status: 500 }
-        );
+      } catch (error) {
+        console.error("Error sending user confirmation email:", error);
+      }
     }
+
+    return new Response(JSON.stringify({ message: "Recibido correctamente" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    const code =
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "file_too_large"
+        ? "file_too_large"
+        : undefined;
+    if (code === "file_too_large") {
+      return new Response(
+        JSON.stringify({
+          message: "Archivo demasiado grande (máx. 10 MB)",
+          code: "file_too_large",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    console.error("Error processing registration:", error);
+    return new Response(
+      JSON.stringify({
+        message: "Error al procesar la solicitud",
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
 };

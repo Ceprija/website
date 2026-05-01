@@ -1,6 +1,7 @@
 ---
 import Button from "@components/ui/Button.astro";
 import { ecConsentLabels } from "@data/forms/educacion-continua-options";
+import bankInfo from "@data/bank-info.json";
 
 interface Props {
     programTitle?: string;
@@ -14,6 +15,9 @@ interface Props {
         Online?: string;
     };
     address?: string;
+    requiresVerification?: boolean;
+    /** Cuando el formulario va dentro de ProgramEnrollmentAsideCard (evita doble “card”). */
+    embedInAsideCard?: boolean;
 }
 
 const {
@@ -22,21 +26,34 @@ const {
     stripePriceIds,
     prices,
     address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+    requiresVerification = false,
+    embedInAsideCard = false,
 } = Astro.props;
+
+const outerClass = embedInAsideCard ? "w-full" : "max-w-4xl mx-auto";
+const formSurfaceClass = embedInAsideCard
+    ? "bg-transparent border-0 shadow-none rounded-none overflow-visible"
+    : "bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden";
+const successSurfaceClass = embedInAsideCard
+    ? "rounded-2xl border border-gray-100 shadow-sm"
+    : "rounded-3xl shadow-xl border border-gray-100";
 ---
 
-<div class="max-w-4xl mx-auto">
+<div class:list={[outerClass]}>
     <!-- Stepper Header -->
     <div class="mb-12">
-        <div class="flex items-center justify-between mb-4">
+        <div
+            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4"
+        >
             <h2
-                class="text-2xl font-bold text-primary font-serif"
+                class="text-xl sm:text-2xl font-bold text-primary font-serif pr-2"
                 id="step-label"
             >
                 Paso 1 de 3: Datos del Participante
             </h2>
-            <span class="text-sm font-semibold text-gray-500" id="step-number"
-                >33% completado</span
+            <span
+                class="text-sm font-semibold text-gray-500 shrink-0"
+                id="step-number">33% completado</span
             >
         </div>
         <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
@@ -53,7 +70,9 @@ const {
         data-stripe-price-ids={JSON.stringify(stripePriceIds || null)}
         data-prices={JSON.stringify(prices || null)}
         data-address={address}
-        class="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden"
+        data-bank-info={JSON.stringify(bankInfo)}
+        data-requires-verification={requiresVerification ? "1" : "0"}
+        class:list={[formSurfaceClass]}
     >
         <input
             type="hidden"
@@ -67,6 +86,8 @@ const {
             id="form-program-title"
             value={programTitle}
         />
+        <input type="hidden" name="paymentMethod" id="payment-method" value="stripe" />
+        <input type="hidden" name="wireReference" id="wire-reference" value="" />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
         <div class="step-section p-8 md:p-12" id="step-1">
@@ -145,6 +166,10 @@ const {
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
+                    {/*
+                      Modalidad: value Presencial | En línea — alineado con
+                      src/lib/validation/enrollment.ts (normalizeWireModality).
+                    */}
                     <label
                         class="block text-sm font-semibold text-gray-700 mb-3"
                         >Modalidad *</label
@@ -221,7 +246,7 @@ const {
         <div class="step-section p-8 md:p-12 hidden" id="step-2">
             <div class="mb-10 text-center">
                 <div
-                    class="inline-block p-4 bg-yellow-50 rounded-2xl mb-4 text-yellow-600"
+                    class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -247,10 +272,57 @@ const {
                 </p>
             </div>
 
+            <!-- Método de pago -->
+            <div class="mb-8">
+                <label class="block text-sm font-semibold text-gray-700 mb-3"
+                    >Método de pago *</label
+                >
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label
+                        class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                    >
+                        <input
+                            type="radio"
+                            name="paymentMethodChoice"
+                            value="stripe"
+                            checked
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900"
+                                >Pago en línea (Stripe)</span
+                            >
+                            <span class="text-xs text-gray-500"
+                                >Confirmación automática</span
+                            >
+                        </div>
+                    </label>
+                    <label
+                        class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                    >
+                        <input
+                            type="radio"
+                            name="paymentMethodChoice"
+                            value="wire"
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900"
+                                >Transferencia bancaria</span
+                            >
+                            <span class="text-xs text-gray-500"
+                                >Sube tu comprobante (pago en revisión)</span
+                            >
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <!-- Métodos de Pago UI -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
                 <div
                     class="p-6 bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-sm"
+                    id="wire-panel"
                 >
                     <div class="flex items-center gap-3 mb-4 text-primary">
                         <svg
@@ -271,16 +343,81 @@ const {
                             Transferencia
                         </h4>
                     </div>
-                    <div class="space-y-1 text-xs text-gray-600">
-                        <p><strong>Banco:</strong> Santander</p>
-                        <p><strong>No. Cuenta:</strong> 65-51080859-3</p>
-                        <p><strong>CLABE:</strong> 014320655108085938</p>
-                        <p><strong>Titular:</strong> CEPRIJA AC.</p>
+                    <div class="space-y-2 text-xs text-gray-600">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>Banco:</strong> {bankInfo.bankName}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.bankName}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>Titular:</strong> {bankInfo.accountHolder}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.accountHolder}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>No. Cuenta:</strong> {bankInfo.accountNumber}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.accountNumber}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate">
+                                <strong>CLABE:</strong> {bankInfo.clabe}
+                            </p>
+                            <button
+                                type="button"
+                                class="text-primary font-bold hover:underline"
+                                data-copy={bankInfo.clabe}
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        {bankInfo.swiftCode && (
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="truncate">
+                                    <strong>SWIFT:</strong> {bankInfo.swiftCode}
+                                </p>
+                                <button
+                                    type="button"
+                                    class="text-primary font-bold hover:underline"
+                                    data-copy={bankInfo.swiftCode}
+                                >
+                                    Copiar
+                                </button>
+                            </div>
+                        )}
+                        <div class="pt-3 mt-3 border-t border-gray-200">
+                            <p class="text-xs text-gray-600">
+                                <strong>Referencia:</strong>
+                                <span id="wire-reference-preview"></span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 <div
-                    class="p-8 bg-gradient-to-br from-blue-50 to-white border-2 border-primary/20 rounded-2xl lg:scale-105"
+                    class="p-8 bg-gradient-to-br from-blue-50 to-white border-2 border-primary/20 rounded-2xl"
+                    id="stripe-panel"
                 >
                     <div class="flex items-center gap-3 mb-4 text-primary">
                         <svg
@@ -355,85 +492,67 @@ const {
                 </div> -->
             </div>
 
-            <div class="grid grid-cols-1 gap-8 items-center">
-
-                <div
-                    class="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 h-full flex flex-col justify-center"
-                >
-                    <label
-                        class="block text-sm font-bold text-primary mb-4 italic"
-                        >¿Requiere factura? *</label
-                    >
-                    <div class="flex gap-6">
-                        <label
-                            class="flex items-center gap-2 cursor-pointer group"
-                        >
-                            <input
-                                type="radio"
-                                name="requiresInvoice"
-                                value="Sí"
-                                required
-                                class="w-5 h-5 text-primary focus:ring-primary"
-                            />
-                            <span
-                                class="font-bold text-gray-700 group-hover:text-primary transition-colors"
-                                >Sí</span
-                            >
-                        </label>
-                        <label
-                            class="flex items-center gap-2 cursor-pointer group"
-                        >
-                            <input
-                                type="radio"
-                                name="requiresInvoice"
-                                value="No"
-                                required
-                                checked
-                                class="w-5 h-5 text-primary focus:ring-primary"
-                            />
-                            <span
-                                class="font-bold text-gray-700 group-hover:text-primary transition-colors"
-                                >No</span
-                            >
-                        </label>
-                    </div>
+            <!-- Wire proof upload (required when wire selected) -->
+            <div id="wire-proof-section" class="hidden">
+                <div class="p-6 bg-white rounded-2xl border border-gray-200 mb-10">
+                    <h4 class="font-bold text-gray-900 mb-2">Comprobante de pago</h4>
+                    <p class="text-xs text-gray-600 mb-4">
+                        Sube tu comprobante de transferencia. Tu pago quedará en revisión.
+                    </p>
+                    <input
+                        type="file"
+                        id="payment-proof-input"
+                        name="paymentProof"
+                        accept=".pdf,image/*"
+                        class="w-full text-sm"
+                    />
                 </div>
             </div>
-        </div>
 
-        <!-- SECCIÓN 3: FACTURACIÓN -->
-        <div class="step-section p-8 md:p-12 hidden" id="step-3">
-            <!-- Este encabezado cambiará dinámicamente según si requiere factura o no -->
-            <div id="invoice-header" class="mb-10 text-center">
-                <div
-                    class="inline-block p-4 bg-primary rounded-2xl mb-4 text-white"
+            <div class="p-4 bg-white rounded-xl border border-gray-100">
+                <label class="block text-sm font-bold text-primary mb-3"
+                    >¿Requiere factura? *</label
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-8 w-8"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                    </svg>
+                <div class="flex flex-wrap gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input
+                            type="radio"
+                            name="requiresInvoice"
+                            value="Sí"
+                            required
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <span
+                            class="font-medium text-gray-900 group-hover:text-primary transition-colors"
+                            >Sí</span
+                        >
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input
+                            type="radio"
+                            name="requiresInvoice"
+                            value="No"
+                            required
+                            checked
+                            class="w-5 h-5 text-primary focus:ring-primary"
+                        />
+                        <span
+                            class="font-medium text-gray-900 group-hover:text-primary transition-colors"
+                            >No</span
+                        >
+                    </label>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-2 font-serif">
-                    Finalizar Inscripción
-                </h3>
-                <p class="text-gray-500 text-sm">
-                    Verifique que toda la información sea correcta antes de
-                    enviar.
-                </p>
             </div>
 
-            <div id="invoice-fields" class="space-y-8 hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div id="invoice-fields" class="space-y-4 mt-6 hidden">
+                <div
+                    class="p-4 bg-white rounded-xl border border-gray-200 space-y-4"
+                >
+                    <p class="text-xs text-gray-600">
+                        Sube tu <strong>CSF</strong> (constancia de situación
+                        fiscal) y el correo para facturación.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label
                             class="block text-sm font-semibold text-gray-700 mb-2"
@@ -490,6 +609,38 @@ const {
                         />
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: DECLARACIÓN Y ENVÍO -->
+        <div class="step-section p-8 md:p-12 hidden" id="step-3">
+            <!-- Este encabezado cambiará dinámicamente según si requiere factura o no -->
+            <div id="invoice-header" class="mb-10 text-center">
+                <div
+                    class="inline-block p-4 bg-primary rounded-2xl mb-4 text-white"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-8 w-8"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2 font-serif">
+                    Finalizar Inscripción
+                </h3>
+                <p class="text-gray-500 text-sm">
+                    Verifique que toda la información sea correcta antes de
+                    enviar.
+                </p>
             </div>
 
             <div
@@ -561,7 +712,10 @@ const {
     <!-- Success Message -->
     <div
         id="success-msg"
-        class="hidden text-center py-20 bg-white rounded-3xl shadow-xl border border-gray-100 animate-fade-up"
+        class:list={[
+            "hidden text-center py-20 bg-white animate-fade-up",
+            successSurfaceClass,
+        ]}
     >
         <div
             class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 scale-110"
@@ -596,36 +750,53 @@ const {
     </div>
 </div>
 
-<script is:inline>
-    const form = document.getElementById("ce-inscription-form");
+<script>
+    import {
+        validateRequiredFieldsInContainer,
+        reportStepValidationFailure,
+    } from "@lib/client/multiStepFormValidation";
+
+    const form = document.getElementById("ce-inscription-form") as HTMLFormElement | null;
     const progress = document.getElementById("progress-bar");
     const stepLabel = document.getElementById("step-label");
     const stepNumberLabel = document.getElementById("step-number");
     const sections = document.querySelectorAll(".step-section");
     const prevBtn = document.getElementById("prev-btn");
     const nextBtn = document.getElementById("next-btn");
-    const submitBtn = document.getElementById("submit-btn");
+    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
     const successMsg = document.getElementById("success-msg");
-
-    function getPrices() {
-        return JSON.parse(form.dataset.prices || "{}");
-    }
 
     // Facturación Logic
     const invoiceRadios = document.querySelectorAll(
         'input[name="requiresInvoice"]',
     );
     const invoiceFields = document.getElementById("invoice-fields");
-    const fiscalInputs = invoiceFields.querySelectorAll("input, textarea");
+    const fiscalInputs =
+        invoiceFields?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+            "input, textarea",
+        ) ?? [];
 
     // Modality selection
-    const modalityRadios = document.querySelectorAll('input[name="modality"]');
+    const paymentMethodRadios = document.querySelectorAll('input[name="paymentMethodChoice"]');
+    const paymentMethodHidden = document.getElementById(
+        "payment-method",
+    ) as HTMLInputElement | null;
+    const wireReferenceHidden = document.getElementById(
+        "wire-reference",
+    ) as HTMLInputElement | null;
+    const wireReferencePreview = document.getElementById("wire-reference-preview");
+    const wireProofSection = document.getElementById("wire-proof-section");
+    const paymentProofInput = document.getElementById(
+        "payment-proof-input",
+    ) as HTMLInputElement | null;
+    const stripePanel = document.getElementById("stripe-panel");
+    const wirePanel = document.getElementById("wire-panel");
 
     let currentStep = 1;
     const totalSteps = 3;
     const stepNames = [
         "Datos del Participante",
-        "Realizar Pago",
+        "Método de Pago",
         "Finalizar Inscripción",
     ];
 
@@ -649,28 +820,18 @@ const {
     }
 
     nextBtn?.addEventListener("click", () => {
-        // Simple validation check before jumping steps
-        const currentInputs = sections[currentStep - 1].querySelectorAll(
-            "input[required], select[required], textarea[required]",
-        );
-        let valid = true;
-        currentInputs.forEach((input) => {
-            if (!input.value || (input.type === "checkbox" && !input.checked)) {
-                valid = false;
-                input.classList.add("border-red-400");
-                setTimeout(
-                    () => input.classList.remove("border-red-400"),
-                    3000,
-                );
-            }
-        });
-
-        if (valid && currentStep < totalSteps) {
+        const section = sections[currentStep - 1];
+        if (!section || !form) return;
+        const result = validateRequiredFieldsInContainer(section);
+        if (!result.ok) {
+            const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
+            reportStepValidationFailure(title, result);
+            return;
+        }
+        if (currentStep < totalSteps) {
             currentStep++;
             updateStep();
             window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
-        } else if (!valid) {
-            alert("Por favor complete todos los campos obligatorios.");
         }
     });
 
@@ -678,15 +839,19 @@ const {
         if (currentStep > 1) {
             currentStep--;
             updateStep();
-            window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+            window.scrollTo({
+                top: (form?.offsetTop ?? 0) - 100,
+                behavior: "smooth",
+            });
         }
     });
 
     // Invoice Toggle
     invoiceRadios.forEach((radio) => {
         radio.addEventListener("change", (e) => {
-            const isYes = e.target.value === "Sí";
-            invoiceFields.classList.toggle("hidden", !isYes);
+            const t = e.target as HTMLInputElement;
+            const isYes = t.value === "Sí";
+            invoiceFields?.classList.toggle("hidden", !isYes);
             fiscalInputs.forEach((input) => {
                 input.required = isYes;
             });
@@ -694,27 +859,51 @@ const {
     });
 
     // Stripe Checkout Logic
-    const stripeCheckoutBtn = document.getElementById("stripe-checkout-btn");
-    let stripePriceIds = {};
-    try {
-        const parsed = JSON.parse(form.dataset.stripePriceIds || "{}");
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-            stripePriceIds = parsed;
+    const stripeCheckoutBtn = document.getElementById(
+        "stripe-checkout-btn",
+    ) as HTMLButtonElement | null;
+
+    function readStripePriceIdsFromForm(): Record<string, string> {
+        try {
+            const raw = form?.dataset.stripePriceIds ?? "{}";
+            const parsed = JSON.parse(raw === "null" ? "{}" : raw);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                return parsed as Record<string, string>;
+            }
+        } catch {
+            /* invalid JSON */
         }
-    } catch {
-        /* invalid JSON → treat as no prices */
+        return {};
     }
 
     stripeCheckoutBtn?.addEventListener("click", async () => {
-        const modality = document.querySelector('input[name="modality"]:checked')?.value;
+        if (!stripeCheckoutBtn || !form) return;
+        const method =
+            (
+                document.querySelector(
+                    'input[name="paymentMethodChoice"]:checked',
+                ) as HTMLInputElement | null
+            )?.value || "stripe";
+        if (method !== "stripe") {
+            alert("Selecciona 'Pago en línea (Stripe)' para pagar en línea.");
+            return;
+        }
+
+        const modality = (
+            document.querySelector(
+                'input[name="modality"]:checked',
+            ) as HTMLInputElement | null
+        )?.value;
         if (!modality) {
             alert("Por favor selecciona una modalidad (Presencial o En línea)");
             return;
         }
 
-        const priceId = modality === "Presencial"
-            ? stripePriceIds.presencial
-            : stripePriceIds.online;
+        const stripePriceIds = readStripePriceIdsFromForm();
+        const priceId =
+            modality === "Presencial"
+                ? stripePriceIds.presencial
+                : stripePriceIds.online;
 
         if (!priceId) {
             alert("Precio no configurado para esta modalidad. Por favor contacta al administrador.");
@@ -732,36 +921,77 @@ const {
             return;
         }
 
-        // Validate Step 1 is complete before proceeding to payment
-        const step1Inputs = sections[0].querySelectorAll("input[required], select[required]");
-        let allValid = true;
-        step1Inputs.forEach((input) => {
-            if (!input.value || (input.type === "checkbox" && !input.checked)) {
-                allValid = false;
-                input.classList.add("border-red-400");
-                setTimeout(() => input.classList.remove("border-red-400"), 3000);
+        // Pasos 1 y 2 deben estar completos antes de Stripe (el botón vive en el paso 2)
+        for (let s = 0; s <= 1; s++) {
+            const stepResult = validateRequiredFieldsInContainer(sections[s]);
+            if (!stepResult.ok) {
+                const title = `Paso ${s + 1} de ${totalSteps}: ${stepNames[s]}`;
+                reportStepValidationFailure(title, stepResult);
+                currentStep = s + 1;
+                updateStep();
+                window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+                return;
             }
-        });
-
-        if (!allValid) {
-            alert("Por favor completa todos los campos obligatorios del Paso 1");
-            currentStep = 1;
-            updateStep();
-            window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
-            return;
         }
 
         // Get user data for pre-filling Stripe
         const formData = new FormData(form);
         const email = formData.get("email");
         const programSlug = formData.get("programId");
+        const programTitle = String(formData.get("programTitle") ?? "").trim();
         const participantName = String(formData.get("name") ?? "").trim();
         const participantPhone = String(formData.get("phone") ?? "").trim();
+        const needsInvoice =
+            (
+                document.querySelector(
+                    'input[name="requiresInvoice"]:checked',
+                ) as HTMLInputElement | null
+            )?.value === "Sí";
+        const invoiceEmail = String(formData.get("invoiceEmail") ?? "").trim();
+        const csfInput = document.getElementById("csf-input") as HTMLInputElement | null;
+
+        if (needsInvoice) {
+            if (!invoiceEmail) {
+                alert("Indicaste que requieres factura: escribe el correo para factura.");
+                return;
+            }
+            const f = csfInput?.files?.[0];
+            if (!f) {
+                alert("Indicaste que requieres factura: adjunta tu CSF (PDF o imagen).");
+                return;
+            }
+        }
 
         // Call our Stripe checkout endpoint
         try {
             stripeCheckoutBtn.disabled = true;
-            stripeCheckoutBtn.querySelector("span").textContent = "Redirigiendo a Stripe...";
+            const stripeSpan = stripeCheckoutBtn.querySelector("span");
+            if (stripeSpan) stripeSpan.textContent = "Redirigiendo a Stripe...";
+
+            const csfFile = csfInput?.files?.[0];
+            if (needsInvoice && csfFile) {
+                const preFd = new FormData();
+                preFd.append("invoiceEmail", invoiceEmail);
+                preFd.append("programSlug", String(programSlug ?? ""));
+                preFd.append("programTitle", programTitle);
+                preFd.append("participantName", participantName);
+                preFd.append("participantPhone", participantPhone);
+                preFd.append("modality", modality);
+                preFd.append("customerEmail", String(email ?? ""));
+                preFd.append("fiscalConstancy", csfFile);
+                const pre = await fetch("/api/stripe/fiscal-preflight", {
+                    method: "POST",
+                    body: preFd,
+                });
+                const preJson = await pre.json().catch(() => ({}));
+                if (!pre.ok) {
+                    throw new Error(
+                        typeof preJson.error === "string"
+                            ? preJson.error
+                            : "No se pudo enviar la CSF",
+                    );
+                }
+            }
 
             const response = await fetch("/api/stripe/create-checkout-session", {
                 method: "POST",
@@ -773,6 +1003,8 @@ const {
                     participantName,
                     participantPhone,
                     modality,
+                    requiresInvoice: needsInvoice ? "Sí" : "No",
+                    invoiceEmail: needsInvoice ? invoiceEmail : "",
                 })
             });
 
@@ -784,22 +1016,102 @@ const {
             }
         } catch (error) {
             console.error("Stripe error:", error);
-            alert("Error al procesar el pago: " + error.message + ". Por favor intenta de nuevo o contacta soporte.");
+            const msg = error instanceof Error ? error.message : String(error);
+            alert(
+                "Error al procesar el pago: " +
+                    msg +
+                    ". Por favor intenta de nuevo o contacta soporte.",
+            );
             stripeCheckoutBtn.disabled = false;
-            stripeCheckoutBtn.querySelector("span").textContent = "Continuar al Pago Seguro →";
+            const sp = stripeCheckoutBtn.querySelector("span");
+            if (sp) sp.textContent = "Continuar al Pago Seguro →";
         }
+    });
+
+    function generateWireReference() {
+        let bank: { referencePrefix?: string } = {};
+        try {
+            bank = JSON.parse(form?.dataset.bankInfo || "{}");
+        } catch {
+            /* ignore */
+        }
+        const prefix = bank.referencePrefix || "CEPRIJA";
+        const program = String(
+            (document.getElementById("form-program-id") as HTMLInputElement | null)
+                ?.value || "programa",
+        )
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "");
+        const stamp = new Date();
+        const y = String(stamp.getFullYear());
+        const m = String(stamp.getMonth() + 1).padStart(2, "0");
+        const d = String(stamp.getDate()).padStart(2, "0");
+        const t = Math.floor(stamp.getTime() / 1000) % 46656; // 36^3
+        const suffix = t.toString(36).toUpperCase().padStart(3, "0");
+        return `${prefix}-${program}-${y}${m}${d}${suffix}`;
+    }
+
+    function applyPaymentMethodUI() {
+        const method =
+            (
+                document.querySelector(
+                    'input[name="paymentMethodChoice"]:checked',
+                ) as HTMLInputElement | null
+            )?.value || "stripe";
+        if (paymentMethodHidden) paymentMethodHidden.value = method;
+
+        const isWire = method === "wire";
+        wireProofSection?.classList.toggle("hidden", !isWire);
+        stripePanel?.classList.toggle("hidden", isWire);
+        wirePanel?.classList.toggle("hidden", !isWire);
+
+        if (isWire) {
+            const ref = generateWireReference();
+            if (wireReferenceHidden) wireReferenceHidden.value = ref;
+            if (wireReferencePreview) wireReferencePreview.textContent = ref;
+            if (paymentProofInput) paymentProofInput.required = true;
+        } else {
+            if (wireReferenceHidden) wireReferenceHidden.value = "";
+            if (wireReferencePreview) wireReferencePreview.textContent = "";
+            if (paymentProofInput) paymentProofInput.required = false;
+        }
+    }
+
+    paymentMethodRadios.forEach((r) =>
+        r.addEventListener("change", applyPaymentMethodUI),
+    );
+    applyPaymentMethodUI();
+
+    // Copy-to-clipboard for bank fields
+    document.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const value = btn.getAttribute("data-copy") || "";
+            try {
+                await navigator.clipboard.writeText(value);
+            } catch {
+                const ta = document.createElement("textarea");
+                ta.value = value;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                ta.remove();
+            }
+        });
     });
 
     // Uppercase & Number validations (already in HTML but reinforced)
     document.querySelectorAll('input[type="text"], textarea').forEach((el) => {
         el.addEventListener("input", (e) => {
-            e.target.value = e.target.value.toUpperCase();
+            const t = e.target as HTMLInputElement | HTMLTextAreaElement;
+            t.value = t.value.toUpperCase();
         });
     });
 
     document.querySelectorAll('input[type="tel"]').forEach((el) => {
         el.addEventListener("input", (e) => {
-            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+            const t = e.target as HTMLInputElement;
+            t.value = t.value.replace(/[^0-9]/g, "");
         });
     });
 
@@ -807,8 +1119,10 @@ const {
 
     document.getElementById("csf-input")?.addEventListener("change", (e) => {
         const label = document.getElementById("csf-file-label");
-        if (e.target.files?.[0]) {
-            label.textContent = e.target.files[0].name;
+        const input = e.target as HTMLInputElement;
+        const f = input.files?.[0];
+        if (f && label) {
+            label.textContent = f.name;
             label.classList.add("text-primary");
         }
     });
@@ -816,29 +1130,60 @@ const {
     // Form submission
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (!submitBtn || !form) return;
+
+        for (let i = 0; i < totalSteps; i++) {
+            const r = validateRequiredFieldsInContainer(sections[i]);
+            if (!r.ok) {
+                currentStep = i + 1;
+                updateStep();
+                const title = `Paso ${i + 1} de ${totalSteps}: ${stepNames[i]}`;
+                reportStepValidationFailure(title, r);
+                window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+                return;
+            }
+        }
+
+        const paymentChoice = (
+            document.querySelector(
+                'input[name="paymentMethodChoice"]:checked',
+            ) as HTMLInputElement | null
+        )?.value;
+        if (paymentChoice === "stripe") {
+            alert(
+                "Con pago en línea (Stripe) debes usar el botón «Continuar al Pago Seguro» en el paso 2. No puedes finalizar aquí sin completar el pago en Stripe.",
+            );
+            currentStep = 2;
+            updateStep();
+            document.getElementById("stripe-checkout-btn")?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+            return;
+        }
 
         const spinner = document.getElementById("spinner");
         const btnText = submitBtn.querySelector("span");
 
         submitBtn.disabled = true;
-        spinner.classList.remove("hidden");
-        btnText.textContent = "Enviando...";
+        spinner?.classList.remove("hidden");
+        if (btnText) btnText.textContent = "Enviando...";
 
         try {
             const formData = new FormData(form);
-            const response = await fetch(
-                "/api/educacion-continua-inscription",
-                {
-                    method: "POST",
-                    body: formData,
-                },
-            );
+            const method = String(formData.get("paymentMethod") || "stripe");
+            const endpoint =
+                method === "wire"
+                    ? "/api/payments/wire-proof"
+                    : "/api/educacion-continua-inscription";
+
+            const response = await fetch(endpoint, { method: "POST", body: formData });
 
             if (response.ok) {
                 form.classList.add("hidden");
-                successMsg.classList.remove("hidden");
+                successMsg?.classList.remove("hidden");
                 window.scrollTo({
-                    top: successMsg.offsetTop - 100,
+                    top: (successMsg?.offsetTop ?? 0) - 100,
                     behavior: "smooth",
                 });
             } else {
@@ -851,8 +1196,8 @@ const {
             );
         } finally {
             submitBtn.disabled = false;
-            spinner.classList.add("hidden");
-            btnText.textContent = "Finalizar";
+            spinner?.classList.add("hidden");
+            if (btnText) btnText.textContent = "Finalizar";
         }
     });
 </script>

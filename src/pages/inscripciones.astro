@@ -1,8 +1,16 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import InscriptionForm from "../components/forms/InscriptionForm.astro";
+import { getCollection } from "astro:content";
 
 const program = Astro.url.searchParams.get("programa") || "";
+
+// Get juridic programs from content collection instead of legacy data
+const allPrograms = await getCollection("programas");
+const juridicPrograms = allPrograms
+    .filter(p => ["maestria", "doctorado", "especialidad"].includes(p.data.nivel))
+    .map(p => p.data.title)
+    .sort();
 ---
 
 <Layout
@@ -71,7 +79,7 @@ const program = Astro.url.searchParams.get("programa") || "";
             </ul>
         </div>
         <div data-animate="fade-up" data-delay="200">
-            <InscriptionForm selectedProgram={program} />
+            <InscriptionForm selectedProgram={program} programList={juridicPrograms} />
         </div>
 
         <div

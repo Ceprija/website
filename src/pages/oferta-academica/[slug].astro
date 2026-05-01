@@ -3,7 +3,10 @@ import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import ContactForm from "@components/forms/ContactForm.astro";
 import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
+import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsideCard.astro";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programHasStripeCheckout } from "@lib/stripeAllowedPrices";
+import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -15,9 +18,37 @@ export async function getStaticPaths() {
 
 const { program } = Astro.props;
 
+const enrollmentFlow = getEnrollmentFlow(program);
+const programSlug = getProgramPathSlug(program);
+
+/** Narrow optional arrays/objects so Astro/TS templates stay type-safe when schema inference is loose. */
+type CurriculumPeriod = { period: string; subjects: string[] };
+const data = program.data;
+const curriculumItems: CurriculumPeriod[] = Array.isArray(data.curriculum)
+    ? (data.curriculum as CurriculumPeriod[])
+    : [];
+const includesItems: string[] = Array.isArray(data.includes)
+    ? (data.includes as string[])
+    : [];
+const stripePriceIdsForCheckout =
+    data.stripePriceIds &&
+    typeof data.stripePriceIds === "object" &&
+    !Array.isArray(data.stripePriceIds)
+        ? (data.stripePriceIds as { online?: string; presencial?: string })
+        : undefined;
+const continuousEducationPrices =
+    typeof data.price === "object" &&
+    data.price !== null &&
+    !Array.isArray(data.price)
+        ? (data.price as { Presencial?: string; Online?: string })
+        : { Presencial: "", Online: "" };
+const programAddress =
+    typeof data.address === "string" ? data.address : undefined;
+const programRequiresVerification = Boolean(data.requiresVerification);
+
 const seo = {
-    title: `${program.data.title} | CEPRIJA`,
-    description: program.data.description,
+    title: `${String(data.title)} | CEPRIJA`,
+    description: String(data.description ?? ""),
 };
 ---
 
@@ -29,8 +60,8 @@ const seo = {
         >
             <div class="absolute inset-0 z-0">
                 <img
-                    src={program.data.image}
-                    alt={program.data.title}
+                    src={String(data.image)}
+                    alt={String(data.title)}
                     class="w-full h-full object-cover"
                 />
             </div>
@@ -174,15 +205,13 @@ const seo = {
             </div>
         </section>
 
-        <!-- Content Section -->
+        <!-- Content Section: información del programa a ancho legible -->
         <section class="py-16">
-            <div class="container mx-auto px-6">
-                <div class="grid lg:grid-cols-3 gap-12">
-                    <!-- Main Content -->
-                    <div class="lg:col-span-2 space-y-12">
+            <div class="container mx-auto px-6 max-w-4xl">
+                <div class="space-y-12">
                         <!-- Plan de Estudios -->
                         {
-                            program.data.curriculum && (
+                            curriculumItems.length > 0 && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -207,21 +236,14 @@ const seo = {
                                             "Plan de Estudios"}
                                     </h2>
                                     <div class="space-y-8">
-                                        {program.data.curriculum.map(
-                                            (semester: {
-                                                period: unknown;
-                                                subjects: any[];
-                                            }) => (
+                                        {curriculumItems.map((semester) => (
                                                 <div>
                                                     <h3 class="text-xl font-bold text-primary mb-4 border-b border-gray-200 pb-2 font-serif">
                                                         {semester.period}
                                                     </h3>
                                                     <div class="grid md:grid-cols-2 gap-4">
                                                         {semester.subjects.map(
-                                                            (
-                                                                subject: unknown,
-                                                                subIndex: number,
-                                                            ) => (
+                                                            (subject, subIndex) => (
                                                                 <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
                                                                     <span class="flex-shrink-0 w-6 h-6 bg-secondary text-primary rounded-full flex items-center justify-center text-xs font-bold">
                                                                         {subIndex +
@@ -237,8 +259,7 @@ const seo = {
                                                         )}
                                                     </div>
                                                 </div>
-                                            ),
-                                        )}
+                                            ))}
                                     </div>
                                 </div>
                             )
@@ -387,7 +408,7 @@ const seo = {
                         }
 
                         {
-                            program.data.includes && (
+                            includesItems.length > 0 && (
                                 <div
                                     class="bg-white rounded-2xl shadow-sm p-8"
                                     data-animate="fade-up"
@@ -411,8 +432,7 @@ const seo = {
                                         Incluye
                                     </h2>
                                     <ul class="space-y-2">
-                                        {program.data.includes.map(
-                                            (item: unknown) => (
+                                        {includesItems.map((item) => (
                                                 <li class="flex items-center gap-2 text-gray-700">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
@@ -428,43 +448,85 @@ const seo = {
                                                     </svg>
                                                     {item}
                                                 </li>
-                                            ),
-                                        )}
+                                            ))}
                                     </ul>
                                 </div>
                             )
                         }
-                    </div>
-
-                    <div
-                        class="lg:col-span-1"
-                        data-animate="fade-up"
-                        data-delay="600"
-                    >
-                        {
-                            ["curso", "taller", "diplomado", "maestria", "doctorado", "especialidad"].includes(
-                                program.data.nivel.toLowerCase(),
-                            ) ? (
-                                <ContinuousEducationForm
-                                    programTitle={program.data.title}
-                                    programId={getProgramPathSlug(program)}
-                                    stripePriceIds={program.data.stripePriceIds}
-                                    prices={
-                                        (program.data.price as {
-                                            Presencial?: string;
-                                            Online?: string;
-                                        }) || { Presencial: "", Online: "" }
-                                    }
-                                    address={program.data.address}
-                                />
-                            ) : (
-                                <ContactForm
-                                    programTitle={program.data.title}
-                                />
-                            )
-                        }
-                    </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Inscripción / admisión: card completa bajo la información (mejor responsive que columna lateral) -->
+        <section
+            class="pb-20 border-t border-gray-200 bg-gray-50/80"
+            data-animate="fade-up"
+            data-delay="600"
+        >
+            <div class="container mx-auto px-6 max-w-3xl">
+                {
+                    enrollmentFlow === "application" ? (
+                        <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
+                            <h3 class="text-2xl font-bold text-primary mb-2 font-serif">
+                                Proceso de Admisión
+                            </h3>
+                            <p class="text-gray-600 mb-6 text-sm">
+                                Este programa requiere un proceso formal de admisión con documentación académica.
+                            </p>
+
+                            <div class="space-y-3 mb-6 text-sm">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-gray-700">Curriculum Vitae</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-gray-700">Historial Académico (Kardex)</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-gray-700">Título Profesional y Cédula</span>
+                                </div>
+                            </div>
+
+                            <a
+                                href={`/enrollment/${programSlug}`}
+                                class="block w-full bg-secondary hover:bg-secondary/90 text-white font-bold py-4 px-6 rounded-xl text-center transition-all shadow-lg hover:shadow-xl"
+                            >
+                                Iniciar Solicitud
+                            </a>
+
+                            <p class="text-xs text-gray-500 mt-4 text-center">
+                                Proceso en línea • Respuesta en 48-72 horas
+                            </p>
+                        </ProgramEnrollmentAsideCard>
+                    ) : programHasStripeCheckout(stripePriceIdsForCheckout) ? (
+                        <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
+                            <ContinuousEducationForm
+                                programTitle={String(data.title)}
+                                programId={programSlug}
+                                stripePriceIds={stripePriceIdsForCheckout}
+                                prices={continuousEducationPrices}
+                                address={programAddress}
+                                requiresVerification={programRequiresVerification}
+                                embedInAsideCard={true}
+                            />
+                        </ProgramEnrollmentAsideCard>
+                    ) : (
+                        <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
+                            <ContactForm
+                                programTitle={String(data.title)}
+                                embedInAsideCard={true}
+                            />
+                        </ProgramEnrollmentAsideCard>
+                    )
+                }
             </div>
         </section>
     </main>
