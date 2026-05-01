@@ -47,11 +47,34 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      SMTP_FROM: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      CONTACT_EMAIL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      EMAIL_EDUCACION_CONTINUA: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      URL_BASE_API: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
   integrations: [
     tailwind(),
-    sitemap(),
+    sitemap({
+      filter: (page) =>
+        !page.includes("/educacion-continua-inscripciones"),
+    }),
     partytown({
       config: {
         forward: ['dataLayer.push', 'fbq'],
