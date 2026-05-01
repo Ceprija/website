@@ -9,10 +9,7 @@ import {
 import Stripe from "stripe";
 import { resolveCheckoutOrigin } from "@lib/stripeRedirects";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
-
-const PRICE_ID_RE = /^price_[a-zA-Z0-9]+$/;
-/** Matches Astro content entry slugs (filename-based); keeps junk out of redirect URLs. */
-const PROGRAM_SLUG_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,199}$/;
+import { parseCheckoutSessionBody } from "@lib/validation/enrollment";
 
 function stripeErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
@@ -53,64 +50,29 @@ export const POST: APIRoute = async ({ request }) => {
     unknown
   > | null;
 
-  const priceId = typeof body?.priceId === "string" ? body.priceId.trim() : "";
-  const programSlug =
-    typeof body?.programSlug === "string" ? body.programSlug.trim() : "";
-  const customerEmail =
-    typeof body?.customerEmail === "string" ? body.customerEmail.trim() : "";
-  const participantName =
-    typeof body?.participantName === "string"
-      ? body.participantName.trim()
-      : "";
-  const participantPhone =
-    typeof body?.participantPhone === "string"
-      ? body.participantPhone.trim()
-      : "";
-  const modality =
-    typeof body?.modality === "string" ? body.modality.trim() : "";
-
-  if (
-    !priceId ||
-    !programSlug ||
-    !participantName ||
-    !participantPhone ||
-    !modality
-  ) {
-    return new Response(
-      JSON.stringify({ error: "Faltan campos requeridos", code: "missing_fields" }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  if (!PROGRAM_SLUG_RE.test(programSlug) || programSlug.length > 200) {
-    return new Response(
-      JSON.stringify({ error: "Programa no válido", code: "invalid_program" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (modality !== "Presencial" && modality !== "En línea") {
-    return new Response(
-      JSON.stringify({ error: "Modalidad no válida", code: "invalid_modality" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  const looksLikeStripePrice =
-    PRICE_ID_RE.test(priceId) && !/PLACEHOLDER|REPLACE/i.test(priceId);
-  if (!looksLikeStripePrice) {
+  const parsed = parseCheckoutSessionBody(body);
+  if (!parsed.ok) {
     return new Response(
       JSON.stringify({
-        error:
-          "El programa no tiene un Price ID de Stripe válido. En el Dashboard crea un precio y agrégalo en el frontmatter del programa (stripePriceIds).",
-        code: "invalid_price_id",
+        error: parsed.err.error,
+        code: parsed.err.code,
+        ...(parsed.err.field && { field: parsed.err.field }),
       }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
+
+  const {
+    priceId,
+    programSlug,
+    customerEmail,
+    participantName,
+    participantPhone,
+    modality,
+    applicationId,
+    requiresInvoice,
+    invoiceEmail,
+  } = parsed.data;
 
   if (allowed.size > 0 && !allowed.has(priceId)) {
     return new Response(
@@ -139,10 +101,24 @@ export const POST: APIRoute = async ({ request }) => {
         participantName: truncateMeta(participantName),
         participantPhone: truncateMeta(participantPhone),
         modality: truncateMeta(modality),
+        requiresInvoice: truncateMeta(requiresInvoice, 8),
+        ...(invoiceEmail
+          ? { invoiceEmail: truncateMeta(invoiceEmail, 254) }
+          : {}),
+        ...(applicationId
+          ? { applicationId: truncateMeta(applicationId, 80) }
+          : {}),
       },
       payment_intent_data: {
         metadata: {
           programSlug: truncateMeta(programSlug),
+          requiresInvoice: truncateMeta(requiresInvoice, 8),
+          ...(invoiceEmail
+            ? { invoiceEmail: truncateMeta(invoiceEmail, 254) }
+            : {}),
+          ...(applicationId
+            ? { applicationId: truncateMeta(applicationId, 80) }
+            : {}),
         },
       },
     });

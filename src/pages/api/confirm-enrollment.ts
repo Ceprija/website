@@ -17,14 +17,8 @@ import {
 import Stripe from "stripe";
 import { hasEnrollmentBeenConfirmed, markEnrollmentConfirmed } from "@lib/processedStripeStore";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
+import { escapeHtml } from "@lib/htmlEscape";
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -39,16 +33,17 @@ export const POST: APIRoute = async ({ request }) => {
       string,
       unknown
     > | null;
-    const stripeSessionId =
+    const stripeSessionIdRaw =
       typeof body?.stripeSessionId === "string"
         ? body.stripeSessionId.trim()
         : "";
 
-    if (!stripeSessionId) {
+    const sessionErr = validateStripeCheckoutSessionId(stripeSessionIdRaw);
+    if (sessionErr) {
       return new Response(
         JSON.stringify({
-          error: "Falta stripeSessionId",
-          code: "missing_session",
+          error: sessionErr.error,
+          code: sessionErr.code,
         }),
         {
           status: 400,
@@ -56,6 +51,8 @@ export const POST: APIRoute = async ({ request }) => {
         },
       );
     }
+
+    const stripeSessionId = stripeSessionIdRaw;
 
     if (hasEnrollmentBeenConfirmed(stripeSessionId)) {
       return new Response(
@@ -176,7 +173,17 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const stripeIds = program.data.stripePriceIds;
+    const rawStripeIds = program.data.stripePriceIds;
+    const stripeIds =
+      rawStripeIds &&
+      typeof rawStripeIds === "object" &&
+      "presencial" in rawStripeIds &&
+      "online" in rawStripeIds &&
+      typeof (rawStripeIds as { presencial: unknown }).presencial === "string" &&
+      typeof (rawStripeIds as { online: unknown }).online === "string"
+        ? (rawStripeIds as { presencial: string; online: string })
+        : null;
+
     if (!stripeIds) {
       return new Response(
         JSON.stringify({
@@ -220,7 +227,7 @@ export const POST: APIRoute = async ({ request }) => {
     const participantPhone =
       session.metadata?.participantPhone?.trim() || "No proporcionado";
 
-    const programTitle = program.data.title;
+    const programTitle = String(program.data.title ?? "");
     const programId = program.slug;
     const requiresVerification = !!program.data.requiresVerification;
 

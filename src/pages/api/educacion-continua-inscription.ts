@@ -1,249 +1,407 @@
 export const prerender = false;
 
-import type { APIRoute } from 'astro';
-import { programs } from '../../data/legacy/programs';
-import emailTemplates from '../../data/forms/email-templates-educacion-continua.json';
-import Busboy from 'busboy';
+import type { APIRoute } from "astro";
+import { getCollection } from "astro:content";
+import emailTemplates from "../../data/forms/email-templates-educacion-continua.json";
+import Busboy from "busboy";
+import { escapeHtml } from "@lib/htmlEscape";
+import {
+  MAX_FILES_PER_REQUEST,
+  MAX_UPLOAD_BYTES,
+  validateUploadBuffer,
+} from "@lib/uploads/fileValidation";
+import {
+  normalizeWireModality,
+  validateEducacionContinuaFields,
+} from "@lib/validation/enrollment";
+import {
+  CONTACT_EMAIL,
+  EMAIL_EDUCACION_CONTINUA,
+  EMAIL_SOPORTE_WEB,
+  KEY_API_BREVO,
+  SMTP_FROM,
+  URL_BASE_API,
+} from "astro:env/server";
 
 function sanitizeFilename(name: string): string {
-    return name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-async function parseFormData(request: Request) {
-    return new Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> }>((resolve, reject) => {
-        const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
-        const fields: Record<string, string> = {};
-        const files: Array<{ fieldname: string, buffer: Buffer, filename: string, mimetype: string }> = [];
+function parseFormData(request: Request) {
+  return new Promise<{
+    fields: Record<string, string>;
+    files: Array<{ fieldname: string; buffer: Buffer; filename: string; mimetype: string }>;
+  }>((resolve, reject) => {
+    const busboy = Busboy({ headers: Object.fromEntries(request.headers.entries()) });
+    const fields: Record<string, string> = {};
+    const files: Array<{
+      fieldname: string;
+      buffer: Buffer;
+      filename: string;
+      mimetype: string;
+    }> = [];
+    const filePromises: Promise<void>[] = [];
 
-        busboy.on('field', (fieldname, value) => {
-            fields[fieldname] = value;
-        });
-
-        busboy.on('file', (fieldname, file, info) => {
-            const { filename, mimeType } = info;
-
-            if (!filename) {
-                file.resume();
-                return;
-            }
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-            const userName = fields.name || 'usuario';
-            const sanitizedName = sanitizeFilename(userName);
-            const ext = filename.split('.').pop() || 'file';
-
-            const newFilename = `${fieldname}_${sanitizedName}_${timestamp}.${ext}`;
-
-            const chunks: Buffer[] = [];
-            file.on('data', (data: Buffer) => {
-                chunks.push(data);
-            });
-            file.on('end', () => {
-                files.push({
-                    fieldname,
-                    buffer: Buffer.concat(chunks),
-                    filename: newFilename,
-                    mimetype: mimeType
-                });
-            });
-            file.on('error', (err: Error) => {
-                reject(err);
-            });
-        });
-
-        busboy.on('finish', () => {
-            setTimeout(() => resolve({ fields, files }), 200);
-        });
-
-        busboy.on('error', reject);
-
-        request.body?.pipeTo(new WritableStream({
-            write(chunk) { busboy.write(chunk); },
-            close() { busboy.end(); }
-        }));
+    busboy.on("field", (fieldname, value) => {
+      fields[fieldname] = value;
     });
+
+    busboy.on("file", (fieldname, file, info) => {
+      const { filename, mimeType } = info;
+      if (!filename) {
+        file.resume();
+        return;
+      }
+
+      const mimeNorm = (mimeType ?? "").split(";")[0].trim().toLowerCase();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const userName = fields.name || "usuario";
+      const sanitizedName = sanitizeFilename(userName);
+      const ext = filename.split(".").pop() || "file";
+      const newFilename = `${fieldname}_${sanitizedName}_${timestamp}.${ext}`;
+
+      const p = new Promise<void>((fResolve, fReject) => {
+        const chunks: Buffer[] = [];
+        let total = 0;
+        file.on("data", (data: Buffer) => {
+          total += data.length;
+          if (total > MAX_UPLOAD_BYTES) {
+            file.resume();
+            fReject(
+              Object.assign(new Error("FILE_TOO_LARGE"), {
+                code: "file_too_large",
+                field: fieldname,
+              }),
+            );
+            return;
+          }
+          chunks.push(data);
+        });
+        file.on("end", () => {
+          files.push({
+            fieldname,
+            buffer: Buffer.concat(chunks),
+            filename: newFilename,
+            mimetype: mimeNorm,
+          });
+          fResolve();
+        });
+        file.on("error", fReject);
+      });
+      filePromises.push(p);
+    });
+
+    busboy.on("finish", () => {
+      void Promise.all(filePromises)
+        .then(() => resolve({ fields, files }))
+        .catch(reject);
+    });
+
+    busboy.on("error", reject);
+
+    request.body?.pipeTo(
+      new WritableStream({
+        write(chunk) {
+          busboy.write(chunk as Buffer);
+        },
+        close() {
+          busboy.end();
+        },
+      }),
+    );
+  });
 }
 
 function replacePlaceholders(template: string, data: Record<string, string>) {
-    let result = template;
-    for (const [key, value] of Object.entries(data)) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        result = result.replace(regex, value || '');
-    }
-    return result;
+  let result = template;
+  for (const [key, value] of Object.entries(data)) {
+    const regex = new RegExp(`{{${key}}}`, "g");
+    result = result.replace(regex, value || "");
+  }
+  return result;
 }
 
 export const POST: APIRoute = async ({ request }) => {
-    try {
-        const { fields, files } = await parseFormData(request);
-        const {
-            name, email, phone, programTitle, programId, modality,
-            requiresInvoice, invoiceEmail
-        } = fields;
+  try {
+    const { fields, files } = await parseFormData(request);
 
-        const programDetails = programs.find(p => p.id === programId || p.title === programTitle) || {};
+    const fieldErr = validateEducacionContinuaFields(fields);
+    if (fieldErr) {
+      return new Response(
+        JSON.stringify({
+          message: fieldErr.error,
+          code: fieldErr.code,
+          ...(fieldErr.field && { field: fieldErr.field }),
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-        // CSV in-memory generation
-        const header = "FECHA,NOMBRE,EMAIL,TELEFONO,MODALIDAD,FACTURA,EMAIL FACTURA\n";
-        const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
-        const csvRow = [
-            `"${now}"`,
-            `"${name.toUpperCase()}"`,
-            email.toLowerCase(),
-            phone,
-            modality.toUpperCase(),
-            requiresInvoice.toUpperCase(),
-            (invoiceEmail || '').toLowerCase()
-        ].join(',') + '\n';
+    const nonEmptyFiles = files.filter((f) => f.buffer.length > 0);
+    if (nonEmptyFiles.length > MAX_FILES_PER_REQUEST) {
+      return new Response(
+        JSON.stringify({
+          message: "Demasiados archivos adjuntos",
+          code: "too_many_files",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-        const csvContent = header + csvRow;
+    for (const f of nonEmptyFiles) {
+      const v = validateUploadBuffer(f.buffer, f.mimetype, { field: f.fieldname });
+      if (!v.ok) {
+        return new Response(
+          JSON.stringify({
+            message: v.err.error,
+            code: v.err.code,
+            field: v.err.field ?? f.fieldname,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
 
-        // Brevo API Key
-        const brevoKey = import.meta.env.KEY_API_BREVO;
-        if (!brevoKey) throw new Error('Falta KEY_API_BREVO');
+    const modalityCanonical = normalizeWireModality(fields.modality)!;
 
-        const senderEmail = import.meta.env.SMTP_FROM || import.meta.env.CONTACT_EMAIL;
-        const adminEmail1 = import.meta.env.EMAIL_EDUCACION_CONTINUA || import.meta.env.CONTACT_EMAIL;
-        const adminEmail2 = import.meta.env.EMAIL_SOPORTE_WEB;
+    const {
+      name,
+      email,
+      phone,
+      programTitle,
+      programId,
+      requiresInvoice,
+      invoiceEmail,
+    } = fields;
 
-        // 1. Admin Email
-        const sendToBrevo = async () => {
-            try {
-                // 1. Admin Email
-                const adminHtml = `
+    // Get program details from content collection
+    const programs = await getCollection("programas");
+    const program = programs.find((p) => p.slug === programId || p.data.title === programTitle);
+
+    const programDetails = program ? {
+      startDate: String(program.data.startDate || "Por confirmar"),
+      schedule: String(program.data.schedule || "Por confirmar"),
+      instructor: String(program.data.instructor || "Claustro Docente CEPRIJA"),
+      address: String(program.data.address || "Lope de Vega #273, Guadalajara"),
+      meetingLink: String((program.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al inicio")
+    } : {
+      startDate: "Por confirmar",
+      schedule: "Por confirmar",
+      instructor: "Claustro Docente CEPRIJA",
+      address: "Lope de Vega #273, Guadalajara",
+      meetingLink: "Se enviará previo al inicio"
+    };
+
+    const header = "FECHA,NOMBRE,EMAIL,TELEFONO,MODALIDAD,FACTURA,EMAIL FACTURA\n";
+    const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+    const csvRow =
+      [
+        `"${now}"`,
+        `"${name.trim().toUpperCase()}"`,
+        email.trim().toLowerCase(),
+        phone.trim(),
+        modalityCanonical.toUpperCase(),
+        requiresInvoice.toUpperCase(),
+        (invoiceEmail || "").toLowerCase(),
+      ].join(",") + "\n";
+
+    const csvContent = header + csvRow;
+
+    const brevoKey = KEY_API_BREVO;
+    if (!brevoKey) throw new Error("Falta KEY_API_BREVO");
+
+    const senderEmail = SMTP_FROM || CONTACT_EMAIL;
+    const adminEmail1 = EMAIL_EDUCACION_CONTINUA || CONTACT_EMAIL;
+    const adminEmail2 = EMAIL_SOPORTE_WEB;
+
+    const adminTo = [{ email: adminEmail1 }];
+    if (adminEmail2 && adminEmail2 !== adminEmail1) {
+      adminTo.push({ email: adminEmail2 });
+    }
+
+    const sendToBrevo = async () => {
+      try {
+        const safeProgramTitle = escapeHtml(programTitle);
+        const safeName = escapeHtml(name);
+        const safeEmail = escapeHtml(email);
+        const safePhone = escapeHtml(phone);
+        const safeModality = escapeHtml(modalityCanonical);
+        const safeInvoiceEmail = escapeHtml(invoiceEmail || "");
+
+        const adminHtml = `
                     <h2>Nueva Inscripción Educación Continua</h2>
-                    <p><strong>Programa:</strong> ${programTitle}</p>
-                    <p><strong>Participante:</strong> ${name}</p>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Teléfono:</strong> ${phone}</p>
-                    <p><strong>Modalidad:</strong> ${modality}</p>
-                    <p><strong>¿Factura?:</strong> ${requiresInvoice}</p>
-                    ${requiresInvoice === 'Sí' ? `<p><strong>Email Factura:</strong> ${invoiceEmail}</p>` : ''}
+                    <p><strong>Programa:</strong> ${safeProgramTitle}</p>
+                    <p><strong>Participante:</strong> ${safeName}</p>
+                    <p><strong>Email:</strong> ${safeEmail}</p>
+                    <p><strong>Teléfono:</strong> ${safePhone}</p>
+                    <p><strong>Modalidad:</strong> ${safeModality}</p>
+                    <p><strong>¿Factura?:</strong> ${escapeHtml(requiresInvoice)}</p>
+                    ${
+                      requiresInvoice === "Sí"
+                        ? `<p><strong>Email Factura:</strong> ${safeInvoiceEmail}</p>`
+                        : ""
+                    }
                 `;
 
-                const adminBody: any = {
-                    sender: { email: senderEmail, name: "CEPRIJA Web" },
-                    to: [{ email: adminEmail1 }, { email: adminEmail2 }],
-                    subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
-                    htmlContent: adminHtml,
-                    attachment: []
-                };
+        const adminBody: Record<string, unknown> = {
+          sender: { email: senderEmail, name: "CEPRIJA Web" },
+          to: adminTo,
+          subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
+          htmlContent: adminHtml,
+          attachment: [] as Array<{ name: string; content: string }>,
+        };
 
-                if (adminEmail2) adminBody.to.push({ email: adminEmail2 });
+        const attachments = adminBody.attachment as Array<{ name: string; content: string }>;
 
-                // Add attachments to admin email
-                for (const f of files) {
-                    adminBody.attachment.push({
-                        name: f.filename,
-                        content: f.buffer.toString('base64')
-                    });
-                }
+        for (const f of nonEmptyFiles) {
+          attachments.push({
+            name: f.filename,
+            content: f.buffer.toString("base64"),
+          });
+        }
 
-                // Also attach the CSV
-                const csvBase64 = Buffer.from(csvContent).toString('base64');
-                adminBody.attachment.push({
-                    name: `${sanitizeFilename(programTitle || 'ec-general')}.csv`,
-                    content: csvBase64
-                });
+        const csvBase64 = Buffer.from(csvContent).toString("base64");
+        attachments.push({
+          name: `${sanitizeFilename(programTitle || "ec-general")}.csv`,
+          content: csvBase64,
+        });
 
-                await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
-                    body: JSON.stringify(adminBody)
-                });
+        await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "api-key": brevoKey },
+          body: JSON.stringify(adminBody),
+        });
 
-                // 2. User Confirmation Email
-                const templateSet = (emailTemplates as any)[programId] || emailTemplates.default;
-                const modalityKey = modality.toLowerCase().includes('línea') || modality.toLowerCase().includes('online') ? 'en_linea' : 'presencial';
-                const template = templateSet[modalityKey] || emailTemplates.default[modalityKey];
+        const templateSet =
+          (emailTemplates as Record<string, unknown>)[programId] ||
+          (emailTemplates as { default: unknown }).default;
+        const modalityKey = modalityCanonical === "En línea" ? "en_linea" : "presencial";
+        const templateSetTyped = templateSet as Record<string, { body: string; subject: string }>;
+        const template =
+          templateSetTyped[modalityKey] ||
+          (emailTemplates as { default: Record<string, { body: string; subject: string }> }).default[
+            modalityKey
+          ];
 
                 const templateData = {
                     name: name,
                     programTitle: programTitle,
-                    startDate: programDetails.startDate || 'Por confirmar',
-                    schedule: programDetails.schedule || 'Por confirmar',
-                    instructor: programDetails.instructor || 'Claustro Docente CEPRIJA',
-                    address: programDetails.address || (programDetails as any).address || 'Lope de Vega #273, Guadalajara',
-                    meetingLink: (programDetails as any).meetingLink || 'Se enviará previo al inicio'
+                    startDate: programDetails.startDate,
+                    schedule: programDetails.schedule,
+                    instructor: programDetails.instructor,
+                    address: programDetails.address,
+                    meetingLink: programDetails.meetingLink,
                 };
 
-                const userHtml = replacePlaceholders(template.body, templateData);
-                const userSubject = replacePlaceholders(template.subject, templateData);
+        const userHtml = replacePlaceholders(template.body, templateData);
+        const userSubject = replacePlaceholders(template.subject, templateData);
 
-                await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
-                    body: JSON.stringify({
-                        sender: { email: senderEmail, name: "Equipo CEPRIJA" },
-                        to: [{ email }],
-                        subject: userSubject,
-                        htmlContent: userHtml
-                    })
-                });
-            } catch (err) {
-                console.error('Error enviando a Brevo:', err);
-            }
+        await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "api-key": brevoKey },
+          body: JSON.stringify({
+            sender: { email: senderEmail, name: "Equipo CEPRIJA" },
+            to: [{ email }],
+            subject: userSubject,
+            htmlContent: userHtml,
+          }),
+        });
+      } catch (err) {
+        console.error("Error enviando a Brevo:", err);
+      }
+    };
+
+    const sendToLaravel = async () => {
+      try {
+        const apiUrl = URL_BASE_API;
+        if (!apiUrl) return;
+
+        const formPayload = new FormData();
+
+        const appendIfExists = (key: string, val: unknown) => {
+          if (val) formPayload.append(key, String(val));
         };
 
-        const sendToLaravel = async () => {
-            try {
-                const apiUrl = import.meta.env.URL_BASE_API;
-                if (!apiUrl) return;
+        appendIfExists("nombre", name);
+        appendIfExists("email", email);
+        appendIfExists("telefono", phone);
+        appendIfExists("programa", programTitle);
+        appendIfExists("programa_id", programId);
+        appendIfExists("modalidad", modalityCanonical);
+        formPayload.append("requiere_factura", requiresInvoice === "Sí" ? "1" : "0");
+        appendIfExists("email_factura", invoiceEmail);
 
-                const formPayload = new FormData();
+        const paymentProof = nonEmptyFiles.find(
+          (f) => f.fieldname === "paymentProof" || f.fieldname === "comprobantePago",
+        );
+        if (paymentProof && paymentProof.buffer.length) {
+          formPayload.append(
+            "comprobante_pago_doc",
+            new Blob([new Uint8Array(paymentProof.buffer)], { type: paymentProof.mimetype }),
+            paymentProof.filename,
+          );
+        }
 
-                const appendIfExists = (key: string, val: any) => { if (val) formPayload.append(key, val); };
+        const fiscalConstancy = nonEmptyFiles.find((f) => f.fieldname === "fiscalConstancy");
+        if (fiscalConstancy && fiscalConstancy.buffer.length) {
+          formPayload.append(
+            "comprobante_fiscal_doc",
+            new Blob([new Uint8Array(fiscalConstancy.buffer)], { type: fiscalConstancy.mimetype }),
+            fiscalConstancy.filename,
+          );
+        }
 
-                appendIfExists('nombre', name);
-                appendIfExists('email', email);
-                appendIfExists('telefono', phone);
-                appendIfExists('programa', programTitle);
-                appendIfExists('programa_id', programId);
-                appendIfExists('modalidad', modality);
-                formPayload.append('requiere_factura', requiresInvoice === 'Sí' ? '1' : '0');
-                appendIfExists('email_factura', invoiceEmail);
+        console.log(`Sending EC data to API: ${apiUrl}educacion-continua/registro`);
+        const apiRes = await fetch(`${apiUrl}educacion-continua/registro`, {
+          method: "POST",
+          headers: { Accept: "application/json" },
+          body: formPayload,
+        });
 
-                // Comprobante de pago (si existe)
-                const paymentProof = files.find(f => f.fieldname === 'paymentProof' || f.fieldname === 'comprobantePago');
-                if (paymentProof && paymentProof.buffer) {
-                    formPayload.append('comprobante_pago_doc', new Blob([new Uint8Array(paymentProof.buffer)], { type: paymentProof.mimetype }), paymentProof.filename);
-                }
+        if (!apiRes.ok) {
+          console.error("Laravel API Error response:", await apiRes.text());
+        } else {
+          console.log("Successfully saved EC registration to Laravel API.");
+        }
+      } catch (apiError) {
+        console.error("Failed to send EC data to Laravel API:", apiError);
+      }
+    };
 
-                // Constancia de Situación Fiscal (si existe)
-                const fiscalConstancy = files.find(f => f.fieldname === 'fiscalConstancy');
-                if (fiscalConstancy && fiscalConstancy.buffer) {
-                    formPayload.append('comprobante_fiscal_doc', new Blob([new Uint8Array(fiscalConstancy.buffer)], { type: fiscalConstancy.mimetype }), fiscalConstancy.filename);
-                }
+    await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
 
-                console.log(`Sending EC data to API: ${apiUrl}educacion-continua/registro`);
-                const apiRes = await fetch(`${apiUrl}educacion-continua/registro`, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json' },
-                    body: formPayload
-                });
-
-                if (!apiRes.ok) {
-                    console.error('Laravel API Error response:', await apiRes.text());
-                } else {
-                    console.log('Successfully saved EC registration to Laravel API.');
-                }
-            } catch (apiError) {
-                console.error('Failed to send EC data to Laravel API:', apiError);
-            }
-        };
-
-
-        await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
-
-        return new Response(JSON.stringify({ message: 'Ok' }), { status: 200 });
-    } catch (error: any) {
-        console.error(error);
-        return new Response(JSON.stringify({ message: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ message: "Ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "file_too_large"
+    ) {
+      return new Response(
+        JSON.stringify({
+          message: "Archivo demasiado grande (máx. 10 MB)",
+          code: "file_too_large",
+          ...("field" in error && typeof (error as { field?: string }).field === "string"
+            ? { field: (error as { field: string }).field }
+            : {}),
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
     }
+    console.error(error);
+    return new Response(
+      JSON.stringify({ message: error instanceof Error ? error.message : "Error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
 };

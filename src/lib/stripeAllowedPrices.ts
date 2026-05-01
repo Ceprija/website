@@ -12,3 +12,16 @@ export function parseStripeAllowedPriceIds(raw: string | undefined): Set<string>
   }
   return set;
 }
+
+/**
+ * Check if a program has valid Stripe checkout configuration.
+ * Returns true if at least one price ID (online or presencial) is set.
+ */
+export function programHasStripeCheckout(
+  stripePriceIds: { online?: string; presencial?: string } | undefined
+): boolean {
+  if (!stripePriceIds) return false;
+  const hasOnline = Boolean(stripePriceIds.online?.trim());
+  const hasPresencial = Boolean(stripePriceIds.presencial?.trim());
+  return hasOnline || hasPresencial;
+}
