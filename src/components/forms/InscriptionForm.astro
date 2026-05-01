@@ -1,5 +1,4 @@
 ---
-import Button from "../ui/Button.astro";
 import {
     genres,
     nationalities,
@@ -11,14 +10,14 @@ import {
     yesNo,
     relatives,
     sources,
-    juridicPrograms,
 } from "../../data/forms/inscription-options.js";
 
 interface Props {
     selectedProgram?: string;
+    programList?: string[];
 }
 
-const { selectedProgram = "" } = Astro.props;
+const { selectedProgram = "", programList = [] } = Astro.props;
 
 const isCivil = selectedProgram.includes("Civil");
 const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
@@ -129,7 +128,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     >
                         <option value="">SELECCIONA UN PROGRAMA</option>
                         {
-                            juridicPrograms.map((p) => (
+                            programList.map((p) => (
                                 <option
                                     value={p}
                                     selected={p === selectedProgram}
@@ -990,6 +989,11 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 </div>
 
 <script>
+    import {
+        validateRequiredFieldsInContainer,
+        reportStepValidationFailure,
+    } from "@lib/client/multiStepFormValidation";
+
     const form = document.getElementById("inscription-form") as HTMLFormElement;
 
     // Validaciones: Convertir a MAYÚSCULAS
@@ -1083,20 +1087,15 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     }
 
     nextBtn?.addEventListener("click", () => {
-        // Basic validation for current step
-        const currentInputs = sections[currentStep - 1].querySelectorAll(
-            "input[required], select[required], textarea[required]",
-        );
-        let isValid = true;
-
-        currentInputs.forEach((input: any) => {
-            if (!input.checkValidity()) {
-                input.reportValidity();
-                isValid = false;
-            }
-        });
-
-        if (isValid && currentStep < totalSteps) {
+        const section = sections[currentStep - 1];
+        if (!section) return;
+        const result = validateRequiredFieldsInContainer(section);
+        if (!result.ok) {
+            const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
+            reportStepValidationFailure(title, result);
+            return;
+        }
+        if (currentStep < totalSteps) {
             currentStep++;
             updateStep();
         }
@@ -1131,6 +1130,17 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
+
+        for (let i = 0; i < totalSteps; i++) {
+            const r = validateRequiredFieldsInContainer(sections[i]);
+            if (!r.ok) {
+                currentStep = i + 1;
+                updateStep();
+                const title = `Paso ${i + 1} de ${totalSteps}: ${stepNames[i]}`;
+                reportStepValidationFailure(title, r);
+                return;
+            }
+        }
 
         const loader = document.getElementById("spinner");
         const btnText = submitBtn.querySelector("span");

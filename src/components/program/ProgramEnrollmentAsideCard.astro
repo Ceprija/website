@@ -1,0 +1,23 @@
+---
+/**
+ * Chrome compartido para CTAs / formularios de inscripción.
+ * `sticky`: columna lateral en desktop; `false`: bloque bajo el contenido (mejor en móvil).
+ */
+interface Props {
+    class?: string;
+    /** Si es false, no usa sticky (recomendado cuando la card va debajo del contenido). */
+    sticky?: boolean;
+}
+
+const { class: className, sticky = true } = Astro.props;
+---
+
+<div
+    class:list={[
+        "bg-white rounded-2xl shadow-lg p-8 border-t-4 border-secondary",
+        sticky && "lg:sticky lg:top-24",
+        className,
+    ]}
+>
+    <slot />
+</div>
