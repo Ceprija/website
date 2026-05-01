@@ -53,7 +53,12 @@ const programas = defineCollection({
     address: z.string().optional(),
     instructor: z.string().optional(),
     schedule: z.string().optional(),
-    meetingLink: z.string().optional()
+    meetingLink: z.string().optional(),
+    
+    // Enrollment flow: determines if program uses inline form or dedicated application page
+    // "inline" = simple registration on program page (curso, diplomado default)
+    // "application" = multi-step application with documents (maestria, doctorado, especialidad default)
+    enrollmentFlow: z.enum(["inline", "application"]).optional()
   })
 });
 
