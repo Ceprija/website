@@ -3,78 +3,95 @@ import Button from "../ui/Button.astro";
 
 interface Props {
     programTitle?: string;
+    /** Dentro de `ProgramEnrollmentAsideCard`: sin segundo contenedor sticky/sombra. */
+    embedInAsideCard?: boolean;
 }
 
-const { programTitle = "General Inquiry" } = Astro.props;
+const {
+    programTitle = "General Inquiry",
+    embedInAsideCard = false,
+} = Astro.props;
+
+const shellClass = embedInAsideCard
+    ? "w-full"
+    : "bg-white rounded-2xl shadow-lg p-8 sticky top-24 border-t-4 border-secondary";
+
+const fieldClass =
+    "w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all";
+const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
 ---
 
-<div class="bg-white rounded-2xl shadow-lg p-8 sticky top-24">
-    <h3 class="text-2xl font-bold text-primary mb-6 font-serif">
-        Solicita Información
+<div class:list={[shellClass]}>
+    <h3 class="text-2xl font-bold text-primary mb-2 font-serif">
+        Solicita información
     </h3>
+    {
+        embedInAsideCard && (
+            <p class="text-gray-600 mb-6 text-sm">
+                Este programa aún no tiene inscripción en línea con pago. Envía
+                tus datos y nos pondremos en contacto contigo.
+            </p>
+        )
+    }
+    {
+        !embedInAsideCard && (
+            <p class="text-gray-600 mb-6 text-sm">
+                Cuéntanos cómo podemos ayudarte; te responderemos pronto.
+            </p>
+        )
+    }
 
-    <form id="contact-form" class="space-y-4">
+    <form id="contact-form" class="space-y-5">
         <input type="hidden" name="program" value={programTitle} />
+        <input type="hidden" name="type" value="contact" />
 
         <div>
-            <label
-                for="name"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Nombre completo</label
+            <label for="name" class:list={[labelClass]}
+                >Nombre completo *</label
             >
             <input
                 type="text"
                 id="name"
                 name="name"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                class:list={[fieldClass]}
                 placeholder="Tu nombre"
             />
         </div>
 
         <div>
-            <label
-                for="email"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Correo electrónico</label
+            <label for="email" class:list={[labelClass]}
+                >Correo electrónico *</label
             >
             <input
                 type="email"
                 id="email"
                 name="email"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                class:list={[fieldClass]}
                 placeholder="tu@email.com"
             />
         </div>
 
         <div>
-            <label
-                for="phone"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Teléfono</label
-            >
+            <label for="phone" class:list={[labelClass]}>Teléfono *</label>
             <input
                 type="tel"
                 id="phone"
                 name="phone"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                class:list={[fieldClass]}
                 placeholder="55 1234 5678"
             />
         </div>
 
         <div>
-            <label
-                for="message"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Mensaje</label
-            >
+            <label for="message" class:list={[labelClass]}>Mensaje</label>
             <textarea
                 id="message"
                 name="message"
                 rows="3"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                class:list={[fieldClass]}
                 placeholder="¿Qué te gustaría saber?"></textarea>
         </div>
 
@@ -138,6 +155,11 @@ const { programTitle = "General Inquiry" } = Astro.props;
 </div>
 
 <script>
+    import {
+        validateRequiredFieldsInContainer,
+        reportStepValidationFailure,
+    } from "@lib/client/multiStepFormValidation";
+
     const form = document.getElementById("contact-form") as HTMLFormElement;
     const statusDiv = document.getElementById("form-status");
     const submitBtn = document.getElementById(
@@ -149,6 +171,12 @@ const { programTitle = "General Inquiry" } = Astro.props;
     if (form) {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
+
+            const stepCheck = validateRequiredFieldsInContainer(form);
+            if (!stepCheck.ok) {
+                reportStepValidationFailure("Solicita información", stepCheck);
+                return;
+            }
 
             // Reset status
             if (statusDiv) {
@@ -164,15 +192,11 @@ const { programTitle = "General Inquiry" } = Astro.props;
             }
 
             const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
 
             try {
                 const response = await fetch("/api/register", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data),
+                    body: formData,
                 });
 
                 const result = await response.json();
@@ -192,9 +216,9 @@ const { programTitle = "General Inquiry" } = Astro.props;
                     }
                     form.reset();
                 } else {
-                    // Error from server
                     throw new Error(
-                        result.message || "Error al enviar el formulario",
+                        [result.message, result.code].filter(Boolean).join(" — ") ||
+                            "Error al enviar el formulario",
                     );
                 }
             } catch (error) {
