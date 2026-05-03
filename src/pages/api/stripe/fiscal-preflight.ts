@@ -3,6 +3,10 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import Busboy from "busboy";
 import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+import {
+  sanitizeEmailSubjectLine,
+  sanitizeMailAttachmentFileName,
+} from "@lib/email/outboundMailGuards";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
   MAX_FILES_PER_REQUEST,
@@ -10,6 +14,7 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { validateStripeFiscalPreflightFields } from "@lib/validation/enrollment";
+import { canonicalMexicoTenDigitPhone } from "@lib/validation/phone";
 
 type UploadedFile = {
   fieldname: string;
@@ -191,6 +196,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Normalize phone to 10 digits
+    const phoneCanonical = canonicalMexicoTenDigitPhone(participantPhone);
+
     const adminHtml = `
       <h2>Facturación — pago con Stripe (pendiente)</h2>
       <p>El aspirante indicó que <strong>requiere factura</strong> y adjuntó CSF antes de ir a Checkout.</p>
@@ -201,7 +209,7 @@ export const POST: APIRoute = async ({ request }) => {
       <p><strong>Modalidad:</strong> ${escapeHtml(modality)}</p>
       <hr />
       <p><strong>Nombre:</strong> ${escapeHtml(participantName)}</p>
-      <p><strong>Teléfono:</strong> ${escapeHtml(participantPhone)}</p>
+      <p><strong>Teléfono:</strong> ${escapeHtml(phoneCanonical)}</p>
       <p><strong>Correo factura:</strong> ${escapeHtml(invoiceEmail)}</p>
       ${customerEmail ? `<p><strong>Correo pago (Stripe):</strong> ${escapeHtml(customerEmail)}</p>` : ""}
       <p><em>Tras el pago, revisa metadata de la sesión en Stripe (requiresInvoice, invoiceEmail).</em></p>
@@ -216,11 +224,13 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify({
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: [{ email: controlEscolar }, ...(senderEmail !== controlEscolar ? [{ email: senderEmail }] : [])],
-        subject: `Facturación (Stripe) — ${programTitle || programSlug} — ${participantName}`,
+        subject: sanitizeEmailSubjectLine(
+          `Facturación (Stripe) — ${programTitle || programSlug} — ${participantName}`,
+        ),
         htmlContent: adminHtml,
         attachment: [
           {
-            name: fiscal.filename,
+            name: sanitizeMailAttachmentFileName(fiscal.filename),
             content: fiscal.buffer.toString("base64"),
           },
         ],

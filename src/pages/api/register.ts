@@ -3,9 +3,14 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import { parseWireRegistrationMultipart } from "@lib/multipart/parseWireRegistration";
+import {
+  sanitizeEmailSubjectLine,
+  sanitizeMailAttachmentFileName,
+} from "@lib/email/outboundMailGuards";
 import { escapeHtml } from "@lib/htmlEscape";
 import { validateUploadBuffer } from "@lib/uploads/fileValidation";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
+import { canonicalMexicoTenDigitPhone } from "@lib/validation/phone";
 import { CONTACT_EMAIL, KEY_API_BREVO, SMTP_FROM } from "astro:env/server";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -60,9 +65,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail = SMTP_FROM || CONTACT_EMAIL;
 
+    // Normalize phone to 10 digits
+    const phoneCanonical = canonicalMexicoTenDigitPhone(phone);
+
     const safeName = escapeHtml(name);
     const safeEmail = escapeHtml(email);
-    const safePhone = escapeHtml(phone);
+    const safePhone = escapeHtml(phoneCanonical);
     const safeProgram = escapeHtml(programTitle || "N/A");
     const safeMessage = escapeHtml(message || "N/A");
     const modalityDisplay = type === "contact" ? "No aplica" : modality;
@@ -83,14 +91,16 @@ export const POST: APIRoute = async ({ request }) => {
     const adminBody: Record<string, unknown> = {
       sender: { email: senderEmail },
       to: [{ email: CONTACT_EMAIL }],
-      subject: `Nuevo ${type === "registration" ? "Registro" : "Mensaje"}: ${programTitle || "General"}`,
+      subject: sanitizeEmailSubjectLine(
+        `Nuevo ${type === "registration" ? "Registro" : "Mensaje"}: ${programTitle || "General"}`,
+      ),
       htmlContent: adminHtml,
     };
 
     if (paymentProof?.buffer.length) {
       adminBody.attachment = [
         {
-          name: paymentProof.filename,
+          name: sanitizeMailAttachmentFileName(paymentProof.filename),
           content: paymentProof.buffer.toString("base64"),
         },
       ];
@@ -119,7 +129,9 @@ export const POST: APIRoute = async ({ request }) => {
     if (type === "registration" && email) {
       const isOnline = modality === "En línea";
 
-      const emailSubject = `Confirmación de Registro - ${programTitle}`;
+      const emailSubject = sanitizeEmailSubjectLine(
+        `Confirmación de Registro - ${programTitle}`,
+      );
 
       const safeInstructor = escapeHtml(instructor);
       const safeStart = escapeHtml(startDate);

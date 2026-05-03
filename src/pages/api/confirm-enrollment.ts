@@ -2,6 +2,9 @@
  * Primary paid-enrollment confirmation path: user lands on /pago-exitoso after Checkout.
  * Trust only stripeSessionId; derive participant + program from Stripe + content collection.
  * Webhook (checkout.session.completed) is secondary: logging + dedupe only — see webhook.ts.
+ *
+ * Dedupe (`markEnrollmentConfirmed`) runs only after the institutional Brevo send succeeds, so a
+ * failed admin mail does not block retries on reload. Participant mail is best-effort (warnings).
  */
 export const prerender = false;
 
@@ -17,8 +20,13 @@ import {
 import Stripe from "stripe";
 import { hasEnrollmentBeenConfirmed, markEnrollmentConfirmed } from "@lib/processedStripeStore";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
-import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
+import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 import { escapeHtml } from "@lib/htmlEscape";
+import { fetchWithRetry } from "@lib/http/fetchWithRetry";
+import {
+  validateEmail,
+  validateStripeCheckoutSessionId,
+} from "@lib/validation/enrollment";
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -104,6 +112,20 @@ export const POST: APIRoute = async ({ request }) => {
         JSON.stringify({
           error: "No hay correo en la sesión de pago",
           code: "missing_email",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const emailErr = validateEmail(customerEmail);
+    if (emailErr) {
+      return new Response(
+        JSON.stringify({
+          error: emailErr.error,
+          code: emailErr.code ?? "invalid_email",
         }),
         {
           status: 400,
@@ -313,54 +335,7 @@ export const POST: APIRoute = async ({ request }) => {
             </html>
         `;
 
-    markEnrollmentConfirmed(stripeSessionId);
-
-    let emailWarnings: string[] = [];
-
-    if (!brevoKey) {
-      console.warn(
-        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. No se enviarán correos.",
-      );
-      emailWarnings.push("email_not_configured");
-    } else {
-      try {
-        const userEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "CEPRIJA" },
-              to: [{ email: customerEmail }],
-              subject: `Confirmación de Inscripción - ${programTitle}`,
-              htmlContent: userEmailBody,
-            }),
-          },
-        );
-
-        if (!userEmailResponse.ok) {
-          const errBody = await userEmailResponse.text();
-          console.error(
-            "[confirm-enrollment] Brevo rechazó el correo al participante:",
-            userEmailResponse.status,
-            errBody,
-          );
-          emailWarnings.push("user_email_failed");
-        }
-      } catch (emailError) {
-        console.error(
-          "[confirm-enrollment] Error de red al llamar a Brevo:",
-          emailError,
-        );
-        emailWarnings.push("user_email_network_error");
-      }
-    }
-
-    if (brevoKey) {
-      const adminEmailBody = `
+    const adminEmailBody = `
                 <h2>Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""}</h2>
                 <h3>Información del Estudiante:</h3>
                 <p><strong>Nombre:</strong> ${safeName}</p>
@@ -382,39 +357,123 @@ export const POST: APIRoute = async ({ request }) => {
                 <p><a href="https://dashboard.stripe.com/payments/${encodeURIComponent(piId)}" target="_blank" rel="noopener noreferrer">Ver en Stripe Dashboard</a></p>
             `;
 
-      try {
-        const adminEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "Sistema CEPRIJA" },
-              to: adminNotificationRecipients,
-              subject: `✅ Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""} - ${programTitle}`,
-              htmlContent: adminEmailBody,
-            }),
-          },
-        );
+    const emailWarnings: string[] = [];
 
-        if (!adminEmailResponse.ok) {
-          console.error(
-            "[confirm-enrollment] Brevo rechazó el correo a administración:",
-            adminEmailResponse.status,
-            await adminEmailResponse.text(),
-          );
-          emailWarnings.push("admin_email_failed");
-        }
-      } catch (emailError) {
+    if (!brevoKey) {
+      console.warn(
+        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. No se enviarán correos.",
+      );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Enrollment confirmed successfully",
+          emailWarnings: ["email_not_configured"],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    try {
+      const adminEmailResponse = await fetchWithRetry(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          method: "POST",
+          headers: {
+            "api-key": brevoKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { email: senderEmail, name: "Sistema CEPRIJA" },
+            to: adminNotificationRecipients,
+            subject: sanitizeEmailSubjectLine(
+              `✅ Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""} - ${programTitle}`,
+            ),
+            htmlContent: adminEmailBody,
+          }),
+        },
+        {
+          label: `[confirm-enrollment ${stripeSessionId.slice(0, 14)}…] Brevo institucional`,
+          maxAttempts: 4,
+          baseDelayMs: 400,
+        },
+      );
+
+      if (!adminEmailResponse.ok) {
+        const errBody = await adminEmailResponse.text();
         console.error(
-          "[confirm-enrollment] Error enviando correo a administración:",
-          emailError,
+          "[confirm-enrollment] Brevo rechazó el correo a administración:",
+          adminEmailResponse.status,
+          errBody,
         );
-        emailWarnings.push("admin_email_network_error");
+        return new Response(
+          JSON.stringify({
+            error:
+              "No pudimos notificar a control escolar por correo. Recarga esta página en unos segundos o contacta soporte.",
+            code: "institutional_email_failed",
+          }),
+          { status: 502, headers: { "Content-Type": "application/json" } },
+        );
       }
+    } catch (emailError) {
+      console.error(
+        "[confirm-enrollment] Error enviando correo a administración:",
+        emailError,
+      );
+      return new Response(
+        JSON.stringify({
+          error:
+            "No pudimos notificar a control escolar por correo (red). Recarga esta página en unos segundos o contacta soporte.",
+          code: "admin_email_network_error",
+        }),
+        { status: 502, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    markEnrollmentConfirmed(stripeSessionId);
+
+    try {
+      const userEmailResponse = await fetchWithRetry(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          method: "POST",
+          headers: {
+            "api-key": brevoKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { email: senderEmail, name: "CEPRIJA" },
+            to: [{ email: customerEmail }],
+            subject: sanitizeEmailSubjectLine(
+              `Confirmación de Inscripción - ${programTitle}`,
+            ),
+            htmlContent: userEmailBody,
+          }),
+        },
+        {
+          label: `[confirm-enrollment ${stripeSessionId.slice(0, 14)}…] Brevo participante`,
+          maxAttempts: 4,
+          baseDelayMs: 400,
+        },
+      );
+
+      if (!userEmailResponse.ok) {
+        const errBody = await userEmailResponse.text();
+        console.error(
+          "[confirm-enrollment] Brevo rechazó el correo al participante:",
+          userEmailResponse.status,
+          errBody,
+        );
+        emailWarnings.push("user_email_failed");
+      }
+    } catch (emailError) {
+      console.error(
+        "[confirm-enrollment] Error de red al llamar a Brevo:",
+        emailError,
+      );
+      emailWarnings.push("user_email_network_error");
     }
 
     return new Response(

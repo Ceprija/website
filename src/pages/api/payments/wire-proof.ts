@@ -4,6 +4,10 @@ import type { APIRoute } from "astro";
 import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
 import Busboy from "busboy";
 import crypto from "node:crypto";
+import {
+  sanitizeEmailSubjectLine,
+  sanitizeMailAttachmentFileName,
+} from "@lib/email/outboundMailGuards";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
   MAX_FILES_PER_REQUEST,
@@ -11,6 +15,7 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { validateWireProofFields } from "@lib/validation/enrollment";
+import { canonicalMexicoTenDigitPhone } from "@lib/validation/phone";
 
 type UploadedFile = {
   fieldname: string;
@@ -243,6 +248,9 @@ export const POST: APIRoute = async ({ request }) => {
 
     const adminRecipients = toEmailList(controlEscolar, senderEmail);
 
+    // Normalize phone to 10 digits
+    const phoneCanonical = canonicalMexicoTenDigitPhone(phone);
+
     const safeEnrollmentId = escapeHtml(enrollmentId);
     const safeWireRef = escapeHtml(wireReference);
     const safeProgramTitle = escapeHtml(programTitle || programId);
@@ -250,7 +258,7 @@ export const POST: APIRoute = async ({ request }) => {
     const safeModality = escapeHtml(modality);
     const safeName = escapeHtml(name);
     const safeEmail = escapeHtml(email);
-    const safePhone = escapeHtml(phone);
+    const safePhone = escapeHtml(phoneCanonical);
 
     const safeInvoiceEmail = escapeHtml(invoiceEmail);
     const safeApplicationId = escapeHtml(applicationIdField);
@@ -274,13 +282,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     const attachment: { name: string; content: string }[] = [
       {
-        name: paymentProof.filename,
+        name: sanitizeMailAttachmentFileName(paymentProof.filename),
         content: paymentProof.buffer.toString("base64"),
       },
     ];
     if (requiresInvoice && fiscalConstancy && fiscalConstancy.buffer.length > 0) {
       attachment.push({
-        name: fiscalConstancy.filename,
+        name: sanitizeMailAttachmentFileName(fiscalConstancy.filename),
         content: fiscalConstancy.buffer.toString("base64"),
       });
     }
@@ -294,7 +302,9 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify({
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: adminRecipients,
-        subject: `⏳ Comprobante Recibido - ${programTitle || programId} - ${name}`,
+        subject: sanitizeEmailSubjectLine(
+          `⏳ Comprobante Recibido - ${programTitle || programId} - ${name}`,
+        ),
         htmlContent: adminHtml,
         attachment,
       }),
@@ -322,7 +332,9 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify({
         sender: { email: senderEmail, name: "CEPRIJA" },
         to: [{ email }],
-        subject: `Comprobante recibido - ${programTitle || programId}`,
+        subject: sanitizeEmailSubjectLine(
+          `Comprobante recibido - ${programTitle || programId}`,
+        ),
         htmlContent: userHtml,
       }),
     });
