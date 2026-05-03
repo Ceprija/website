@@ -2,13 +2,13 @@
  * Server-side upload rules: size, empty buffer, declared vs sniffed MIME (don’t trust client alone).
  */
 
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MiB per file
-export const ALLOWED_UPLOAD_MIMES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-]);
+import {
+  ALLOWED_UPLOAD_MIME_TYPES,
+  MAX_UPLOAD_BYTES_PER_FILE,
+} from "@lib/validation/uploadRules";
+
+export const MAX_UPLOAD_BYTES = MAX_UPLOAD_BYTES_PER_FILE;
+export const ALLOWED_UPLOAD_MIMES = ALLOWED_UPLOAD_MIME_TYPES;
 
 /** Max total files per request for multi-file endpoints (educación continua, etc.) */
 export const MAX_FILES_PER_REQUEST = 12;
@@ -68,7 +68,7 @@ export function validateUploadBuffer(
       err: { code: "file_too_large", error: "Archivo demasiado grande (máx. 10 MB)", field },
     };
   }
-  if (!ALLOWED_UPLOAD_MIMES.has(normalizedMime)) {
+  if (!ALLOWED_UPLOAD_MIME_TYPES.has(normalizedMime)) {
     return {
       ok: false,
       err: { code: "invalid_mime", error: "Tipo de archivo no permitido", field },

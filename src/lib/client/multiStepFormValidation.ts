@@ -3,7 +3,20 @@
  * Uso solo en el navegador (scripts de componentes Astro).
  */
 
+import { validateEmail } from "@lib/validation/enrollment";
+import {
+  DEFAULT_TEXT_MAX_LENGTH,
+  TEXT_MAX_LENGTH_BY_NAME,
+} from "@lib/validation/formFieldLimits";
+import { isValidPhone } from "@lib/validation/phone";
+import {
+  isAllowedUploadMime,
+  MAX_UPLOAD_BYTES_PER_FILE,
+} from "@lib/validation/uploadRules";
+
 const HIGHLIGHT_CLASSES = ["border-red-500", "ring-2", "ring-red-400"] as const;
+
+const ALLOWED_UPLOAD_EXT_RE = /\.(pdf|jpe?g|png|webp)$/i;
 
 export function normalizeLabelText(raw: string): string {
   return raw
@@ -82,6 +95,15 @@ function isHiddenInFormTree(el: HTMLElement): boolean {
   return el.closest(".hidden") != null;
 }
 
+function shouldValidateFormatControl(el: HTMLElement, container: Element): boolean {
+  if (!container.contains(el)) return false;
+  if (el instanceof HTMLInputElement && el.disabled) return false;
+  if (el instanceof HTMLSelectElement && el.disabled) return false;
+  if (el instanceof HTMLTextAreaElement && el.disabled) return false;
+  if (isHiddenInFormTree(el)) return false;
+  return true;
+}
+
 function shouldValidateControl(
   el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
   container: Element,
@@ -157,6 +179,137 @@ export function validateRequiredFieldsInContainer(container: Element): StepValid
   };
 }
 
+function fileFormatHighlightTarget(el: HTMLInputElement): HTMLElement {
+  return (
+    (el.closest(".file-group") as HTMLElement | null) ??
+    (el.closest(".relative") as HTMLElement | null) ??
+    el
+  );
+}
+
+/**
+ * Formato y tamaño/tipo de archivo, además de requisitos numéricos (tel, CP, CURP).
+ * Ejecutar después de `validateRequiredFieldsInContainer` o usar `validateStepSection`.
+ */
+export function validateFieldFormatsInContainer(container: Element): StepValidationResult {
+  const missingLabels: string[] = [];
+  const highlightTargets: HTMLElement[] = [];
+
+  for (const el of container.querySelectorAll<HTMLInputElement>('input[type="tel"]')) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const v = el.value.trim();
+    if (!v && !el.required) continue;
+    if (!isValidPhone(v)) {
+      missingLabels.push(
+        `${getLabelForControl(el, container)} (10 dígitos nacionales o +52 / 521…)`,
+      );
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLInputElement>('input[name="cp"]')) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const digits = el.value.replace(/\D/g, "");
+    const v = el.value.trim();
+    if (!v && !el.required) continue;
+    if (digits.length !== 5) {
+      missingLabels.push(`${getLabelForControl(el, container)} (5 dígitos)`);
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLInputElement>('input[name="curp"]')) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const t = el.value.trim();
+    if (!t && !el.required) continue;
+    if (t.length !== 18) {
+      missingLabels.push(`${getLabelForControl(el, container)} (18 caracteres)`);
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLInputElement>('input[type="email"]')) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const t = el.value.trim();
+    if (!t && !el.required) continue;
+    if (validateEmail(t)) {
+      missingLabels.push(getLabelForControl(el, container));
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLInputElement>("input")) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    if (
+      el.type === "hidden" ||
+      el.type === "file" ||
+      el.type === "radio" ||
+      el.type === "checkbox" ||
+      el.type === "email" ||
+      el.type === "tel"
+    ) {
+      continue;
+    }
+    if (el.type !== "text") continue;
+    const name = el.getAttribute("name");
+    if (!name) continue;
+    const max = TEXT_MAX_LENGTH_BY_NAME[name] ?? DEFAULT_TEXT_MAX_LENGTH;
+    if (el.value.length > max) {
+      missingLabels.push(
+        `${getLabelForControl(el, container)} (máx. ${max} caracteres)`,
+      );
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLTextAreaElement>("textarea")) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const name = el.getAttribute("name");
+    if (!name) continue;
+    const max = TEXT_MAX_LENGTH_BY_NAME[name] ?? DEFAULT_TEXT_MAX_LENGTH;
+    const t = el.value;
+    if (!t.trim() && !el.required) continue;
+    if (t.length > max) {
+      missingLabels.push(
+        `${getLabelForControl(el, container)} (máx. ${max} caracteres)`,
+      );
+      highlightTargets.push(el);
+    }
+  }
+
+  for (const el of container.querySelectorAll<HTMLInputElement>('input[type="file"]')) {
+    if (!shouldValidateFormatControl(el, container)) continue;
+    const f = el.files?.[0];
+    if (!f) continue;
+    if (f.size > MAX_UPLOAD_BYTES_PER_FILE) {
+      missingLabels.push(`${getLabelForControl(el, container)} (máx. 10 MB)`);
+      highlightTargets.push(fileFormatHighlightTarget(el));
+    }
+    const mimeRaw = (f.type || "").split(";")[0].trim().toLowerCase();
+    const extOk = ALLOWED_UPLOAD_EXT_RE.test(f.name);
+    const mimeOk = !mimeRaw || isAllowedUploadMime(mimeRaw);
+    if (!mimeOk && !extOk) {
+      missingLabels.push(
+        `${getLabelForControl(el, container)} (solo PDF o imagen JPEG, PNG o WebP)`,
+      );
+      highlightTargets.push(fileFormatHighlightTarget(el));
+    }
+  }
+
+  return {
+    ok: missingLabels.length === 0,
+    missingLabels,
+    highlightTargets,
+  };
+}
+
+/** Obligatorios visibles + reglas de formato en un solo paso. */
+export function validateStepSection(container: Element): StepValidationResult {
+  const req = validateRequiredFieldsInContainer(container);
+  if (!req.ok) return req;
+  return validateFieldFormatsInContainer(container);
+}
+
 export function formatStepValidationMessage(stepTitle: string, labels: string[]): string {
   if (labels.length === 0) return "";
   const unique = [...new Set(labels)];
@@ -187,8 +340,11 @@ export function flashInvalidFields(targets: HTMLElement[], durationMs = 4500): v
   }, durationMs);
 }
 
-export function reportStepValidationFailure(stepTitle: string, result: StepValidationResult): void {
+/**
+ * Resalta campos inválidos y hace scroll al primero. Sin `alert()` del navegador.
+ * El título del paso se conserva en la firma por si más adelante se muestra en un banner `aria-live`.
+ */
+export function reportStepValidationFailure(_stepTitle: string, result: StepValidationResult): void {
   if (result.ok) return;
   flashInvalidFields(result.highlightTargets);
-  alert(formatStepValidationMessage(stepTitle, result.missingLabels));
 }
