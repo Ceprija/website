@@ -1,7 +1,7 @@
 export const seoConfig = {
     siteName: "CEPRIJA",
     default: {
-        title: "CEPRIJA - Centro de Estudios Privados, Jurídicos y Alternativos",
+        title: "CEPRIJA - Centro de Preparación Integral en Materia Jurídica y Administrativa",
         description: "Institución líder en formación jurídica y administrativa de alto nivel. Maestrías, diplomados y cursos especializados en Guadalajara.",
         image: "/images/og-image.jpg",
         keywords: "derecho, maestría, penal, administrativo, cursos, diplomados, guadalajara, ceprija, educación continua"

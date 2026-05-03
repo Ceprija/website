@@ -4,6 +4,10 @@ import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import emailTemplates from "../../data/forms/email-templates-educacion-continua.json";
 import Busboy from "busboy";
+import {
+  sanitizeEmailSubjectLine,
+  sanitizeMailAttachmentFileName,
+} from "@lib/email/outboundMailGuards";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
   MAX_FILES_PER_REQUEST,
@@ -14,13 +18,13 @@ import {
   normalizeWireModality,
   validateEducacionContinuaFields,
 } from "@lib/validation/enrollment";
+import { canonicalMexicoTenDigitPhone } from "@lib/validation/phone";
 import {
   CONTACT_EMAIL,
   EMAIL_EDUCACION_CONTINUA,
   EMAIL_SOPORTE_WEB,
   KEY_API_BREVO,
   SMTP_FROM,
-  URL_BASE_API,
 } from "astro:env/server";
 
 function sanitizeFilename(name: string): string {
@@ -122,7 +126,9 @@ function replacePlaceholders(template: string, data: Record<string, string>) {
   let result = template;
   for (const [key, value] of Object.entries(data)) {
     const regex = new RegExp(`{{${key}}}`, "g");
-    result = result.replace(regex, value || "");
+    // Escape HTML to prevent XSS in email templates
+    const safeValue = escapeHtml(value || "");
+    result = result.replace(regex, safeValue);
   }
   return result;
 }
@@ -198,6 +204,9 @@ export const POST: APIRoute = async ({ request }) => {
       meetingLink: "Se enviará previo al inicio"
     };
 
+    // Normalize phone to 10 digits for CSV/emails
+    const phoneCanonical = canonicalMexicoTenDigitPhone(phone);
+
     const header = "FECHA,NOMBRE,EMAIL,TELEFONO,MODALIDAD,FACTURA,EMAIL FACTURA\n";
     const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
     const csvRow =
@@ -205,7 +214,7 @@ export const POST: APIRoute = async ({ request }) => {
         `"${now}"`,
         `"${name.trim().toUpperCase()}"`,
         email.trim().toLowerCase(),
-        phone.trim(),
+        phoneCanonical,
         modalityCanonical.toUpperCase(),
         requiresInvoice.toUpperCase(),
         (invoiceEmail || "").toLowerCase(),
@@ -230,7 +239,7 @@ export const POST: APIRoute = async ({ request }) => {
         const safeProgramTitle = escapeHtml(programTitle);
         const safeName = escapeHtml(name);
         const safeEmail = escapeHtml(email);
-        const safePhone = escapeHtml(phone);
+        const safePhone = escapeHtml(phoneCanonical);
         const safeModality = escapeHtml(modalityCanonical);
         const safeInvoiceEmail = escapeHtml(invoiceEmail || "");
 
@@ -252,7 +261,7 @@ export const POST: APIRoute = async ({ request }) => {
         const adminBody: Record<string, unknown> = {
           sender: { email: senderEmail, name: "CEPRIJA Web" },
           to: adminTo,
-          subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
+          subject: sanitizeEmailSubjectLine(`INSCRIPCIÓN EC: ${programTitle} - ${name}`),
           htmlContent: adminHtml,
           attachment: [] as Array<{ name: string; content: string }>,
         };
@@ -261,14 +270,16 @@ export const POST: APIRoute = async ({ request }) => {
 
         for (const f of nonEmptyFiles) {
           attachments.push({
-            name: f.filename,
+            name: sanitizeMailAttachmentFileName(f.filename),
             content: f.buffer.toString("base64"),
           });
         }
 
         const csvBase64 = Buffer.from(csvContent).toString("base64");
         attachments.push({
-          name: `${sanitizeFilename(programTitle || "ec-general")}.csv`,
+          name: sanitizeMailAttachmentFileName(
+            `${sanitizeFilename(programTitle || "ec-general")}.csv`,
+          ),
           content: csvBase64,
         });
 
@@ -300,7 +311,9 @@ export const POST: APIRoute = async ({ request }) => {
                 };
 
         const userHtml = replacePlaceholders(template.body, templateData);
-        const userSubject = replacePlaceholders(template.subject, templateData);
+        const userSubject = sanitizeEmailSubjectLine(
+          replacePlaceholders(template.subject, templateData),
+        );
 
         await fetch("https://api.brevo.com/v3/smtp/email", {
           method: "POST",
@@ -317,64 +330,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     };
 
-    const sendToLaravel = async () => {
-      try {
-        const apiUrl = URL_BASE_API;
-        if (!apiUrl) return;
-
-        const formPayload = new FormData();
-
-        const appendIfExists = (key: string, val: unknown) => {
-          if (val) formPayload.append(key, String(val));
-        };
-
-        appendIfExists("nombre", name);
-        appendIfExists("email", email);
-        appendIfExists("telefono", phone);
-        appendIfExists("programa", programTitle);
-        appendIfExists("programa_id", programId);
-        appendIfExists("modalidad", modalityCanonical);
-        formPayload.append("requiere_factura", requiresInvoice === "Sí" ? "1" : "0");
-        appendIfExists("email_factura", invoiceEmail);
-
-        const paymentProof = nonEmptyFiles.find(
-          (f) => f.fieldname === "paymentProof" || f.fieldname === "comprobantePago",
-        );
-        if (paymentProof && paymentProof.buffer.length) {
-          formPayload.append(
-            "comprobante_pago_doc",
-            new Blob([new Uint8Array(paymentProof.buffer)], { type: paymentProof.mimetype }),
-            paymentProof.filename,
-          );
-        }
-
-        const fiscalConstancy = nonEmptyFiles.find((f) => f.fieldname === "fiscalConstancy");
-        if (fiscalConstancy && fiscalConstancy.buffer.length) {
-          formPayload.append(
-            "comprobante_fiscal_doc",
-            new Blob([new Uint8Array(fiscalConstancy.buffer)], { type: fiscalConstancy.mimetype }),
-            fiscalConstancy.filename,
-          );
-        }
-
-        console.log(`Sending EC data to API: ${apiUrl}educacion-continua/registro`);
-        const apiRes = await fetch(`${apiUrl}educacion-continua/registro`, {
-          method: "POST",
-          headers: { Accept: "application/json" },
-          body: formPayload,
-        });
-
-        if (!apiRes.ok) {
-          console.error("Laravel API Error response:", await apiRes.text());
-        } else {
-          console.log("Successfully saved EC registration to Laravel API.");
-        }
-      } catch (apiError) {
-        console.error("Failed to send EC data to Laravel API:", apiError);
-      }
-    };
-
-    await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
+    await sendToBrevo();
 
     return new Response(JSON.stringify({ message: "Ok" }), {
       status: 200,

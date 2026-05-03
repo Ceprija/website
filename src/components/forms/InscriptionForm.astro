@@ -98,6 +98,14 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
         class="p-8 md:p-12 space-y-8"
         enctype="multipart/form-data"
     >
+        <div
+            id="inscription-form-feedback"
+            role="alert"
+            aria-live="assertive"
+            tabindex="-1"
+            class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900"
+        >
+        </div>
         <input type="hidden" name="origen" value="Web Inicia Inscripción" />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
@@ -149,6 +157,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="nombre"
                         required
+                        maxlength="100"
                         placeholder="Tal como aparece en acta"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
@@ -163,6 +172,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="apellidos"
                         required
+                        maxlength="100"
                         placeholder="Paterno y Materno"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
@@ -196,7 +206,10 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="tel"
                         name="telefono"
                         required
-                        placeholder="10 dígitos"
+                        maxlength="18"
+                        inputmode="tel"
+                        autocomplete="tel-national"
+                        placeholder="Ej. 3312345678 o +52 331…"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -210,6 +223,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="email"
                         name="email"
                         required
+                        maxlength="254"
                         placeholder="ejemplo@correo.com"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
@@ -253,6 +267,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="nacionalidad"
                         required
+                        maxlength="80"
                         placeholder="Mexicana"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all uppercase"
                     />
@@ -320,6 +335,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="calle"
                         required
+                        maxlength="200"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -332,6 +348,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="colonia"
                         required
+                        maxlength="120"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -344,6 +361,9 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="cp"
                         required
+                        maxlength="5"
+                        inputmode="numeric"
+                        autocomplete="postal-code"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -356,6 +376,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="ciudad"
                         required
+                        maxlength="120"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -437,6 +458,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="carrera"
                         required
+                        maxlength="150"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -449,6 +471,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="institucion"
                         required
+                        maxlength="150"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -505,6 +528,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="cedulaNum"
                         required
+                        maxlength="20"
                         placeholder="Número de Cédula"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
@@ -518,7 +542,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         <input
                             type="file"
                             name="cedulaDoc"
-                            accept=".pdf,image/*"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 file-input-custom"
                         />
                         <div
@@ -552,7 +576,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 class="text-sm text-gray-600 mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100"
             >
                 Por favor, cargue sus archivos en formato PDF o imagen legible
-                (Máx 5MB c/u).
+                (JPEG, PNG o WebP; máx. 10 MB c/u).
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -565,7 +589,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                             type="file"
                             name="actaNacimiento"
                             required
-                            accept=".pdf,image/*"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 file-input-custom"
                         />
                         <div
@@ -590,7 +614,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                             type="file"
                             name="curpDoc"
                             required
-                            accept=".pdf,image/*"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 file-input-custom"
                         />
                         <div
@@ -615,7 +639,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                             type="file"
                             name="comprobanteDom"
                             required
-                            accept=".pdf,image/*"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 file-input-custom"
                         />
                         <div
@@ -640,7 +664,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                             type="file"
                             name="ineDoc"
                             required
-                            accept=".pdf,image/*"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 file-input-custom"
                         />
                         <div
@@ -697,6 +721,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     <textarea
                         name="detalleCapacidad"
                         id="capacidad-detail-Sí"
+                        maxlength="500"
                         placeholder="Especifique cuál(es)..."
                         class="mt-4 w-full p-4 rounded-xl border-2 border-gray-200 hidden outline-none focus:border-primary"
                     ></textarea>
@@ -725,6 +750,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     </div>
                     <textarea
                         name="detalleEnf"
+                        maxlength="500"
                         placeholder="Describa la enfermedad y si requiere medicación..."
                         class="mt-4 w-full p-4 rounded-xl border-2 border-gray-200 hidden outline-none focus:border-primary"
                     ></textarea>
@@ -753,6 +779,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     </div>
                     <textarea
                         name="detalleAlergia"
+                        maxlength="500"
                         placeholder="Describa la alergia y cuidados..."
                         class="mt-4 w-full p-4 rounded-xl border-2 border-gray-200 hidden outline-none focus:border-primary"
                     ></textarea>
@@ -781,6 +808,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     </div>
                     <textarea
                         name="detalleTratamiento"
+                        maxlength="500"
                         placeholder="Especifique medicamentos y dosis..."
                         class="mt-4 w-full p-4 rounded-xl border-2 border-gray-200 hidden outline-none focus:border-primary"
                     ></textarea>
@@ -810,6 +838,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="contactoEmergencia"
                         required
+                        maxlength="200"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary outline-none transition-all"
                     />
                 </div>
@@ -840,6 +869,10 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="tel"
                         name="telEmergencia"
                         required
+                        maxlength="18"
+                        inputmode="tel"
+                        autocomplete="tel-national"
+                        placeholder="Ej. 3312345678 o +52 331…"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary outline-none transition-all"
                     />
                 </div>
@@ -869,6 +902,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         type="text"
                         name="ocupacion"
                         required
+                        maxlength="100"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary outline-none transition-all"
                     />
                 </div>
@@ -990,11 +1024,14 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 
 <script>
     import {
-        validateRequiredFieldsInContainer,
+        validateStepSection,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
+    import { bindFormPageFeedback } from "@lib/client/formPageFeedback";
 
     const form = document.getElementById("inscription-form") as HTMLFormElement;
+    const { show: showFormFeedback, clear: clearFormFeedback } =
+        bindFormPageFeedback(document.getElementById("inscription-form-feedback"));
 
     // Validaciones: Convertir a MAYÚSCULAS
     document
@@ -1008,14 +1045,17 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
             el.style.textTransform = "uppercase";
         });
 
-    // Validaciones: Solo números
-    document
-        .querySelectorAll('input[type="tel"], input[name="cp"]')
-        .forEach((el: any) => {
-            el.addEventListener("input", (e: any) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, "");
-            });
+    // Teléfono: 10 dígitos; CP: 5 dígitos
+    document.querySelectorAll('input[type="tel"]').forEach((el: any) => {
+        el.addEventListener("input", (e: any) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 18);
         });
+    });
+    document.querySelectorAll('input[name="cp"]').forEach((el: any) => {
+        el.addEventListener("input", (e: any) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 5);
+        });
+    });
 
     const progress = document.getElementById("progress-bar");
     const stepLabel = document.getElementById("step-label");
@@ -1087,9 +1127,10 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     }
 
     nextBtn?.addEventListener("click", () => {
+        clearFormFeedback();
         const section = sections[currentStep - 1];
         if (!section) return;
-        const result = validateRequiredFieldsInContainer(section);
+        const result = validateStepSection(section);
         if (!result.ok) {
             const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
             reportStepValidationFailure(title, result);
@@ -1130,9 +1171,10 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        clearFormFeedback();
 
         for (let i = 0; i < totalSteps; i++) {
-            const r = validateRequiredFieldsInContainer(sections[i]);
+            const r = validateStepSection(sections[i]);
             if (!r.ok) {
                 currentStep = i + 1;
                 updateStep();
@@ -1162,7 +1204,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 successMsg?.classList.remove("hidden");
             } else {
                 const data = await res.json();
-                alert(
+                showFormFeedback(
                     `Error: ${data.message || "No se pudo procesar la inscripción"}`,
                 );
                 submitBtn.disabled = false;
@@ -1170,7 +1212,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 if (btnText) btnText.textContent = "Finalizar Inscripción";
             }
         } catch (err) {
-            alert("Error de conexión con el servidor");
+            showFormFeedback("Error de conexión con el servidor");
             submitBtn.disabled = false;
             loader?.classList.add("hidden");
             if (btnText) btnText.textContent = "Finalizar Inscripción";

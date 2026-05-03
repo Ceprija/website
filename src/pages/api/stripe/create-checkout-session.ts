@@ -10,10 +10,12 @@ import Stripe from "stripe";
 import { resolveCheckoutOrigin } from "@lib/stripeRedirects";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 import { parseCheckoutSessionBody } from "@lib/validation/enrollment";
+import { canonicalMexicoTenDigitPhone } from "@lib/validation/phone";
 
+/** Mensaje seguro para el navegador (sin rutas internas ni instrucciones de implementación). */
 function stripeErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
-    return "La clave STRIPE_SECRET_KEY no es válida o no coincide con el modo de la cuenta (prueba vs producción).";
+    return "No pudimos validar el servicio de pago. Por favor contacta a soporte o usa transferencia bancaria si está disponible.";
   }
   if (error instanceof Stripe.errors.StripeInvalidRequestError) {
     const msg = error.message ?? "";
@@ -21,13 +23,13 @@ function stripeErrorMessage(error: unknown): string {
       error.code === "resource_missing" &&
       (error.param?.includes("price") || /no such price/i.test(msg))
     ) {
-      return "Ese precio no existe en tu cuenta de Stripe. Crea el precio en Stripe Dashboard → Catálogo de productos, copia el ID (price_…) y sustituye los valores en el archivo del programa en src/content/programas/ (stripePriceIds). Usa el mismo modo (prueba o producción) que tu STRIPE_SECRET_KEY.";
+      return "No pudimos iniciar el pago en línea en este momento. Por favor escríbenos desde la página de Contacto o elige transferencia bancaria.";
     }
   }
   if (error instanceof Error) {
-    return error.message;
+    return "No pudimos completar el pago en línea. Intenta de nuevo más tarde o contacta a soporte.";
   }
-  return "Error al contactar Stripe.";
+  return "No pudimos contactar el servicio de pago. Intenta de nuevo o usa otro método de pago.";
 }
 
 function truncateMeta(value: string, max = 450): string {
@@ -86,6 +88,9 @@ export const POST: APIRoute = async ({ request }) => {
   const successUrl = `${base}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${base}/oferta-academica/${encodeURIComponent(programSlug)}`;
 
+  // Normalize phone to 10 digits for metadata
+  const phoneCanonical = canonicalMexicoTenDigitPhone(participantPhone);
+
   const stripe = new Stripe(secret);
 
   try {
@@ -99,7 +104,7 @@ export const POST: APIRoute = async ({ request }) => {
       metadata: {
         programSlug: truncateMeta(programSlug),
         participantName: truncateMeta(participantName),
-        participantPhone: truncateMeta(participantPhone),
+        participantPhone: phoneCanonical,
         modality: truncateMeta(modality),
         requiresInvoice: truncateMeta(requiresInvoice, 8),
         ...(invoiceEmail
@@ -128,6 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
+    console.error("[stripe/create-checkout-session]", e);
     const message = stripeErrorMessage(e);
     return new Response(JSON.stringify({ error: message, code: "stripe_error" }), {
       status: 500,

@@ -2,6 +2,9 @@
  * Shared server-side validation for enrollment / checkout / wire flows.
  */
 
+import { MAX_PERSON_NAME_PART_LEN, TEXT_MAX_LENGTH_BY_NAME, DEFAULT_TEXT_MAX_LENGTH } from "@lib/validation/formFieldLimits";
+import { isValidPhone } from "@lib/validation/phone";
+
 export const MODALITY_PRESENCIAL = "Presencial" as const;
 export const MODALITY_ONLINE = "En línea" as const;
 export type Modality = typeof MODALITY_PRESENCIAL | typeof MODALITY_ONLINE;
@@ -18,25 +21,13 @@ const STRIPE_SESSION_ID_MAX_LEN = 280;
 
 const MAX_EMAIL_LEN = 254;
 const MAX_NAME_LEN = 200;
-const MAX_PHONE_LEN = 40;
-const MAX_MESSAGE_LEN = 5000;
+const MAX_MESSAGE_LEN = 2000;
 const MAX_PROGRAM_TITLE_LEN = 500;
-const MAX_CURP_LEN = 20;
-
 // Practical RFC 5322–oriented pattern (not full RFC); rejects obvious junk.
 const EMAIL_RE =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 export type FieldError = { field?: string; code: string; error: string };
-
-export function normalizePhoneDigits(phone: string): string {
-  return phone.replace(/\D/g, "");
-}
-
-export function isValidPhone(phone: string): boolean {
-  const d = normalizePhoneDigits(phone);
-  return d.length >= 10 && d.length <= 15 && phone.length <= MAX_PHONE_LEN;
-}
 
 export function validateEmail(email: string): FieldError | null {
   const t = email.trim();
@@ -54,11 +45,19 @@ export function validateOptionalEmail(email: string): FieldError | null {
   return validateEmail(t);
 }
 
-export function validateParticipantName(name: string, field = "participantName"): FieldError | null {
+export function validateParticipantName(
+  name: string,
+  field = "participantName",
+  maxLen: number = MAX_NAME_LEN,
+): FieldError | null {
   const t = name.trim();
   if (!t) return { field, code: "invalid_name", error: "Nombre requerido" };
-  if (t.length > MAX_NAME_LEN)
-    return { field, code: "invalid_name", error: "Nombre demasiado largo" };
+  if (t.length > maxLen)
+    return {
+      field,
+      code: "invalid_name",
+      error: `Nombre demasiado largo (máx. ${maxLen} caracteres)`,
+    };
   if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(t))
     return { field, code: "invalid_name", error: "Nombre contiene caracteres no permitidos" };
   return null;
@@ -235,7 +234,7 @@ export function parseCheckoutSessionBody(
       err: {
         field: "participantPhone",
         code: "invalid_phone",
-        error: "Teléfono no válido (10–15 dígitos)",
+        error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
       },
     };
   }
@@ -283,7 +282,11 @@ export function validateStripeFiscalPreflightFields(
   e = validateParticipantName(participantName, "participantName");
   if (e) return e;
   if (!isValidPhone(participantPhone))
-    return { field: "participantPhone", code: "invalid_phone", error: "Teléfono no válido" };
+    return {
+      field: "participantPhone",
+      code: "invalid_phone",
+      error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
+    };
   {
     const mErr = validateModalityStrict(modalityRaw);
     if (mErr) return mErr;
@@ -331,7 +334,10 @@ export function parseWireRegisterFields(
   e = validateEmail(email);
   if (e) return { ok: false, err: e };
   if (!isValidPhone(phone))
-    return { ok: false, err: { field: "phone", code: "invalid_phone", error: "Teléfono no válido" } };
+    return {
+      ok: false,
+      err: { field: "phone", code: "invalid_phone", error: "Teléfono no válido (10 dígitos en México o +52 / 521…)" },
+    };
   if (message.length > MAX_MESSAGE_LEN)
     return {
       ok: false,
@@ -371,18 +377,22 @@ export function validateInscriptionIdentity(fields: Record<string, string>): Fie
   if (programTitle.length > MAX_PROGRAM_TITLE_LEN)
     return { field: "programTitle", code: "invalid_program", error: "Programa no válido" };
 
-  let e = validateParticipantName(nombre, "nombre");
+  let e = validateParticipantName(nombre, "nombre", MAX_PERSON_NAME_PART_LEN);
   if (e) return e;
-  e = validateParticipantName(apellidos, "apellidos");
+  e = validateParticipantName(apellidos, "apellidos", MAX_PERSON_NAME_PART_LEN);
   if (e) return e;
   e = validateEmail(email);
   if (e) return e;
   if (!isValidPhone(telefono))
-    return { field: "telefono", code: "invalid_phone", error: "Teléfono no válido" };
+    return {
+      field: "telefono",
+      code: "invalid_phone",
+      error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
+    };
 
   const curp = (fields.curp ?? "").trim();
-  if (curp.length > MAX_CURP_LEN)
-    return { field: "curp", code: "invalid_curp", error: "CURP no válido" };
+  if (curp.length !== 18)
+    return { field: "curp", code: "invalid_curp", error: "La CURP debe tener 18 caracteres" };
 
   return null;
 }
@@ -408,7 +418,11 @@ export function validateWireProofFields(fields: Record<string, string>): FieldEr
   err = validateEmail(email);
   if (err) return err;
   if (!isValidPhone(phone))
-    return { field: "phone", code: "invalid_phone", error: "Teléfono no válido" };
+    return {
+      field: "phone",
+      code: "invalid_phone",
+      error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
+    };
 
   if (!programTitle && !programId) {
     return {
@@ -483,7 +497,11 @@ export function validateEducacionContinuaFields(fields: Record<string, string>):
   e = validateEmail(email);
   if (e) return e;
   if (!isValidPhone(phone))
-    return { field: "phone", code: "invalid_phone", error: "Teléfono no válido" };
+    return {
+      field: "phone",
+      code: "invalid_phone",
+      error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
+    };
   if (!programTitle || programTitle.length > MAX_PROGRAM_TITLE_LEN)
     return { field: "programTitle", code: "invalid_program", error: "Programa no válido" };
   if (!programId || programId.length > MAX_PROGRAM_ID_LEN || !/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(programId))
@@ -506,5 +524,99 @@ export function validateEducacionContinuaFields(fields: Record<string, string>):
     if (e) return { ...e, field: "invoiceEmail" };
   }
 
+  return null;
+}
+
+/** Solicitud de admisión (`/api/enrollment`) — formato tras comprobar campos obligatorios. */
+export function validateEnrollmentApplicationFields(
+  fields: Record<string, string>,
+): FieldError | null {
+  const nombre = (fields.nombre ?? "").trim();
+  const apellidos = (fields.apellidos ?? "").trim();
+  const email = (fields.email ?? "").trim();
+  const telefono = (fields.telefono ?? "").trim();
+  const carrera = (fields.carrera ?? "").trim();
+  const institucion = (fields.institucion ?? "").trim();
+  const cedulaNum = (fields.cedulaNum ?? "").trim();
+
+  let err = validateParticipantName(nombre, "nombre", MAX_PERSON_NAME_PART_LEN);
+  if (err) return err;
+  err = validateParticipantName(apellidos, "apellidos", MAX_PERSON_NAME_PART_LEN);
+  if (err) return err;
+  err = validateEmail(email);
+  if (err) return err;
+  if (!isValidPhone(telefono))
+    return {
+      field: "telefono",
+      code: "invalid_phone",
+      error: "Teléfono no válido (10 dígitos en México o +52 / 521…)",
+    };
+  if (carrera.length > 150)
+    return { field: "carrera", code: "invalid_field", error: "Carrera: máximo 150 caracteres" };
+  if (institucion.length > 150)
+    return {
+      field: "institucion",
+      code: "invalid_field",
+      error: "Institución: máximo 150 caracteres",
+    };
+  if (cedulaNum.length > 20)
+    return { field: "cedulaNum", code: "invalid_field", error: "Cédula: máximo 20 caracteres" };
+  return null;
+}
+
+/** Validación de campos completos del expediente (full dossier) para enrollment */
+export function validateFullDossierFields(fields: Record<string, string>): FieldError | null {
+  // CP: 5 dígitos
+  const cp = (fields.cp || "").trim();
+  if (cp && !/^\d{5}$/.test(cp)) {
+    return { error: "Código postal debe ser 5 dígitos", code: "invalid_cp", field: "cp" };
+  }
+  
+  // CURP: 18 caracteres exactos
+  const curp = (fields.curp || "").trim();
+  if (curp && curp.length !== 18) {
+    return { error: "CURP debe tener 18 caracteres", code: "invalid_curp", field: "curp" };
+  }
+  
+  // telEmergencia: validar solo si no está vacío
+  const telEmergencia = (fields.telEmergencia || "").trim();
+  if (telEmergencia && !isValidPhone(telEmergencia)) {
+    return { 
+      error: "Teléfono de emergencia inválido (10 dígitos MX)", 
+      code: "invalid_tel_emergencia", 
+      field: "telEmergencia" 
+    };
+  }
+  
+  // Validar límites de texto según formFieldLimits
+  const textFields = [
+    "calle", "colonia", "ciudad", "genero", "nacionalidad", "estadoCivil",
+    "detalleCapacidad", "detalleEnf", "detalleAlergia", "detalleTratamiento",
+    "contactoEmergencia", "ocupacion"
+  ];
+  
+  for (const fieldName of textFields) {
+    const value = (fields[fieldName] || "").trim();
+    if (!value) continue; // Skip empty optional fields
+    
+    const maxLen = TEXT_MAX_LENGTH_BY_NAME[fieldName] || DEFAULT_TEXT_MAX_LENGTH;
+    if (value.length > maxLen) {
+      return { 
+        error: `${fieldName} excede ${maxLen} caracteres`, 
+        code: "text_too_long", 
+        field: fieldName 
+      };
+    }
+    
+    // Rechazar caracteres de control (excepto espacios/tabs/newlines normales)
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(value)) {
+      return { 
+        error: `${fieldName} contiene caracteres no permitidos`, 
+        code: "invalid_characters", 
+        field: fieldName 
+      };
+    }
+  }
+  
   return null;
 }
