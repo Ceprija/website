@@ -19,7 +19,7 @@ function saveIds(file: string, ids: Set<string>): void {
   fs.writeFileSync(file, JSON.stringify([...ids].sort()), "utf8");
 }
 
-/** Dedupe enrollment emails when /pago-exitoso retries or user refreshes. */
+/** Session IDs for which paid-enrollment institutional mail succeeded (`confirm-enrollment`). */
 const enrollmentFile = () =>
   path.join(DATA_DIR, "stripe-enrollment-session-ids.json");
 
