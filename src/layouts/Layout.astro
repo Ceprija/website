@@ -107,6 +107,7 @@ const absoluteImage = new URL(image, Astro.site).toString();
 		/>
 
 		<AnalyticsHead />
+		<slot name="head" />
 	</head>
 	<body
 		class="bg-white text-gray-900 font-sans antialiased flex flex-col min-h-screen"
