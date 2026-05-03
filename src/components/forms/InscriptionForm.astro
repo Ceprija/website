@@ -1031,7 +1031,9 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 
     const form = document.getElementById("inscription-form") as HTMLFormElement;
     const { show: showFormFeedback, clear: clearFormFeedback } =
-        bindFormPageFeedback(document.getElementById("inscription-form-feedback"));
+        bindFormPageFeedback(
+            document.getElementById("inscription-form-feedback"),
+        );
 
     // Validaciones: Convertir a MAYÚSCULAS
     document
