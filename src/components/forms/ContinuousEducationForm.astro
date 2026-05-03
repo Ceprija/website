@@ -40,7 +40,6 @@ const successSurfaceClass = embedInAsideCard
 ---
 
 <div class:list={[outerClass]}>
-    <!-- Stepper Header -->
     <div class="mb-12">
         <div
             class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4"
@@ -74,6 +73,14 @@ const successSurfaceClass = embedInAsideCard
         data-requires-verification={requiresVerification ? "1" : "0"}
         class:list={[formSurfaceClass]}
     >
+        <div
+            id="ce-form-feedback"
+            role="alert"
+            aria-live="assertive"
+            tabindex="-1"
+            class="hidden mx-8 md:mx-12 mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900"
+        >
+        </div>
         <input
             type="hidden"
             name="programId"
@@ -134,6 +141,7 @@ const successSurfaceClass = embedInAsideCard
                         type="text"
                         name="name"
                         required
+                        maxlength="200"
                         placeholder="Tu nombre completo"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all uppercase"
                     />
@@ -147,7 +155,10 @@ const successSurfaceClass = embedInAsideCard
                         type="tel"
                         name="phone"
                         required
-                        placeholder="33 0000 0000"
+                        maxlength="18"
+                        inputmode="tel"
+                        autocomplete="tel-national"
+                        placeholder="Ej. 3312345678 o +52 331…"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
                 </div>
@@ -160,6 +171,7 @@ const successSurfaceClass = embedInAsideCard
                         type="email"
                         name="email"
                         required
+                        maxlength="254"
                         placeholder="tu@correo.com"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                     />
@@ -239,6 +251,24 @@ const successSurfaceClass = embedInAsideCard
                         ))
                     }
                 </div>
+            </div>
+
+            <div
+                class="col-span-1 md:col-span-2 mt-6 pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between"
+            >
+                <p class="text-sm text-gray-600">
+                    Paso 2: método de pago (Stripe o transferencia). El botón{" "}
+                    <span class="font-semibold text-primary whitespace-nowrap"
+                        >«Continuar al Pago Seguro»</span
+                    > aparece ahí si eliges Stripe.
+                </p>
+                <button
+                    type="button"
+                    id="step1-go-payment-btn"
+                    class="shrink-0 px-6 py-3 rounded-xl font-bold bg-primary text-white hover:bg-blue-900 shadow-md transition-all text-sm"
+                >
+                    Siguiente: método de pago →
+                </button>
             </div>
         </div>
 
@@ -503,7 +533,7 @@ const successSurfaceClass = embedInAsideCard
                         type="file"
                         id="payment-proof-input"
                         name="paymentProof"
-                        accept=".pdf,image/*"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                         class="w-full text-sm"
                     />
                 </div>
@@ -563,7 +593,7 @@ const successSurfaceClass = embedInAsideCard
                                 type="file"
                                 id="csf-input"
                                 name="fiscalConstancy"
-                                accept=".pdf,image/*"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                 class="hidden"
                             />
                             <label
@@ -604,6 +634,7 @@ const successSurfaceClass = embedInAsideCard
                         <input
                             type="email"
                             name="invoiceEmail"
+                            maxlength="254"
                             placeholder="correo@facturacion.com"
                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                         />
@@ -660,9 +691,9 @@ const successSurfaceClass = embedInAsideCard
             </div>
         </div>
 
-        <!-- Footer: Botones -->
+        <!-- Footer: Botones (sticky: visible al hacer scroll dentro de la card) -->
         <div
-            class="bg-gray-50 px-8 py-6 md:px-12 md:py-8 border-t border-gray-100 flex items-center justify-between gap-4"
+            class="ce-form-footer bg-gray-50/95 backdrop-blur-sm px-8 py-6 md:px-12 md:py-8 border-t border-gray-200 flex items-center justify-between gap-4 sticky bottom-0 z-20"
         >
             <button
                 type="button"
@@ -752,11 +783,15 @@ const successSurfaceClass = embedInAsideCard
 
 <script>
     import {
-        validateRequiredFieldsInContainer,
+        validateStepSection,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
+    import { bindFormPageFeedback } from "@lib/client/formPageFeedback";
 
     const form = document.getElementById("ce-inscription-form") as HTMLFormElement | null;
+    const { show: showFormFeedback, clear: clearFormFeedback } = bindFormPageFeedback(
+        document.getElementById("ce-form-feedback"),
+    );
     const progress = document.getElementById("progress-bar");
     const stepLabel = document.getElementById("step-label");
     const stepNumberLabel = document.getElementById("step-number");
@@ -820,9 +855,10 @@ const successSurfaceClass = embedInAsideCard
     }
 
     nextBtn?.addEventListener("click", () => {
+        clearFormFeedback();
         const section = sections[currentStep - 1];
         if (!section || !form) return;
-        const result = validateRequiredFieldsInContainer(section);
+        const result = validateStepSection(section);
         if (!result.ok) {
             const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
             reportStepValidationFailure(title, result);
@@ -832,7 +868,19 @@ const successSurfaceClass = embedInAsideCard
             currentStep++;
             updateStep();
             window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+            if (currentStep === 2) {
+                requestAnimationFrame(() => {
+                    document.getElementById("step-2")?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+                });
+            }
         }
+    });
+
+    document.getElementById("step1-go-payment-btn")?.addEventListener("click", () => {
+        nextBtn?.click();
     });
 
     prevBtn?.addEventListener("click", () => {
@@ -878,6 +926,7 @@ const successSurfaceClass = embedInAsideCard
 
     stripeCheckoutBtn?.addEventListener("click", async () => {
         if (!stripeCheckoutBtn || !form) return;
+        clearFormFeedback();
         const method =
             (
                 document.querySelector(
@@ -885,7 +934,9 @@ const successSurfaceClass = embedInAsideCard
                 ) as HTMLInputElement | null
             )?.value || "stripe";
         if (method !== "stripe") {
-            alert("Selecciona 'Pago en línea (Stripe)' para pagar en línea.");
+            showFormFeedback(
+                "Selecciona «Pago en línea (Stripe)» para pagar con tarjeta.",
+            );
             return;
         }
 
@@ -895,7 +946,7 @@ const successSurfaceClass = embedInAsideCard
             ) as HTMLInputElement | null
         )?.value;
         if (!modality) {
-            alert("Por favor selecciona una modalidad (Presencial o En línea)");
+            showFormFeedback("Selecciona una modalidad: Presencial o En línea.");
             return;
         }
 
@@ -906,7 +957,9 @@ const successSurfaceClass = embedInAsideCard
                 : stripePriceIds.online;
 
         if (!priceId) {
-            alert("Precio no configurado para esta modalidad. Por favor contacta al administrador.");
+            showFormFeedback(
+                "Precio no configurado para esta modalidad. Contacta al administrador.",
+            );
             return;
         }
 
@@ -915,15 +968,15 @@ const successSurfaceClass = embedInAsideCard
             /^price_[a-zA-Z0-9]+$/.test(priceId) &&
             !/PLACEHOLDER|REPLACE/i.test(priceId);
         if (!priceOk) {
-            alert(
-                "Este programa no tiene un Price ID de Stripe válido. Crea precios en el Dashboard de Stripe y agrégalos al archivo del programa en content/programas (stripePriceIds).",
+            showFormFeedback(
+                "Este programa no tiene un Price ID de Stripe válido. Crea precios en Stripe y actualiza stripePriceIds en el contenido del programa.",
             );
             return;
         }
 
         // Pasos 1 y 2 deben estar completos antes de Stripe (el botón vive en el paso 2)
         for (let s = 0; s <= 1; s++) {
-            const stepResult = validateRequiredFieldsInContainer(sections[s]);
+            const stepResult = validateStepSection(sections[s]);
             if (!stepResult.ok) {
                 const title = `Paso ${s + 1} de ${totalSteps}: ${stepNames[s]}`;
                 reportStepValidationFailure(title, stepResult);
@@ -952,12 +1005,16 @@ const successSurfaceClass = embedInAsideCard
 
         if (needsInvoice) {
             if (!invoiceEmail) {
-                alert("Indicaste que requieres factura: escribe el correo para factura.");
+                showFormFeedback(
+                    "Indicaste que requieres factura: escribe el correo para facturación.",
+                );
                 return;
             }
             const f = csfInput?.files?.[0];
             if (!f) {
-                alert("Indicaste que requieres factura: adjunta tu CSF (PDF o imagen).");
+                showFormFeedback(
+                    "Indicaste que requieres factura: adjunta tu CSF (PDF o imagen).",
+                );
                 return;
             }
         }
@@ -1017,10 +1074,10 @@ const successSurfaceClass = embedInAsideCard
         } catch (error) {
             console.error("Stripe error:", error);
             const msg = error instanceof Error ? error.message : String(error);
-            alert(
+            showFormFeedback(
                 "Error al procesar el pago: " +
                     msg +
-                    ". Por favor intenta de nuevo o contacta soporte.",
+                    ". Intenta de nuevo o contacta soporte.",
             );
             stripeCheckoutBtn.disabled = false;
             const sp = stripeCheckoutBtn.querySelector("span");
@@ -1111,7 +1168,7 @@ const successSurfaceClass = embedInAsideCard
     document.querySelectorAll('input[type="tel"]').forEach((el) => {
         el.addEventListener("input", (e) => {
             const t = e.target as HTMLInputElement;
-            t.value = t.value.replace(/[^0-9]/g, "");
+            t.value = t.value.replace(/\D/g, "").slice(0, 18);
         });
     });
 
@@ -1131,9 +1188,10 @@ const successSurfaceClass = embedInAsideCard
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!submitBtn || !form) return;
+        clearFormFeedback();
 
         for (let i = 0; i < totalSteps; i++) {
-            const r = validateRequiredFieldsInContainer(sections[i]);
+            const r = validateStepSection(sections[i]);
             if (!r.ok) {
                 currentStep = i + 1;
                 updateStep();
@@ -1150,8 +1208,8 @@ const successSurfaceClass = embedInAsideCard
             ) as HTMLInputElement | null
         )?.value;
         if (paymentChoice === "stripe") {
-            alert(
-                "Con pago en línea (Stripe) debes usar el botón «Continuar al Pago Seguro» en el paso 2. No puedes finalizar aquí sin completar el pago en Stripe.",
+            showFormFeedback(
+                "Con pago en línea (Stripe) usa el botón «Continuar al Pago Seguro» en el paso 2. Completa el pago en Stripe antes de finalizar aquí.",
             );
             currentStep = 2;
             updateStep();
@@ -1191,8 +1249,8 @@ const successSurfaceClass = embedInAsideCard
             }
         } catch (error) {
             console.error(error);
-            alert(
-                "Hubo un error al procesar tu inscripción. Por favor intenta de nuevo o contáctanos por WhatsApp.",
+            showFormFeedback(
+                "No se pudo procesar tu inscripción. Intenta de nuevo o contáctanos por WhatsApp.",
             );
         } finally {
             submitBtn.disabled = false;
@@ -1200,4 +1258,6 @@ const successSurfaceClass = embedInAsideCard
             if (btnText) btnText.textContent = "Finalizar";
         }
     });
+
+    updateStep();
 </script>

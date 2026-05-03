@@ -40,6 +40,9 @@ const programas = defineCollection({
     profile: z.string().optional(),
     profileAudience: z.string().optional(),
     fieldOfWork: z.string().optional(),
+    /** Texto largo o lista de viñetas; en la ficha se muestra en un <details> (colapsable). */
+    prerequisites: z.union([z.string(), z.array(z.string())]).optional(),
+    prerequisitesTitle: z.string().optional(),
     includes: z.array(z.string()).optional(),
     paymentLinks: z.object({
       online: z.string().optional(),
