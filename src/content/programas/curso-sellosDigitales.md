@@ -1,22 +1,31 @@
 ---
-slug: "curso-en-sellos-digitales"
+slug: "curso-sellosDigitales"
 title: "Cancelación de Sellos Digitales y su Estrategia para Desbloquearlos"
-description: "Lol"
-excerpt: "Integra la prueba científica al juicio penal. Una especialidad práctica que fortalece tu argumentación con base en evidencia forense."
-image: "Lol"
+description: "Comprende el marco de los sellos digitales ante el SAT, causas de cancelación y estrategias prácticas para su regularización o desbloqueo."
+excerpt: "Sellos digitales: cancelación, regularización y estrategias prácticas ante el SAT."
+image: "/images/programs/cancelacion-sellos-digitales.webp"
 escuela: "integral"
 nivel: "curso"
-rvoe: "NULL"
-horario: "NULL"
-startDate: "NULL"
-duracion: "3 cuatrimestres"
-modalidad: "Presencial /En linea"
-price: 10
-# Stripe Checkout usa el ID del PRECIO (price_...), no del producto (prod_...).
-# Dashboard → Catálogo → tu producto → en "Precio" abre el precio y copia el API ID price_...
+rvoe: ""
+horario: ""
+startDate: ""
+duracion: "Por definir"
+modalidad: "Presencial / En línea"
+price:
+  Presencial: "Consultar"
+  Online: "Consultar"
+featured: true
+date: ""
+# Stripe Checkout: IDs de precio (price_...), no de producto (prod_...).
 stripePriceIds:
   presencial: "price_1TOWxrIMr3rp9BogtXryKwRM"
   online: "price_1TOWxrIMr3rp9BogtXryKwRM"
-featured: true
-date: "Lol"
+address: ""
+requiresVerification: false
+instructor: ""
+schedule: ""
+meetingLink: ""
+includes:
+  - "Material de apoyo"
+  - "Constancia de participación (según política institucional)"
 ---

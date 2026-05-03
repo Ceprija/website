@@ -15,7 +15,9 @@ const revista = defineCollection({
 
 const programas = defineCollection({
   schema: z.object({
-    // Basic fields (URL segment comes from frontmatter `slug` via `entry.slug`, not `data`)
+    // NOTE: the URL segment comes from Astro's entry-level `slug` (frontmatter `slug`
+    // in YAML, which overrides the file-derived slug). It is NOT part of `data` and
+    // must not be declared here. Read it with `entry.slug` (see `getProgramPathSlug`).
     title: z.string(),
     description: z.string(),
     excerpt: z.string(),
@@ -41,6 +43,7 @@ const programas = defineCollection({
     profileAudience: z.string().optional(),
     fieldOfWork: z.string().optional(),
     includes: z.array(z.string()).optional(),
+    prerequisites: z.array(z.string()).optional(),
     paymentLinks: z.object({
       online: z.string().optional(),
       presencial: z.string().optional()

@@ -1,20 +1,30 @@
 ---
-slug: "curso-finanzas-personales"
+slug: "curso-patrimonio"
 title: "Mi Futuro, Mi Patrimonio"
-description: "Lol"
-excerpt: "Integra la prueba científica al juicio penal. Una especialidad práctica que fortalece tu argumentación con base en evidencia forense."
-image: "Lol"
+description: "Curso práctico de educación financiera y cultura patrimonial para planificar, proteger y hacer crecer tu patrimonio personal y familiar."
+excerpt: "Educación financiera y cultura patrimonial: planificación, protección y crecimiento del patrimonio."
+image: "/images/programs/mi-futuro-mi-patrimonio.webp"
 escuela: "integral"
 nivel: "curso"
-rvoe: "NULL"
-horario: "NULL"
-startDate: "NULL"
-duracion: "3 cuatrimestres"
-modalidad: "Presencial /En linea"
-price: 10
+rvoe: ""
+horario: ""
+startDate: ""
+duracion: "Por definir"
+modalidad: "Presencial / En línea"
+price:
+  Presencial: "Consultar"
+  Online: "Consultar"
+featured: true
+date: ""
 stripePriceIds:
   presencial: "price_1CfgCurPatrimPres"
   online: "price_1CfgCurPatrimOnln"
-featured: true
-date: "Lol"
+address: ""
+requiresVerification: false
+instructor: ""
+schedule: ""
+meetingLink: ""
+includes:
+  - "Material de apoyo digital"
+  - "Constancia de participación (según política institucional)"
 ---

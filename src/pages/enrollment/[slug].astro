@@ -1,12 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
-import { getProgramPathSlug } from "@lib/programPaths";
+import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import bankInfo from "../../data/bank-info.json";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
+    validateUniqueSlugs(programs);
     // Only generate pages for programs requiring application flow
     return programs
         .filter((program) => getEnrollmentFlow(program) === "application")

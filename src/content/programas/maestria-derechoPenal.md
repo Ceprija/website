@@ -1,20 +1,32 @@
 ---
-slug: "maestria-en-derecho-penal"
+slug: "maestria-derechoPenal"
 title: "Maestría en Derecho Penal y Litigación Oral Avanzada"
-description: "Lol"
-excerpt: "Especialízate en el sistema acusatorio y técnicas avanzadas de litigación oral."
-image: "Lol"
+description: "Especialización en el sistema acusatorio y técnicas avanzadas de litigación oral penal, con enfoque práctico en audiencias y estrategia procesal."
+excerpt: "Sistema acusatorio y litigación oral penal avanzada: estrategia, audiencias y práctica forense."
+image: "/images/programs/maestria-derecho-penal.webp"
 escuela: "juridica"
 nivel: "maestria"
-rvoe: "NULL"
-horario: "NULL"
-startDate: "NULL"   
+rvoe: ""
+horario: ""
+startDate: ""
 duracion: "6 cuatrimestres"
-modalidad: "Presencial / En linea"
-price: 10
+modalidad: "Presencial / En línea"
+price:
+  Presencial: "Consultar"
+  Online: "Consultar"
+featured: true
+date: ""
 stripePriceIds:
   presencial: "price_1CfgMaePenalPres"
   online: "price_1CfgMaePenalOnln"
-featured: true
-date: "Lol"
+address: ""
+requiresVerification: false
+instructor: ""
+schedule: ""
+meetingLink: ""
+profileAudience: "Abogados penalistas, defensores, ministerios públicos y operadores judiciales que buscan dominar la litigación oral en el sistema acusatorio."
+fieldOfWork: "Litigio penal, instituciones de procuración y justicia penal, defensa técnica y docencia."
+includes:
+  - "Proceso de admisión en línea"
+  - "Plan de estudios y materiales según modalidad"
 ---

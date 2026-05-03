@@ -4,12 +4,13 @@ import { getCollection } from "astro:content";
 import ContactForm from "@components/forms/ContactForm.astro";
 import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
 import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsideCard.astro";
-import { getProgramPathSlug } from "@lib/programPaths";
+import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { programHasStripeCheckout } from "@lib/stripeAllowedPrices";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
+    validateUniqueSlugs(programs);
     return programs.map((program) => ({
         params: { slug: getProgramPathSlug(program) },
         props: { program },
@@ -29,6 +30,9 @@ const curriculumItems: CurriculumPeriod[] = Array.isArray(data.curriculum)
     : [];
 const includesItems: string[] = Array.isArray(data.includes)
     ? (data.includes as string[])
+    : [];
+const prerequisitesItems: string[] = Array.isArray(data.prerequisites)
+    ? (data.prerequisites as string[])
     : [];
 const stripePriceIdsForCheckout =
     data.stripePriceIds &&
@@ -433,6 +437,53 @@ const seo = {
                                     </h2>
                                     <ul class="space-y-2">
                                         {includesItems.map((item) => (
+                                                <li class="flex items-center gap-2 text-gray-700">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        class="h-5 w-5 text-secondary"
+                                                        viewBox="0 0 20 20"
+                                                        fill="currentColor"
+                                                    >
+                                                        <path
+                                                            fill-rule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clip-rule="evenodd"
+                                                        />
+                                                    </svg>
+                                                    {item}
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )
+                        }
+
+                        {
+                            prerequisitesItems.length > 0 && (
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    data-animate="fade-up"
+                                    data-delay="550"
+                                >
+                                    <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-8 w-8 text-secondary"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                                            />
+                                        </svg>
+                                        Requisitos previos
+                                    </h2>
+                                    <ul class="space-y-2">
+                                        {prerequisitesItems.map((item) => (
                                                 <li class="flex items-center gap-2 text-gray-700">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
