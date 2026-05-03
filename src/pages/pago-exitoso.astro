@@ -104,33 +104,71 @@ const seo = {
     }
     
     if (sessionId) {
-        fetch("/api/confirm-enrollment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ stripeSessionId: sessionId }),
-        })
-            .then(async (response) => {
-                const data = await response.json().catch(() => ({}));
-                
-                if (response.ok) {
-                    if (data.duplicate) {
-                        showBanner("success", "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.");
-                    } else if (data.emailWarnings && data.emailWarnings.length > 0) {
-                        showBanner("success", "Tu inscripción está confirmada. Nota: hubo un problema al enviar el correo. Contacta a soporte si no lo recibes.");
-                        console.warn("Email warnings:", data.emailWarnings);
-                    } else {
-                        showBanner("success", "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).");
+        const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+        (async () => {
+            const maxAttempts = 3;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    const response = await fetch("/api/confirm-enrollment", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ stripeSessionId: sessionId }),
+                    });
+                    const data = (await response.json().catch(() => ({}))) as Record<
+                        string,
+                        unknown
+                    >;
+
+                    if (response.ok) {
+                        if (data.duplicate) {
+                            showBanner(
+                                "success",
+                                "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.",
+                            );
+                        } else if (
+                            Array.isArray(data.emailWarnings) &&
+                            data.emailWarnings.length > 0
+                        ) {
+                            showBanner(
+                                "success",
+                                "Tu inscripción está confirmada. Nota: hubo un problema al enviar el correo. Contacta a soporte si no lo recibes.",
+                            );
+                            console.warn("Email warnings:", data.emailWarnings);
+                        } else {
+                            showBanner(
+                                "success",
+                                "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).",
+                            );
+                        }
+                        console.log("confirm-enrollment:", data);
+                        return;
                     }
-                    console.log("confirm-enrollment:", data);
-                } else {
-                    const msg = data.error || "No se pudo confirmar la inscripción.";
+
+                    if (response.status === 502 && attempt < maxAttempts) {
+                        await sleep(1200 * attempt);
+                        continue;
+                    }
+
+                    const msg =
+                        typeof data.error === "string"
+                            ? data.error
+                            : "No se pudo confirmar la inscripción.";
                     showBanner("error", msg);
                     console.error("confirm-enrollment failed:", response.status, data);
+                    return;
+                } catch (error) {
+                    if (attempt < maxAttempts) {
+                        await sleep(1200 * attempt);
+                        continue;
+                    }
+                    showBanner(
+                        "error",
+                        "Error de red al confirmar la inscripción. Recarga la página o contacta soporte.",
+                    );
+                    console.error("Error confirming enrollment:", error);
                 }
-            })
-            .catch((error) => {
-                showBanner("error", "Error de red al confirmar la inscripción. Recarga la página o contacta soporte.");
-                console.error("Error confirming enrollment:", error);
-            });
+            }
+        })();
     }
 </script>

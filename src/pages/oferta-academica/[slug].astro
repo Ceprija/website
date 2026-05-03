@@ -46,6 +46,25 @@ const programAddress =
     typeof data.address === "string" ? data.address : undefined;
 const programRequiresVerification = Boolean(data.requiresVerification);
 
+const prerequisitesRaw = data.prerequisites;
+const prerequisitesTitle =
+    typeof data.prerequisitesTitle === "string" &&
+    data.prerequisitesTitle.trim().length > 0
+        ? data.prerequisitesTitle.trim()
+        : "Requisitos previos";
+const prerequisitesList: string[] | null = Array.isArray(prerequisitesRaw)
+    ? prerequisitesRaw
+          .map((s) => String(s).trim())
+          .filter((s) => s.length > 0)
+    : null;
+const prerequisitesText: string | null =
+    typeof prerequisitesRaw === "string" && prerequisitesRaw.trim().length > 0
+        ? prerequisitesRaw.trim()
+        : null;
+const hasPrerequisitesSection = Boolean(
+    (prerequisitesList && prerequisitesList.length > 0) || prerequisitesText,
+);
+
 const seo = {
     title: `${String(data.title)} | CEPRIJA`,
     description: String(data.description ?? ""),
@@ -205,25 +224,26 @@ const seo = {
             </div>
         </section>
 
-        <!-- Content Section: información del programa a ancho legible -->
+        <!-- Content Section: mismo carril de fichas que inscripción (max-w-3xl) -->
         <section class="py-16">
-            <div class="container mx-auto px-6 max-w-4xl">
+            <div class="container mx-auto px-6 max-w-3xl">
                 <div class="space-y-12">
-                        <!-- Plan de Estudios -->
+                        <!-- Plan de Estudios (acordeón nativo: teclado, SEO, contenido en HTML) -->
                         {
                             curriculumItems.length > 0 && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="100"
                                 >
-                                    <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
+                                    <h2 class="text-3xl font-bold text-primary mb-2 font-serif flex items-center gap-3">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
-                                            class="h-8 w-8 text-secondary"
+                                            class="h-8 w-8 text-secondary shrink-0"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
+                                            aria-hidden="true"
                                         >
                                             <path
                                                 stroke-linecap="round"
@@ -235,40 +255,134 @@ const seo = {
                                         {program.data.curriculumTitle ||
                                             "Plan de Estudios"}
                                     </h2>
-                                    <div class="space-y-8">
-                                        {curriculumItems.map((semester) => (
-                                                <div>
-                                                    <h3 class="text-xl font-bold text-primary mb-4 border-b border-gray-200 pb-2 font-serif">
-                                                        {semester.period}
-                                                    </h3>
-                                                    <div class="grid md:grid-cols-2 gap-4">
-                                                        {semester.subjects.map(
-                                                            (subject, subIndex) => (
-                                                                <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
-                                                                    <span class="flex-shrink-0 w-6 h-6 bg-secondary text-primary rounded-full flex items-center justify-center text-xs font-bold">
-                                                                        {subIndex +
-                                                                            1}
-                                                                    </span>
-                                                                    <span class="text-gray-700 font-medium">
-                                                                        {
-                                                                            subject
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            ),
-                                                        )}
+                                    <p class="text-sm text-gray-600 mb-6">
+                                        Expande cada periodo para ver las materias (contenido siempre en el HTML).
+                                    </p>
+                                    <div class="space-y-2">
+                                        {curriculumItems.map((semester, semIndex) => {
+                                            const panelId = `curriculum-panel-${programSlug}-${semIndex}`;
+                                            return (
+                                                <details
+                                                    name="plan-estudios-ceprija"
+                                                    class="group border border-gray-100 rounded-xl overflow-hidden bg-gray-50/40 open:bg-white open:shadow-sm"
+                                                    {...(semIndex === 0 ? { open: true } : {})}
+                                                >
+                                                    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 py-4 px-4 font-serif text-lg font-bold text-primary hover:bg-gray-100/80 transition-colors [&::-webkit-details-marker]:hidden">
+                                                        <span id={`${panelId}-label`}>
+                                                            {semester.period}
+                                                        </span>
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            class="h-5 w-5 shrink-0 text-secondary transition-transform group-open:rotate-180"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M19 9l-7 7-7-7"
+                                                            />
+                                                        </svg>
+                                                    </summary>
+                                                    <div
+                                                        id={panelId}
+                                                        role="region"
+                                                        aria-labelledby={`${panelId}-label`}
+                                                        class="px-4 pb-5 border-t border-gray-100"
+                                                    >
+                                                        <div class="grid md:grid-cols-2 gap-4 pt-4">
+                                                            {semester.subjects.map(
+                                                                (subject, subIndex) => (
+                                                                    <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-blue-50/60 transition-colors">
+                                                                        <span class="flex-shrink-0 w-6 h-6 bg-secondary text-primary rounded-full flex items-center justify-center text-xs font-bold">
+                                                                            {subIndex + 1}
+                                                                        </span>
+                                                                        <span class="text-gray-700 font-medium">
+                                                                            {subject}
+                                                                        </span>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                </details>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )
                         }
+
+                        <!-- Requisitos previos (un solo colapsable; contenido en HTML para SEO) -->
+                        {
+                            hasPrerequisitesSection && (
+                                <div
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
+                                    data-animate="fade-up"
+                                    data-delay="150"
+                                >
+                                    <details
+                                        class="group border border-gray-100 rounded-xl overflow-hidden bg-gray-50/40 open:bg-white open:shadow-sm"
+                                    >
+                                        <summary class="cursor-pointer list-none flex items-center justify-between gap-3 py-4 px-4 font-serif text-lg font-bold text-primary hover:bg-gray-100/80 transition-colors [&::-webkit-details-marker]:hidden">
+                                            <span
+                                                id={`prerequisites-label-${programSlug}`}
+                                            >
+                                                {prerequisitesTitle}
+                                            </span>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-5 w-5 shrink-0 text-secondary transition-transform group-open:rotate-180"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                />
+                                            </svg>
+                                        </summary>
+                                        <div
+                                            id={`prerequisites-panel-${programSlug}`}
+                                            role="region"
+                                            aria-labelledby={`prerequisites-label-${programSlug}`}
+                                            class="px-4 pb-5 pt-0 border-t border-gray-100"
+                                        >
+                                            <div class="pt-4 text-gray-700 leading-relaxed text-lg">
+                                                {
+                                                    prerequisitesList ? (
+                                                        <ul class="list-disc pl-5 space-y-2">
+                                                            {prerequisitesList.map(
+                                                                (item) => (
+                                                                    <li>{item}</li>
+                                                                ),
+                                                            )}
+                                                        </ul>
+                                                    ) : (
+                                                        <p class="whitespace-pre-line">
+                                                            {prerequisitesText}
+                                                        </p>
+                                                    )
+                                                }
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                            )
+                        }
+
                         <!-- Perfil del Egresado -->
                         {
                             program.data.profile && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="200"
                                 >
@@ -299,7 +413,7 @@ const seo = {
                         {
                             program.data.profileAudience && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="200"
                                 >
@@ -331,7 +445,7 @@ const seo = {
                         {
                             program.data.fieldOfWork && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="300"
                                 >
@@ -362,7 +476,7 @@ const seo = {
                         {
                             program.data.price && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="400"
                                 >
@@ -410,7 +524,7 @@ const seo = {
                         {
                             includesItems.length > 0 && (
                                 <div
-                                    class="bg-white rounded-2xl shadow-sm p-8"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
                                     data-animate="fade-up"
                                     data-delay="500"
                                 >

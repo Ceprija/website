@@ -4,6 +4,15 @@ import { getCollection } from "astro:content";
 import { getProgramPathSlug } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import bankInfo from "../../data/bank-info.json";
+import {
+  genres,
+  nationalities,
+  civilStates,
+  states,
+  yesNo,
+  relatives,
+  sources,
+} from "../../data/forms/inscription-options.js";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -34,6 +43,15 @@ const seo = {
 ---
 
 <Layout seo={seo}>
+    <!-- Flatpickr CSS (requiere <slot name="head" /> en Layout) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" slot="head" />
+    <style is:global slot="head">
+        /* Calendario flotante por encima del header/footer y modales del sitio */
+        .flatpickr-calendar {
+            z-index: 100050 !important;
+        }
+    </style>
+
     <main class="bg-gray-50 min-h-screen pb-20">
         <!-- Header -->
         <section class="bg-primary text-white py-12">
@@ -74,16 +92,17 @@ const seo = {
                         class="text-xl font-bold text-primary font-serif"
                         id="step-label"
                     >
-                        Paso 1 de 3: Información Personal
+                        Paso 1 de 7: Información Personal Básica
                     </h2>
                     <span class="text-sm font-semibold text-gray-500" id="step-number"
-                        >33% completado</span
+                        >14% completado</span
                     >
                 </div>
                 <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
                     <div
                         id="progress-bar"
-                        class="bg-secondary h-full w-1/3 transition-all duration-500 ease-out shadow-sm"
+                        class="bg-secondary h-full transition-all duration-500 ease-out shadow-sm"
+                        style="width: 14%;"
                     >
                     </div>
                 </div>
@@ -92,11 +111,20 @@ const seo = {
             <!-- Form Container -->
             <form
                 id="enrollment-form"
-                class="bg-white rounded-2xl shadow-xl overflow-hidden"
+                class="bg-white rounded-2xl shadow-xl"
                 data-program-slug={programSlug}
                 data-program-title={String(program.data.title)}
                 data-stripe-price-ids={JSON.stringify(stripePriceIdsForClient)}
             >
+                <!-- Feedback on-page accesible (sin alert) -->
+                <div
+                    id="enrollment-form-feedback"
+                    role="alert"
+                    aria-live="assertive"
+                    tabindex="-1"
+                    class="hidden rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-sm font-medium text-red-900 m-8 md:m-12"
+                ></div>
+                
                 <!-- Hidden fields -->
                 <input type="hidden" name="programSlug" value={programSlug} />
                 <input type="hidden" name="programTitle" value={String(program.data.title)} />
@@ -136,6 +164,7 @@ const seo = {
                                 type="text"
                                 name="nombre"
                                 required
+                                maxlength="100"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="Tu nombre"
                             />
@@ -149,6 +178,7 @@ const seo = {
                                 type="text"
                                 name="apellidos"
                                 required
+                                maxlength="100"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="Tus apellidos"
                             />
@@ -162,6 +192,7 @@ const seo = {
                                 type="email"
                                 name="email"
                                 required
+                                maxlength="254"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="tu@email.com"
                             />
@@ -175,8 +206,11 @@ const seo = {
                                 type="tel"
                                 name="telefono"
                                 required
+                                maxlength="18"
+                                inputmode="tel"
+                                autocomplete="tel-national"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
-                                placeholder="33 1234 5678"
+                                placeholder="Ej. 3312345678 o +52 331…"
                             />
                         </div>
 
@@ -227,12 +261,231 @@ const seo = {
                     </div>
                 </div>
 
-                <!-- Step 2: Academic Background -->
+                <!-- Step 2: Personal Extended -->
                 <div class="step-section p-8 md:p-12 hidden" id="step-2">
                     <div class="mb-8 text-center">
-                        <div
-                            class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary"
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                            Información personal completa requerida para su expediente.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Género *
+                            </label>
+                            <select
+                                name="genero"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {genres.map(g => <option value={g}>{g}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Fecha de Nacimiento *
+                            </label>
+                            <input
+                                type="text"
+                                name="fechaNacimiento"
+                                required
+                                maxlength="10"
+                                placeholder="DD/MM/AAAA"
+                                class="date-picker w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                CURP *
+                            </label>
+                            <input
+                                type="text"
+                                name="curp"
+                                required
+                                maxlength="18"
+                                class="uppercase w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="18 caracteres"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nacionalidad *
+                            </label>
+                            <input
+                                type="text"
+                                name="nacionalidad"
+                                required
+                                maxlength="80"
+                                value="Mexicana"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Entidad de Nacimiento *
+                            </label>
+                            <select
+                                name="entidadNacimiento"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {states.map(state => <option value={state}>{state}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Estado Civil *
+                            </label>
+                            <select
+                                name="estadoCivil"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {civilStates.map(cs => <option value={cs}>{cs}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                        <button
+                            type="button"
+                            id="prev-step-2"
+                            class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
                         >
+                            Anterior
+                        </button>
+                        <button
+                            type="button"
+                            id="next-step-2"
+                            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Domicilio -->
+                <div class="step-section p-8 md:p-12 hidden" id="step-3">
+                    <div class="mb-8 text-center">
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                            Domicilio actual para correspondencia.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Calle y Número *
+                            </label>
+                            <input
+                                type="text"
+                                name="calle"
+                                required
+                                maxlength="200"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Calle y número"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Colonia *
+                            </label>
+                            <input
+                                type="text"
+                                name="colonia"
+                                required
+                                maxlength="120"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Colonia"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Código Postal *
+                            </label>
+                            <input
+                                type="text"
+                                name="cp"
+                                required
+                                maxlength="5"
+                                inputmode="numeric"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="5 dígitos"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Ciudad / Municipio *
+                            </label>
+                            <input
+                                type="text"
+                                name="ciudad"
+                                required
+                                maxlength="120"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Ciudad o municipio"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Estado *
+                            </label>
+                            <select
+                                name="estadoDireccion"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {states.map(state => <option value={state}>{state}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                        <button
+                            type="button"
+                            id="prev-step-3"
+                            class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            type="button"
+                            id="next-step-3"
+                            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Academic Background Extended -->
+                <div class="step-section p-8 md:p-12 hidden" id="step-4">
+                    <div class="mb-8 text-center">
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 class="h-8 w-8"
@@ -240,11 +493,8 @@ const seo = {
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
                             >
-                                <path
-                                    d="M12 14l9-5-9-5-9 5 9 5z"></path>
-                                <path
-                                    d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
-                                ></path>
+                                <path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                                <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -254,12 +504,12 @@ const seo = {
                             </svg>
                         </div>
                         <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Información sobre su formación académica previa.
+                            Información completa sobre su formación académica previa.
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
-                        <div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 Grado Académico Previo *
                             </label>
@@ -284,6 +534,7 @@ const seo = {
                                 type="text"
                                 name="carrera"
                                 required
+                                maxlength="150"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="Ej: Derecho, Administración..."
                             />
@@ -297,9 +548,69 @@ const seo = {
                                 type="text"
                                 name="institucion"
                                 required
+                                maxlength="150"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="Nombre de la universidad"
                             />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Modalidad de Estudios Previos *
+                            </label>
+                            <select
+                                name="modalidadEstudio"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                <option value="Escolarizada">Escolarizada</option>
+                                <option value="Semi-presencial">Semi-presencial</option>
+                                <option value="En línea">En línea</option>
+                                <option value="Abierta">Abierta</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Fecha de Inicio de Licenciatura *
+                            </label>
+                            <input
+                                type="text"
+                                name="fechaInicioLic"
+                                required
+                                maxlength="10"
+                                placeholder="DD/MM/AAAA"
+                                class="date-picker w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Fecha de Finalización de Licenciatura *
+                            </label>
+                            <input
+                                type="text"
+                                name="fechaFinLic"
+                                required
+                                maxlength="10"
+                                placeholder="DD/MM/AAAA"
+                                class="date-picker w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Estado donde Cursó la Licenciatura *
+                            </label>
+                            <select
+                                name="estadoLic"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {states.map(state => <option value={state}>{state}</option>)}
+                            </select>
                         </div>
 
                         <div>
@@ -309,6 +620,7 @@ const seo = {
                             <input
                                 type="text"
                                 name="cedulaNum"
+                                maxlength="20"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="Número de cédula (opcional)"
                             />
@@ -318,14 +630,14 @@ const seo = {
                     <div class="flex justify-between mt-8 max-w-4xl mx-auto">
                         <button
                             type="button"
-                            id="prev-step-2"
+                            id="prev-step-4"
                             class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
                         >
                             Anterior
                         </button>
                         <button
                             type="button"
-                            id="next-step-2"
+                            id="next-step-4"
                             class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
                         >
                             Siguiente
@@ -333,12 +645,10 @@ const seo = {
                     </div>
                 </div>
 
-                <!-- Step 3: Documents Upload -->
-                <div class="step-section p-8 md:p-12 hidden" id="step-3">
+                <!-- Step 5: Documents Upload (Expanded) -->
+                <div class="step-section p-8 md:p-12 hidden" id="step-5">
                     <div class="mb-8 text-center">
-                        <div
-                            class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary"
-                        >
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 class="h-8 w-8"
@@ -355,11 +665,11 @@ const seo = {
                             </svg>
                         </div>
                         <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Adjunte los documentos requeridos. Solo se aceptan archivos PDF o imágenes (máx. 10 MB cada uno).
+                            Adjunte todos los documentos de su expediente. Solo se aceptan archivos PDF o imágenes (máx. 10 MB cada uno).
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 Curriculum Vitae (CV) *
@@ -368,7 +678,7 @@ const seo = {
                                 type="file"
                                 name="cv"
                                 required
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
                         </div>
@@ -381,7 +691,7 @@ const seo = {
                                 type="file"
                                 name="kardex"
                                 required
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
                         </div>
@@ -394,7 +704,7 @@ const seo = {
                                 type="file"
                                 name="titulo"
                                 required
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
                         </div>
@@ -406,10 +716,369 @@ const seo = {
                             <input
                                 type="file"
                                 name="cedula"
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
                             <p class="text-xs text-gray-500 mt-1">Opcional si aún no cuenta con ella</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Acta de Nacimiento *
+                            </label>
+                            <input
+                                type="file"
+                                name="actaNacimiento"
+                                required
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                CURP (Documento) *
+                            </label>
+                            <input
+                                type="file"
+                                name="curpDoc"
+                                required
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Comprobante de Domicilio *
+                            </label>
+                            <input
+                                type="file"
+                                name="comprobanteDom"
+                                required
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Recibo de luz, agua o teléfono reciente</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                INE / Identificación Oficial *
+                            </label>
+                            <input
+                                type="file"
+                                name="ineDoc"
+                                required
+                                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                        <button
+                            type="button"
+                            id="prev-step-5"
+                            class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            type="button"
+                            id="next-step-5"
+                            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Salud -->
+                <div class="step-section p-8 md:p-12 hidden" id="step-6">
+                    <div class="mb-8 text-center">
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                            Información de salud para su expediente personal (confidencial).
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Tiene alguna capacidad diferente? *
+                            </label>
+                            <div class="flex gap-6">
+                                {yesNo.map(opt => (
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="capacidadDif"
+                                            value={opt}
+                                            required
+                                            class="w-5 h-5 text-primary"
+                                            data-toggle-field="detalleCapacidad"
+                                            data-toggle-value="Sí"
+                                        />
+                                        <span class="font-medium">{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div class="hidden" id="detalleCapacidad-wrapper">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Especifique la capacidad diferente
+                            </label>
+                            <textarea
+                                name="detalleCapacidad"
+                                maxlength="500"
+                                rows="3"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Describa brevemente"
+                            ></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Padece alguna enfermedad crónica? *
+                            </label>
+                            <div class="flex gap-6">
+                                {yesNo.map(opt => (
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="enfCronica"
+                                            value={opt}
+                                            required
+                                            class="w-5 h-5 text-primary"
+                                            data-toggle-field="detalleEnf"
+                                            data-toggle-value="Sí"
+                                        />
+                                        <span class="font-medium">{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div class="hidden" id="detalleEnf-wrapper">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Especifique la enfermedad
+                            </label>
+                            <textarea
+                                name="detalleEnf"
+                                maxlength="500"
+                                rows="3"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Describa brevemente"
+                            ></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Tiene alguna alergia? *
+                            </label>
+                            <div class="flex gap-6">
+                                {yesNo.map(opt => (
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="alergia"
+                                            value={opt}
+                                            required
+                                            class="w-5 h-5 text-primary"
+                                            data-toggle-field="detalleAlergia"
+                                            data-toggle-value="Sí"
+                                        />
+                                        <span class="font-medium">{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div class="hidden" id="detalleAlergia-wrapper">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Especifique la alergia
+                            </label>
+                            <textarea
+                                name="detalleAlergia"
+                                maxlength="500"
+                                rows="3"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Describa brevemente"
+                            ></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Está bajo algún tratamiento médico? *
+                            </label>
+                            <div class="flex gap-6">
+                                {yesNo.map(opt => (
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="tratamiento"
+                                            value={opt}
+                                            required
+                                            class="w-5 h-5 text-primary"
+                                            data-toggle-field="detalleTratamiento"
+                                            data-toggle-value="Sí"
+                                        />
+                                        <span class="font-medium">{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div class="hidden" id="detalleTratamiento-wrapper">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Especifique el tratamiento
+                            </label>
+                            <textarea
+                                name="detalleTratamiento"
+                                maxlength="500"
+                                rows="3"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Describa brevemente"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                        <button
+                            type="button"
+                            id="prev-step-6"
+                            class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            type="button"
+                            id="next-step-6"
+                            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 7: Emergencia y Finalización -->
+                <div class="step-section p-8 md:p-12 hidden" id="step-7">
+                    <div class="mb-8 text-center">
+                        <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                            Datos de contacto de emergencia y finalización de su solicitud.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre del Contacto de Emergencia *
+                            </label>
+                            <input
+                                type="text"
+                                name="contactoEmergencia"
+                                required
+                                maxlength="200"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Nombre completo"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Parentesco *
+                            </label>
+                            <select
+                                name="parentesco"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {relatives.map(rel => <option value={rel}>{rel}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Teléfono de Emergencia *
+                            </label>
+                            <input
+                                type="tel"
+                                name="telEmergencia"
+                                required
+                                maxlength="18"
+                                inputmode="tel"
+                                autocomplete="tel-national"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Ej. 3312345678"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Habla alguna lengua indígena? *
+                            </label>
+                            <select
+                                name="lenguaIndigena"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {yesNo.map(opt => <option value={opt}>{opt}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Ocupación Actual *
+                            </label>
+                            <input
+                                type="text"
+                                name="ocupacion"
+                                required
+                                maxlength="100"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                placeholder="Ej. Abogado, Contador, Estudiante..."
+                            />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ¿Cómo se enteró de nosotros? *
+                            </label>
+                            <select
+                                name="origen"
+                                required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            >
+                                <option value="">Seleccione...</option>
+                                {sources.map(src => <option value={src}>{src}</option>)}
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="termsAccepted"
+                                    required
+                                    class="w-5 h-5 mt-1 text-primary rounded focus:ring-primary"
+                                />
+                                <span class="text-sm text-gray-600">
+                                    Acepto que la información proporcionada es verídica y autorizo a CEPRIJA para su procesamiento conforme a la normativa de protección de datos. *
+                                </span>
+                            </label>
                         </div>
                     </div>
 
@@ -418,7 +1087,7 @@ const seo = {
                     <div class="flex justify-between mt-8 max-w-4xl mx-auto">
                         <button
                             type="button"
-                            id="prev-step-3"
+                            id="prev-step-7"
                             class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
                         >
                             Anterior
@@ -495,6 +1164,14 @@ const seo = {
                         id="post-submit-payment-section"
                         class="hidden text-left max-w-3xl mx-auto mb-8 w-full"
                     >
+                        <div
+                            id="enrollment-post-form-feedback"
+                            role="alert"
+                            aria-live="assertive"
+                            tabindex="-1"
+                            class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 w-full"
+                        >
+                        </div>
                         <h3 class="font-bold text-primary font-serif text-lg mb-4 text-center">
                             Elige cómo pagar (opcional)
                         </h3>
@@ -619,7 +1296,7 @@ const seo = {
                                         <input
                                             type="file"
                                             id="post-stripe-fiscal"
-                                            accept=".pdf,image/*"
+                                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                             class="w-full text-sm"
                                         />
                                     </div>
@@ -631,6 +1308,7 @@ const seo = {
                                         <input
                                             type="email"
                                             id="post-stripe-invoice-email"
+                                            maxlength="254"
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                             placeholder="facturacion@empresa.com"
                                         />
@@ -824,7 +1502,7 @@ const seo = {
                                     name="paymentProof"
                                     id="post-wire-payment-proof"
                                     required
-                                    accept=".pdf,image/*"
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                     class="w-full text-sm"
                                 />
                             </div>
@@ -883,7 +1561,7 @@ const seo = {
                                             type="file"
                                             name="fiscalConstancy"
                                             id="post-wire-fiscal"
-                                            accept=".pdf,image/*"
+                                            accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                                             class="w-full text-sm"
                                         />
                                         <p class="text-xs text-gray-500 mt-1">
@@ -899,6 +1577,7 @@ const seo = {
                                             type="email"
                                             name="invoiceEmail"
                                             id="post-wire-invoice-email"
+                                            maxlength="254"
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                             placeholder="facturacion@empresa.com"
                                         />
@@ -937,17 +1616,37 @@ const seo = {
             </div>
         </section>
     </main>
+
+    <!-- Flatpickr JS -->
+    <script is:inline src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 </Layout>
 
 <script>
     import {
-        validateRequiredFieldsInContainer,
+        validateStepSection,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
+    import { bindFormPageFeedback } from "@lib/client/formPageFeedback";
 
     const form = document.getElementById("enrollment-form") as HTMLFormElement;
-    const steps = [1, 2, 3];
+    const { show: showEnrollmentFeedback, clear: clearEnrollmentFeedback } =
+        bindFormPageFeedback(document.getElementById("enrollment-form-feedback"));
+    const { show: showPostFormFeedback, clear: clearPostFormFeedback } =
+        bindFormPageFeedback(
+            document.getElementById("enrollment-post-form-feedback"),
+        );
+
+    document.querySelectorAll('#enrollment-form input[type="tel"]').forEach((el) => {
+        el.addEventListener("input", (e) => {
+            const t = e.target as HTMLInputElement;
+            t.value = t.value.replace(/\D/g, "").slice(0, 18);
+        });
+    });
+
+    const steps = [1, 2, 3, 4, 5, 6, 7];
     let currentStep = 1;
+    const totalSteps = 7;
 
     const stepperCard = document.getElementById("enrollment-stepper-card");
     const postSubmitPanel = document.getElementById("post-submit-panel");
@@ -971,9 +1670,13 @@ const seo = {
     const spinner = document.getElementById("loading-spinner");
 
     const stepTitles = [
-        "Paso 1 de 3: Información Personal",
-        "Paso 2 de 3: Formación Académica",
-        "Paso 3 de 3: Documentos",
+        "Paso 1 de 7: Información Personal Básica",
+        "Paso 2 de 7: Información Personal Extendida",
+        "Paso 3 de 7: Domicilio",
+        "Paso 4 de 7: Formación Académica Completa",
+        "Paso 5 de 7: Documentos del Expediente",
+        "Paso 6 de 7: Información de Salud",
+        "Paso 7 de 7: Contacto de Emergencia",
     ];
 
     type PostPayload = {
@@ -1085,14 +1788,15 @@ const seo = {
         });
 
         if (stepLabel) stepLabel.textContent = stepTitles[currentStep - 1];
-        if (stepNumber) stepNumber.textContent = `${Math.round((currentStep / 3) * 100)}% completado`;
-        if (progressBar) progressBar.style.width = `${(currentStep / 3) * 100}%`;
+        if (stepNumber) stepNumber.textContent = `${Math.round((currentStep / totalSteps) * 100)}% completado`;
+        if (progressBar) progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
     }
 
+    // Step 1 navigation
     document.getElementById("next-step-1")?.addEventListener("click", () => {
         const section = document.getElementById("step-1");
         if (!section) return;
-        const result = validateRequiredFieldsInContainer(section);
+        const result = validateStepSection(section);
         if (!result.ok) {
             reportStepValidationFailure(stepTitles[0], result);
             return;
@@ -1102,6 +1806,7 @@ const seo = {
         window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
+    // Step 2 navigation
     document.getElementById("prev-step-2")?.addEventListener("click", () => {
         currentStep = 1;
         updateUI();
@@ -1111,7 +1816,7 @@ const seo = {
     document.getElementById("next-step-2")?.addEventListener("click", () => {
         const section = document.getElementById("step-2");
         if (!section) return;
-        const result = validateRequiredFieldsInContainer(section);
+        const result = validateStepSection(section);
         if (!result.ok) {
             reportStepValidationFailure(stepTitles[1], result);
             return;
@@ -1121,8 +1826,89 @@ const seo = {
         window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
+    // Step 3 navigation
     document.getElementById("prev-step-3")?.addEventListener("click", () => {
         currentStep = 2;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("next-step-3")?.addEventListener("click", () => {
+        const section = document.getElementById("step-3");
+        if (!section) return;
+        const result = validateStepSection(section);
+        if (!result.ok) {
+            reportStepValidationFailure(stepTitles[2], result);
+            return;
+        }
+        currentStep = 4;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Step 4 navigation
+    document.getElementById("prev-step-4")?.addEventListener("click", () => {
+        currentStep = 3;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("next-step-4")?.addEventListener("click", () => {
+        const section = document.getElementById("step-4");
+        if (!section) return;
+        const result = validateStepSection(section);
+        if (!result.ok) {
+            reportStepValidationFailure(stepTitles[3], result);
+            return;
+        }
+        currentStep = 5;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Step 5 navigation
+    document.getElementById("prev-step-5")?.addEventListener("click", () => {
+        currentStep = 4;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("next-step-5")?.addEventListener("click", () => {
+        const section = document.getElementById("step-5");
+        if (!section) return;
+        const result = validateStepSection(section);
+        if (!result.ok) {
+            reportStepValidationFailure(stepTitles[4], result);
+            return;
+        }
+        currentStep = 6;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Step 6 navigation
+    document.getElementById("prev-step-6")?.addEventListener("click", () => {
+        currentStep = 5;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("next-step-6")?.addEventListener("click", () => {
+        const section = document.getElementById("step-6");
+        if (!section) return;
+        const result = validateStepSection(section);
+        if (!result.ok) {
+            reportStepValidationFailure(stepTitles[5], result);
+            return;
+        }
+        currentStep = 7;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Step 7 navigation
+    document.getElementById("prev-step-7")?.addEventListener("click", () => {
+        currentStep = 6;
         updateUI();
         window.scrollTo({ top: 0, behavior: "smooth" });
     });
@@ -1161,8 +1947,9 @@ const seo = {
 
     postSubmitWireForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        clearPostFormFeedback();
         if (postSubmitWireForm) {
-            const wireCheck = validateRequiredFieldsInContainer(postSubmitWireForm);
+            const wireCheck = validateStepSection(postSubmitWireForm);
             if (!wireCheck.ok) {
                 reportStepValidationFailure("Comprobante de transferencia", wireCheck);
                 return;
@@ -1187,7 +1974,7 @@ const seo = {
             window.scrollTo({ top: postWireSuccess?.offsetTop ?? 0, behavior: "smooth" });
         } catch (err) {
             console.error(err);
-            alert(
+            showPostFormFeedback(
                 err instanceof Error
                     ? err.message
                     : "No se pudo enviar el comprobante. Intenta de nuevo.",
@@ -1199,6 +1986,7 @@ const seo = {
 
     function showPostSubmitPaymentOptions(payload: PostPayload) {
         lastPostPayload = payload;
+        clearPostFormFeedback();
 
         const stripeIds = parseStripePriceIdsFromForm();
         const priceId =
@@ -1296,6 +2084,7 @@ const seo = {
             stripeBtn.replaceWith(fresh);
             fresh.addEventListener("click", async () => {
                 if (!lastCheckoutPriceId || !lastPostPayload) return;
+                clearPostFormFeedback();
 
                 const needsInv = !!document.querySelector(
                     'input[name="stripeRequiresInvoice"][value="Sí"]:checked',
@@ -1310,12 +2099,16 @@ const seo = {
 
                 if (needsInv) {
                     if (!invEmail) {
-                        alert("Indica el correo para recibir la factura.");
+                        showPostFormFeedback(
+                            "Indica el correo para recibir la factura.",
+                        );
                         return;
                     }
                     const f = fiscalEl?.files?.[0];
                     if (!f) {
-                        alert("Adjunta la constancia de situación fiscal (CSF).");
+                        showPostFormFeedback(
+                            "Adjunta la constancia de situación fiscal (CSF).",
+                        );
                         return;
                     }
                     fresh.disabled = true;
@@ -1350,7 +2143,7 @@ const seo = {
                         }
                     } catch (err) {
                         console.error(err);
-                        alert(
+                        showPostFormFeedback(
                             err instanceof Error
                                 ? err.message
                                 : "Error al enviar datos fiscales.",
@@ -1389,7 +2182,7 @@ const seo = {
                     }
                 } catch (err) {
                     console.error(err);
-                    alert(
+                    showPostFormFeedback(
                         err instanceof Error
                             ? err.message
                             : "Error al iniciar el pago. Intenta de nuevo o contacta soporte.",
@@ -1408,13 +2201,55 @@ const seo = {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    // Flatpickr: CSS en <head> (slot); calendario en body + z-index global (evita quedar bajo el footer)
+    type FlatpickrFn = (el: Element, opts: Record<string, unknown>) => { destroy: () => void };
+    const w = typeof window !== "undefined" ? (window as unknown as { flatpickr?: FlatpickrFn & { l10ns?: { es?: object } } }) : null;
+    const fp = w?.flatpickr;
+    if (fp) {
+        const esLocale = fp.l10ns?.es;
+        document.querySelectorAll(".date-picker").forEach((input) => {
+            const el = input as HTMLInputElement;
+            fp(el, {
+                dateFormat: "d/m/Y",
+                ...(esLocale ? { locale: esLocale } : {}),
+                allowInput: true,
+                appendTo: document.body,
+                positionElement: el,
+            });
+        });
+    }
+
+    // Conditional field logic for health section (Step 6)
+    document.querySelectorAll('[data-toggle-field]').forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+            const target = e.target as HTMLInputElement;
+            if (!target.checked) return;
+            const fieldName = target.getAttribute("data-toggle-field");
+            const toggleValue = target.getAttribute("data-toggle-value");
+            const wrapper = document.getElementById(`${fieldName}-wrapper`);
+            const textarea = wrapper?.querySelector(`[name="${fieldName}"]`) as HTMLTextAreaElement | null;
+            
+            if (wrapper && textarea) {
+                if (target.value === toggleValue) {
+                    wrapper.classList.remove("hidden");
+                    textarea.required = true;
+                } else {
+                    wrapper.classList.add("hidden");
+                    textarea.required = false;
+                    textarea.value = "";
+                }
+            }
+        });
+    });
+
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        for (let s = 1; s <= 3; s++) {
+        // Validate all 7 steps
+        for (let s = 1; s <= totalSteps; s++) {
             const section = document.getElementById(`step-${s}`);
             if (!section) continue;
-            const result = validateRequiredFieldsInContainer(section);
+            const result = validateStepSection(section);
             if (!result.ok) {
                 currentStep = s;
                 updateUI();
@@ -1424,6 +2259,7 @@ const seo = {
             }
         }
 
+        clearEnrollmentFeedback();
         if (statusDiv) {
             statusDiv.classList.add("hidden");
             statusDiv.className = "hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto";
@@ -1457,6 +2293,9 @@ const seo = {
             if (response.ok) {
                 const applicationId =
                     typeof result.applicationId === "string" ? result.applicationId : "";
+                const warnings = Array.isArray((result as { emailWarnings?: unknown }).emailWarnings)
+                    ? (result as { emailWarnings: string[] }).emailWarnings
+                    : [];
                 form.reset();
                 currentStep = 1;
                 updateUI();
@@ -1468,16 +2307,28 @@ const seo = {
                     modality,
                     programSlug,
                 });
+                if (warnings.includes("user_confirmation_failed")) {
+                    const sum = document.getElementById("post-submit-summary");
+                    if (sum) {
+                        sum.textContent =
+                            "Tu solicitud quedó registrada en control escolar. Si no recibes el correo de confirmación en unos minutos, revisa spam o contáctanos.";
+                    }
+                }
             } else {
-                throw new Error(result.message || result.error || "Error al enviar la solicitud");
+                const errMsg =
+                    typeof (result as { error?: unknown }).error === "string"
+                        ? (result as { error: string }).error
+                        : typeof (result as { message?: unknown }).message === "string"
+                          ? (result as { message: string }).message
+                          : "Error al enviar la solicitud";
+                throw new Error(errMsg);
             }
         } catch (error) {
-            if (statusDiv) {
-                statusDiv.textContent =
-                    "Hubo un error al enviar tu solicitud. Por favor verifica los archivos e intenta nuevamente, o contáctanos directamente.";
-                statusDiv.classList.remove("hidden");
-                statusDiv.classList.add("bg-red-100", "text-red-800", "border", "border-red-200");
-            }
+            const msg =
+                error instanceof Error && error.message
+                    ? error.message
+                    : "Hubo un error al enviar tu solicitud. Por favor verifica los archivos e intenta nuevamente, o contáctanos directamente.";
+            showEnrollmentFeedback(msg);
             console.error("Error submitting enrollment:", error);
         } finally {
             if (submitBtn && spinner) {
