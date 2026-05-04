@@ -23,6 +23,9 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# local agent / IDE tooling
+.claude/
+
 #files
 public/uploads/*
 data/inscripciones/*
