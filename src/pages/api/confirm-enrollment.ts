@@ -19,6 +19,7 @@ import { hasEnrollmentBeenConfirmed, markEnrollmentConfirmed } from "@lib/proces
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
 import { escapeHtml } from "@lib/htmlEscape";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -28,6 +29,9 @@ function paymentIntentId(session: Stripe.Checkout.Session): string {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/confirm-enrollment";
+  let programSlugLog: string | undefined;
   try {
     const body = (await request.json().catch(() => null)) as Record<
       string,
@@ -40,41 +44,40 @@ export const POST: APIRoute = async ({ request }) => {
 
     const sessionErr = validateStripeCheckoutSessionId(stripeSessionIdRaw);
     if (sessionErr) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "validation_failed", {
+        requestId,
+        code: sessionErr.code,
+      });
+      return jsonResponse(
+        {
           error: sessionErr.error,
           code: sessionErr.code,
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
     const stripeSessionId = stripeSessionIdRaw;
 
     if (hasEnrollmentBeenConfirmed(stripeSessionId)) {
-      return new Response(
-        JSON.stringify({ success: true, duplicate: true }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      apiLog("info", route, "duplicate_confirmation", {
+        requestId,
+        stripeSessionId,
+      });
+      return jsonResponse({ success: true, duplicate: true }, 200, requestId);
     }
 
     const stripeSecret = STRIPE_SECRET_KEY;
     if (!stripeSecret) {
-      return new Response(
-        JSON.stringify({
+      apiLog("error", route, "stripe_secret_missing", { requestId });
+      return jsonResponse(
+        {
           error: "Stripe no configurado",
           code: "stripe_not_configured",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
         },
+        500,
+        requestId,
       );
     }
 
@@ -82,15 +85,19 @@ export const POST: APIRoute = async ({ request }) => {
     const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
 
     if (session.payment_status !== "paid") {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "payment_not_confirmed", {
+        requestId,
+        stripeSessionId,
+        paymentStatus: session.payment_status,
+        code: "payment_not_confirmed",
+      });
+      return jsonResponse(
+        {
           error: "Pago no confirmado",
           code: "payment_not_confirmed",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
@@ -100,44 +107,55 @@ export const POST: APIRoute = async ({ request }) => {
       "";
 
     if (!customerEmail) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "missing_email", {
+        requestId,
+        stripeSessionId,
+        code: "missing_email",
+      });
+      return jsonResponse(
+        {
           error: "No hay correo en la sesión de pago",
           code: "missing_email",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
     const programSlugMeta = session.metadata?.programSlug?.trim() ?? "";
+    programSlugLog = programSlugMeta || undefined;
     if (!programSlugMeta) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "missing_program_metadata", {
+        requestId,
+        stripeSessionId,
+        code: "missing_program_metadata",
+      });
+      return jsonResponse(
+        {
           error: "Sesión sin programa (metadata)",
           code: "missing_program_metadata",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.slug === programSlugMeta);
     if (!program) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "unknown_program", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugMeta,
+        code: "unknown_program",
+      });
+      return jsonResponse(
+        {
           error: "Programa no encontrado",
           code: "unknown_program",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
@@ -147,29 +165,38 @@ export const POST: APIRoute = async ({ request }) => {
     );
     const linePriceId = lineItems.data[0]?.price?.id;
     if (!linePriceId) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "missing_line_items", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        code: "missing_line_items",
+      });
+      return jsonResponse(
+        {
           error: "No se pudo verificar el precio pagado",
           code: "missing_line_items",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
     const allowed = parseStripeAllowedPriceIds(STRIPE_ALLOWED_PRICE_IDS);
     if (allowed.size > 0 && !allowed.has(linePriceId)) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "price_not_allowed", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        linePriceId,
+        code: "price_not_allowed",
+      });
+      return jsonResponse(
+        {
           error: "Precio no permitido para esta cuenta",
           code: "price_not_allowed",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
@@ -185,30 +212,39 @@ export const POST: APIRoute = async ({ request }) => {
         : null;
 
     if (!stripeIds) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "program_no_prices", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        code: "program_no_prices",
+      });
+      return jsonResponse(
+        {
           error: "Programa sin precios Stripe configurados",
           code: "program_no_prices",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
     const matchPresencial = linePriceId === stripeIds.presencial;
     const matchOnline = linePriceId === stripeIds.online;
     if (!matchPresencial && !matchOnline) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "price_program_mismatch", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        linePriceId,
+        code: "price_program_mismatch",
+      });
+      return jsonResponse(
+        {
           error: "El precio pagado no corresponde a este programa",
           code: "price_program_mismatch",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
         },
+        400,
+        requestId,
       );
     }
 
@@ -318,9 +354,11 @@ export const POST: APIRoute = async ({ request }) => {
     let emailWarnings: string[] = [];
 
     if (!brevoKey) {
-      console.warn(
-        "[confirm-enrollment] KEY_API_BREVO vacío o ausente. No se enviarán correos.",
-      );
+      apiLog("warn", route, "brevo_not_configured", {
+        requestId,
+        programSlug: programSlugLog,
+        stripeSessionId,
+      });
       emailWarnings.push("email_not_configured");
     } else {
       try {
@@ -343,18 +381,23 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (!userEmailResponse.ok) {
           const errBody = await userEmailResponse.text();
-          console.error(
-            "[confirm-enrollment] Brevo rechazó el correo al participante:",
-            userEmailResponse.status,
-            errBody,
-          );
+          apiLog("error", route, "brevo_user_email_failed", {
+            requestId,
+            programSlug: programSlugLog,
+            stripeSessionId,
+            brevoStatus: userEmailResponse.status,
+            brevoBody: errBody.slice(0, 500),
+          });
           emailWarnings.push("user_email_failed");
         }
       } catch (emailError) {
-        console.error(
-          "[confirm-enrollment] Error de red al llamar a Brevo:",
-          emailError,
-        );
+        apiLog("error", route, "brevo_user_email_network", {
+          requestId,
+          programSlug: programSlugLog,
+          stripeSessionId,
+          error:
+            emailError instanceof Error ? emailError.message : String(emailError),
+        });
         emailWarnings.push("user_email_network_error");
       }
     }
@@ -401,44 +444,57 @@ export const POST: APIRoute = async ({ request }) => {
         );
 
         if (!adminEmailResponse.ok) {
-          console.error(
-            "[confirm-enrollment] Brevo rechazó el correo a administración:",
-            adminEmailResponse.status,
-            await adminEmailResponse.text(),
-          );
+          const adminErrText = await adminEmailResponse.text();
+          apiLog("error", route, "brevo_admin_email_failed", {
+            requestId,
+            programSlug: programSlugLog,
+            stripeSessionId,
+            brevoStatus: adminEmailResponse.status,
+            brevoBody: adminErrText.slice(0, 500),
+          });
           emailWarnings.push("admin_email_failed");
         }
       } catch (emailError) {
-        console.error(
-          "[confirm-enrollment] Error enviando correo a administración:",
-          emailError,
-        );
+        apiLog("error", route, "brevo_admin_email_network", {
+          requestId,
+          programSlug: programSlugLog,
+          stripeSessionId,
+          error:
+            emailError instanceof Error ? emailError.message : String(emailError),
+        });
         emailWarnings.push("admin_email_network_error");
       }
     }
 
-    return new Response(
-      JSON.stringify({
+    apiLog("info", route, "enrollment_confirmed", {
+      requestId,
+      programSlug: programSlugLog,
+      stripeSessionId,
+      ...(emailWarnings.length > 0 && { emailWarnings }),
+    });
+    return jsonResponse(
+      {
         success: true,
         message: "Enrollment confirmed successfully",
         ...(emailWarnings.length > 0 && { emailWarnings }),
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
       },
+      200,
+      requestId,
     );
   } catch (error) {
-    console.error("Error confirming enrollment:", error);
-    return new Response(
-      JSON.stringify({
+    apiLog("error", route, "internal_error", {
+      requestId,
+      programSlug: programSlugLog,
+      code: "internal_error",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse(
+      {
         error: "Error interno del servidor",
         code: "internal_error",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
       },
+      500,
+      requestId,
     );
   }
 };

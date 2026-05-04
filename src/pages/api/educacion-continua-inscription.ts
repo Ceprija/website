@@ -22,6 +22,7 @@ import {
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -128,42 +129,66 @@ function replacePlaceholders(template: string, data: Record<string, string>) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/educacion-continua-inscription";
+  let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
+    programSlug = (fields.programId ?? "").trim();
 
     const fieldErr = validateEducacionContinuaFields(fields);
     if (fieldErr) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "validation_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: fieldErr.code,
+        field: fieldErr.field,
+      });
+      return jsonResponse(
+        {
           message: fieldErr.error,
           code: fieldErr.code,
           ...(fieldErr.field && { field: fieldErr.field }),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
     const nonEmptyFiles = files.filter((f) => f.buffer.length > 0);
     if (nonEmptyFiles.length > MAX_FILES_PER_REQUEST) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "too_many_files", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "too_many_files",
+      });
+      return jsonResponse(
+        {
           message: "Demasiados archivos adjuntos",
           code: "too_many_files",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
     for (const f of nonEmptyFiles) {
       const v = validateUploadBuffer(f.buffer, f.mimetype, { field: f.fieldname });
       if (!v.ok) {
-        return new Response(
-          JSON.stringify({
+        apiLog("warn", route, "upload_validation_failed", {
+          requestId,
+          programSlug: programSlug || undefined,
+          code: v.err.code,
+          field: v.err.field ?? f.fieldname,
+        });
+        return jsonResponse(
+          {
             message: v.err.error,
             code: v.err.code,
             field: v.err.field ?? f.fieldname,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
+          },
+          400,
+          requestId,
         );
       }
     }
@@ -214,7 +239,21 @@ export const POST: APIRoute = async ({ request }) => {
     const csvContent = header + csvRow;
 
     const brevoKey = KEY_API_BREVO;
-    if (!brevoKey) throw new Error("Falta KEY_API_BREVO");
+    if (!brevoKey) {
+      apiLog("error", route, "brevo_not_configured", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "brevo_not_configured",
+      });
+      return jsonResponse(
+        {
+          message: "Correo no configurado en el servidor (KEY_API_BREVO)",
+          code: "brevo_not_configured",
+        },
+        503,
+        requestId,
+      );
+    }
 
     const senderEmail = SMTP_FROM || CONTACT_EMAIL;
     const adminEmail1 = EMAIL_EDUCACION_CONTINUA || CONTACT_EMAIL;
@@ -313,7 +352,11 @@ export const POST: APIRoute = async ({ request }) => {
           }),
         });
       } catch (err) {
-        console.error("Error enviando a Brevo:", err);
+        apiLog("error", route, "brevo_send_failed", {
+          requestId,
+          programSlug: programSlug || undefined,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     };
 
@@ -357,29 +400,49 @@ export const POST: APIRoute = async ({ request }) => {
           );
         }
 
-        console.log(`Sending EC data to API: ${apiUrl}educacion-continua/registro`);
-        const apiRes = await fetch(`${apiUrl}educacion-continua/registro`, {
+        const registroUrl = `${apiUrl}educacion-continua/registro`;
+        apiLog("info", route, "laravel_request", {
+          requestId,
+          programSlug: programSlug || undefined,
+          url: registroUrl,
+        });
+        const apiRes = await fetch(registroUrl, {
           method: "POST",
           headers: { Accept: "application/json" },
           body: formPayload,
         });
 
         if (!apiRes.ok) {
-          console.error("Laravel API Error response:", await apiRes.text());
+          const errText = await apiRes.text();
+          apiLog("warn", route, "laravel_api_error", {
+            requestId,
+            programSlug: programSlug || undefined,
+            httpStatus: apiRes.status,
+            body: errText.slice(0, 500),
+          });
         } else {
-          console.log("Successfully saved EC registration to Laravel API.");
+          apiLog("info", route, "laravel_ok", {
+            requestId,
+            programSlug: programSlug || undefined,
+          });
         }
       } catch (apiError) {
-        console.error("Failed to send EC data to Laravel API:", apiError);
+        apiLog("error", route, "laravel_network_error", {
+          requestId,
+          programSlug: programSlug || undefined,
+          error:
+            apiError instanceof Error ? apiError.message : String(apiError),
+        });
       }
     };
 
     await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
 
-    return new Response(JSON.stringify({ message: "Ok" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    apiLog("info", route, "inscription_accepted", {
+      requestId,
+      programSlug: programSlug || undefined,
     });
+    return jsonResponse({ message: "Ok" }, 200, requestId);
   } catch (error: unknown) {
     if (
       error &&
@@ -387,21 +450,40 @@ export const POST: APIRoute = async ({ request }) => {
       "code" in error &&
       (error as { code?: string }).code === "file_too_large"
     ) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "file_too_large", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "file_too_large",
+        field:
+          "field" in error && typeof (error as { field?: string }).field === "string"
+            ? (error as { field: string }).field
+            : undefined,
+      });
+      return jsonResponse(
+        {
           message: "Archivo demasiado grande (máx. 10 MB)",
           code: "file_too_large",
           ...("field" in error && typeof (error as { field?: string }).field === "string"
             ? { field: (error as { field: string }).field }
             : {}),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
-    console.error(error);
-    return new Response(
-      JSON.stringify({ message: error instanceof Error ? error.message : "Error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    apiLog("error", route, "internal_error", {
+      requestId,
+      programSlug: programSlug || undefined,
+      code: "internal_error",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse(
+      {
+        message: error instanceof Error ? error.message : "Error",
+        code: "internal_error",
+      },
+      500,
+      requestId,
     );
   }
 };

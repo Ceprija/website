@@ -11,6 +11,7 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { validateWireProofFields } from "@lib/validation/enrollment";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 type UploadedFile = {
   fieldname: string;
@@ -127,19 +128,30 @@ function toEmailList(...emails: Array<string | undefined | null>): Array<{ email
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/payments/wire-proof";
+  let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
     const enrollmentId = crypto.randomUUID();
 
     const fieldErr = validateWireProofFields(fields);
     if (fieldErr) {
-      return new Response(
-        JSON.stringify({
+      programSlug = (fields.programId ?? "").trim();
+      apiLog("warn", route, "validation_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: fieldErr.code,
+        field: fieldErr.field,
+      });
+      return jsonResponse(
+        {
           error: fieldErr.error,
           code: fieldErr.code,
           ...(fieldErr.field && { field: fieldErr.field }),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -148,6 +160,7 @@ export const POST: APIRoute = async ({ request }) => {
     const phone = (fields.phone ?? "").trim();
     const programTitle = (fields.programTitle ?? "").trim();
     const programId = (fields.programId ?? "").trim();
+    programSlug = programId;
     const modality = (fields.modality ?? "").trim();
     const wireReference = (fields.wireReference ?? "").trim();
     const requiresInvoice = ((fields.requiresInvoice ?? "").trim() || "No") === "Sí";
@@ -155,12 +168,18 @@ export const POST: APIRoute = async ({ request }) => {
     const applicationIdField = (fields.applicationId ?? "").trim();
 
     if (files.length > MAX_FILES_PER_REQUEST) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "too_many_files", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "too_many_files",
+      });
+      return jsonResponse(
+        {
           error: "Demasiados archivos adjuntos",
           code: "too_many_files",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -169,13 +188,19 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
     if (!paymentProof) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "missing_payment_proof", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "missing_payment_proof",
+      });
+      return jsonResponse(
+        {
           error: "Falta el comprobante de pago",
           code: "missing_payment_proof",
           missing: ["paymentProof"],
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -183,13 +208,20 @@ export const POST: APIRoute = async ({ request }) => {
       field: paymentProof.fieldname,
     });
     if (!fileCheck.ok) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "upload_validation_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: fileCheck.err.code,
+        field: fileCheck.err.field,
+      });
+      return jsonResponse(
+        {
           error: fileCheck.err.error,
           code: fileCheck.err.code,
           ...(fileCheck.err.field && { field: fileCheck.err.field }),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -232,12 +264,18 @@ export const POST: APIRoute = async ({ request }) => {
       (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
 
     if (!brevoKey) {
-      return new Response(
-        JSON.stringify({
+      apiLog("error", route, "brevo_not_configured", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "brevo_not_configured",
+      });
+      return jsonResponse(
+        {
           error: "Correo no configurado en el servidor (KEY_API_BREVO)",
           code: "brevo_not_configured",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } },
+        },
+        503,
+        requestId,
       );
     }
 
@@ -301,7 +339,14 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (!adminRes.ok) {
-      console.error("[wire-proof] Brevo admin error:", adminRes.status, await adminRes.text());
+      const adminErrText = await adminRes.text();
+      apiLog("error", route, "brevo_admin_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        enrollmentId,
+        brevoStatus: adminRes.status,
+        brevoBody: adminErrText.slice(0, 500),
+      });
     }
 
     const userHtml = `
@@ -328,16 +373,30 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (!userRes.ok) {
-      console.error("[wire-proof] Brevo user error:", userRes.status, await userRes.text());
+      const userErrText = await userRes.text();
+      apiLog("error", route, "brevo_user_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        enrollmentId,
+        brevoStatus: userRes.status,
+        brevoBody: userErrText.slice(0, 500),
+      });
+    } else {
+      apiLog("info", route, "wire_proof_accepted", {
+        requestId,
+        programSlug: programSlug || undefined,
+        enrollmentId,
+      });
     }
 
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         success: true,
         enrollmentId,
         message: "Comprobante recibido",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+      },
+      200,
+      requestId,
     );
   } catch (error) {
     if (
@@ -346,21 +405,37 @@ export const POST: APIRoute = async ({ request }) => {
       "code" in error &&
       (error as { code?: string }).code === "file_too_large"
     ) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "file_too_large", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "file_too_large",
+        field:
+          "field" in error && typeof (error as { field?: string }).field === "string"
+            ? (error as { field: string }).field
+            : undefined,
+      });
+      return jsonResponse(
+        {
           error: "Archivo demasiado grande (máx. 10 MB)",
           code: "file_too_large",
           ...("field" in error && typeof (error as { field?: string }).field === "string"
             ? { field: (error as { field: string }).field }
             : {}),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
-    console.error("[wire-proof] Internal error:", error);
-    return new Response(
-      JSON.stringify({ error: "Error interno del servidor", code: "internal_error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    apiLog("error", route, "internal_error", {
+      requestId,
+      programSlug: programSlug || undefined,
+      code: "internal_error",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse(
+      { error: "Error interno del servidor", code: "internal_error" },
+      500,
+      requestId,
     );
   }
 };
