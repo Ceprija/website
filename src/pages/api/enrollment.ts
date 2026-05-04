@@ -6,11 +6,36 @@ import Busboy from "busboy";
 import crypto from "node:crypto";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
-  MAX_FILES_PER_REQUEST,
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import {
+  DEGREE_LEVELS,
+  validateMinimumDegrees,
+  type DegreeLevel,
+} from "@lib/enrollmentDegrees";
+import {
+  stripControlChars,
+  validateCedulaDoctorado,
+  validateEmailBasic,
+  validatePersonName,
+  validatePhoneBasic,
+} from "@lib/validation/enrollmentText";
+import type { ProgramaNivel } from "@lib/programNiveles";
+import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
+import { validateFullDossierFields } from "@lib/validation/enrollment";
 import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+
+const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
+/** Hard cap to bound memory when parsing indexed form fields. */
+const MAX_DEGREE_ENTRIES = 10;
+/**
+ * Cap specific to this endpoint: one CV plus up to two documents per degree.
+ * Overrides the shared `MAX_FILES_PER_REQUEST` because multi-degree submissions
+ * can legitimately exceed the default cap of 12 used by simpler endpoints.
+ */
+const MAX_ENROLLMENT_FILES = 1 + MAX_DEGREE_ENTRIES * 2;
+const MAX_ENROLLMENT_FILES_TALLER_ONLY = 1;
 
 type UploadedFile = {
   fieldname: string;
@@ -129,28 +154,348 @@ export const POST: APIRoute = async ({ request }) => {
     const programTitle = (fields.programTitle ?? "").trim();
     const modality = (fields.modality ?? "").trim();
 
-    // Academic fields
-    const ultimoGrado = (fields.ultimoGrado ?? "").trim();
-    const carrera = (fields.carrera ?? "").trim();
-    const institucion = (fields.institucion ?? "").trim();
-    const cedulaNum = (fields.cedulaNum ?? "").trim();
+    // Multi-degree parsing: the client renders one `degree_{N}_...` block per
+    // academic entry. We enumerate indices until we hit a hole, preserving the
+    // user's insertion order (which may differ from the visual position after
+    // removals). Unrecognized `grado` values are rejected because they'd bypass
+    // our `nivel`-based minimum-requirement check.
+    type ParsedDegree = {
+      index: number;
+      grado: DegreeLevel;
+      carrera: string;
+      institucion: string;
+      cedulaNum: string;
+    };
+    const degrees: ParsedDegree[] = [];
+    const degreeIndices: number[] = [];
+    for (let i = 0; i < MAX_DEGREE_ENTRIES; i++) {
+      const grado = (fields[`degree_${i}_grado`] ?? "").trim();
+      const carrera = (fields[`degree_${i}_carrera`] ?? "").trim();
+      const institucion = (fields[`degree_${i}_institucion`] ?? "").trim();
+      const cedulaNum = (fields[`degree_${i}_cedulaNum`] ?? "").trim();
+      const rowExists =
+        grado || carrera || institucion || cedulaNum ||
+        files.some((f) => f.fieldname.startsWith(`degree_${i}_`));
+      if (!rowExists) continue;
+      if (!ALLOWED_DEGREE_LEVELS.has(grado)) {
+        return new Response(
+          JSON.stringify({
+            error: "Grado académico no válido",
+            code: "invalid_grado",
+            field: `degree_${i}_grado`,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (!carrera || !institucion || !cedulaNum) {
+        return new Response(
+          JSON.stringify({
+            error: "Faltan datos del grado académico",
+            code: "missing_degree_fields",
+            field: `degree_${i}`,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      degrees.push({
+        index: i,
+        grado: grado as DegreeLevel,
+        carrera,
+        institucion,
+        cedulaNum,
+      });
+      degreeIndices.push(i);
+    }
+
+    // Optional variant selections (only present when the program defines `variantOptions`).
+    // We accept both the machine-friendly ID and the human-readable label so the
+    // confirmation email can show the natural-language version without a second lookup.
+    const selectedModule = (fields.selectedModule ?? "").trim().slice(0, 120);
+    const selectedDate = (fields.selectedDate ?? "").trim().slice(0, 120);
+    const selectedModuleLabel = (fields.selectedModuleLabel ?? "")
+        .trim()
+        .slice(0, 240);
+    const selectedDateLabel = (fields.selectedDateLabel ?? "")
+        .trim()
+        .slice(0, 240);
+
+    const programs = await getCollection("programas");
+    const program = programs.find((p) => p.slug === programSlug || p.data.title === programTitle);
+    const nivel = program?.data.nivel as ProgramaNivel | undefined;
+    /** Talleres modulares (p. ej. con variantOptions) solo requieren CV, sin grados. */
+    const skipAcademicDegrees = nivel === "taller";
+    const needsExtendedProfile =
+      !!nivel && requiresExtendedApplicantProfile(nivel);
+
+    if (skipAcademicDegrees && degrees.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: "Este programa no requiere datos de grados académicos",
+          code: "degrees_not_allowed",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    const nombreS = stripControlChars(nombre);
+    const apellidosS = stripControlChars(apellidos);
+    const emailS = stripControlChars(email).toLowerCase();
+    const telefonoS = stripControlChars(telefono);
+
+    // Extended profile fields (maestría / doctorado / especialidad).
+    // Mirrors the historical 7-step inscription form so admin records are complete.
+    const trim = (raw: string | undefined) => stripControlChars((raw ?? "").trim());
+    const generoS = trim(fields.genero);
+    const fechaNacimientoS = trim(fields.fechaNacimiento);
+    const curpS = trim(fields.curp).toUpperCase();
+    const nacionalidadS = trim(fields.nacionalidad);
+    const estadoCivilS = trim(fields.estadoCivil);
+    const entidadNacimientoS = trim(fields.entidadNacimiento);
+    const ocupacionS = trim(fields.ocupacion);
+    const lenguaIndigenaS = trim(fields.lenguaIndigena);
+    const origenS = trim(fields.origen);
+
+    const calleS = trim(fields.calle);
+    const coloniaS = trim(fields.colonia);
+    const cpS = trim(fields.cp);
+    const ciudadS = trim(fields.ciudad);
+    const estadoDireccionS = trim(fields.estadoDireccion);
+
+    const contactoEmergenciaS = trim(fields.contactoEmergencia);
+    const parentescoS = trim(fields.parentesco);
+    const telEmergenciaS = trim(fields.telEmergencia);
+
+    const capacidadDifS = trim(fields.capacidadDif);
+    const detalleCapacidadS = trim(fields.detalleCapacidad);
+    const enfCronicaS = trim(fields.enfCronica);
+    const detalleEnfS = trim(fields.detalleEnf);
+    const alergiaS = trim(fields.alergia);
+    const detalleAlergiaS = trim(fields.detalleAlergia);
+    const tratamientoS = trim(fields.tratamiento);
+    const detalleTratamientoS = trim(fields.detalleTratamiento);
 
     // Validation
     const missing: string[] = [];
-    if (!nombre) missing.push("nombre");
-    if (!apellidos) missing.push("apellidos");
-    if (!email) missing.push("email");
-    if (!telefono) missing.push("telefono");
+    if (!nombreS) missing.push("nombre");
+    if (!apellidosS) missing.push("apellidos");
+    if (!emailS) missing.push("email");
+    if (!telefonoS) missing.push("telefono");
     if (!programSlug && !programTitle) missing.push("programSlug/programTitle");
     if (!modality) missing.push("modality");
-    if (!ultimoGrado) missing.push("ultimoGrado");
-    if (!carrera) missing.push("carrera");
-    if (!institucion) missing.push("institucion");
+    if (!skipAcademicDegrees && degrees.length === 0) missing.push("degrees");
 
-    // Check required files: cv, kardex, titulo
-    const requiredFiles = ["cv", "kardex", "titulo"];
+    if (!validateEmailBasic(emailS)) {
+      return new Response(
+        JSON.stringify({ error: "Correo electrónico no válido", code: "invalid_email" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (!validatePhoneBasic(telefonoS)) {
+      return new Response(
+        JSON.stringify({ error: "Teléfono no válido", code: "invalid_phone" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (!validatePersonName(nombreS) || !validatePersonName(apellidosS)) {
+      return new Response(
+        JSON.stringify({
+          error: "Nombre o apellidos contienen caracteres no permitidos",
+          code: "invalid_name",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (needsExtendedProfile) {
+      // Personal data
+      const requiredPersonal: Array<[string, string]> = [
+        ["genero", generoS],
+        ["fechaNacimiento", fechaNacimientoS],
+        ["curp", curpS],
+        ["nacionalidad", nacionalidadS],
+        ["estadoCivil", estadoCivilS],
+        ["entidadNacimiento", entidadNacimientoS],
+        ["ocupacion", ocupacionS],
+        ["lenguaIndigena", lenguaIndigenaS],
+        ["origen", origenS],
+        // Address
+        ["calle", calleS],
+        ["colonia", coloniaS],
+        ["cp", cpS],
+        ["ciudad", ciudadS],
+        ["estadoDireccion", estadoDireccionS],
+        // Emergency contact
+        ["contactoEmergencia", contactoEmergenciaS],
+        ["parentesco", parentescoS],
+        ["telEmergencia", telEmergenciaS],
+        // Health (Sí/No flags; details are conditional)
+        ["capacidadDif", capacidadDifS],
+        ["enfCronica", enfCronicaS],
+        ["alergia", alergiaS],
+        ["tratamiento", tratamientoS],
+      ];
+      for (const [name, val] of requiredPersonal) {
+        if (!val) {
+          return new Response(
+            JSON.stringify({
+              error: `Falta el campo ${name}`,
+              code: "missing_extended_field",
+              field: name,
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+      }
+
+      // Re-use the central format checks (CP/CURP/limits/control chars).
+      const dossierErr = validateFullDossierFields({
+        cp: cpS,
+        curp: curpS,
+        telEmergencia: telEmergenciaS,
+        calle: calleS,
+        colonia: coloniaS,
+        ciudad: ciudadS,
+        genero: generoS,
+        nacionalidad: nacionalidadS,
+        estadoCivil: estadoCivilS,
+        detalleCapacidad: detalleCapacidadS,
+        detalleEnf: detalleEnfS,
+        detalleAlergia: detalleAlergiaS,
+        detalleTratamiento: detalleTratamientoS,
+        contactoEmergencia: contactoEmergenciaS,
+        ocupacion: ocupacionS,
+      });
+      if (dossierErr) {
+        return new Response(
+          JSON.stringify({
+            error: dossierErr.error,
+            code: dossierErr.code,
+            field: dossierErr.field,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      // Birth date: ISO yyyy-mm-dd, applicant must be at least 18 years old.
+      const birthDate = new Date(fechaNacimientoS);
+      if (Number.isNaN(birthDate.getTime())) {
+        return new Response(
+          JSON.stringify({
+            error: "Fecha de nacimiento inválida",
+            code: "invalid_birthdate",
+            field: "fechaNacimiento",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      const ageMs = Date.now() - birthDate.getTime();
+      const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
+      if (ageYears < 18 || ageYears > 120) {
+        return new Response(
+          JSON.stringify({
+            error: "Debe ser mayor de edad para inscribirse",
+            code: "invalid_age",
+            field: "fechaNacimiento",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      // Conditional health details: required when the flag is "Sí".
+      const conditional: Array<[string, string, string]> = [
+        ["capacidadDif", capacidadDifS, detalleCapacidadS],
+        ["enfCronica", enfCronicaS, detalleEnfS],
+        ["alergia", alergiaS, detalleAlergiaS],
+        ["tratamiento", tratamientoS, detalleTratamientoS],
+      ];
+      for (const [flag, flagVal, detail] of conditional) {
+        if (flagVal === "Sí" && !detail) {
+          return new Response(
+            JSON.stringify({
+              error: `Indique el detalle para ${flag}`,
+              code: "missing_health_detail",
+              field: `detalle${flag.charAt(0).toUpperCase()}${flag.slice(1)}`,
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+      }
+
+      // Sí/No flags must be exact.
+      for (const [flag, flagVal] of [
+        ["capacidadDif", capacidadDifS],
+        ["enfCronica", enfCronicaS],
+        ["alergia", alergiaS],
+        ["tratamiento", tratamientoS],
+        ["lenguaIndigena", lenguaIndigenaS],
+      ] as const) {
+        if (flagVal !== "Sí" && flagVal !== "No") {
+          return new Response(
+            JSON.stringify({
+              error: `Valor inválido para ${flag}`,
+              code: "invalid_yes_no",
+              field: flag,
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+      }
+
+      // Person-name regex catches injection-style chars in the emergency contact.
+      if (!validatePersonName(contactoEmergenciaS)) {
+        return new Response(
+          JSON.stringify({
+            error: "Contacto de emergencia contiene caracteres no permitidos",
+            code: "invalid_emergency_name",
+            field: "contactoEmergencia",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    if (!skipAcademicDegrees) {
+      for (const d of degrees) {
+        const carreraS = stripControlChars(d.carrera);
+        const instS = stripControlChars(d.institucion);
+        const cedS = stripControlChars(d.cedulaNum);
+        if (!validatePersonName(carreraS) || !validatePersonName(instS)) {
+          return new Response(
+            JSON.stringify({
+              error: "Carrera o institución contienen caracteres no permitidos",
+              code: "invalid_degree_text",
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (d.grado === "Doctorado" && !validateCedulaDoctorado(cedS)) {
+          return new Response(
+            JSON.stringify({
+              error: "La cédula profesional debe ser numérica de 7 u 8 dígitos",
+              code: "invalid_cedula",
+              field: `degree_${d.index}_cedulaNum`,
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
+
+    // Each declared degree must come with both its titulo and cedula. CV is a
+    // single global file shared across the application.
     const uploadedFileFields = files.map((f) => f.fieldname);
-    const missingFiles = requiredFiles.filter((rf) => !uploadedFileFields.includes(rf));
+    const missingFiles: string[] = [];
+    if (!uploadedFileFields.includes("cv")) missingFiles.push("cv");
+    if (!skipAcademicDegrees) {
+      for (const d of degrees) {
+        if (!uploadedFileFields.includes(`degree_${d.index}_titulo`)) {
+          missingFiles.push(`degree_${d.index}_titulo`);
+        }
+        if (!uploadedFileFields.includes(`degree_${d.index}_cedula`)) {
+          missingFiles.push(`degree_${d.index}_cedula`);
+        }
+      }
+    }
 
     if (missing.length > 0 || missingFiles.length > 0) {
       return new Response(
@@ -163,8 +508,38 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Reject stray files
+    for (const f of files) {
+      if (f.fieldname === "cv") continue;
+      if (skipAcademicDegrees) {
+        return new Response(
+          JSON.stringify({
+            error: "Archivo no esperado para este programa",
+            code: "unexpected_file",
+            field: f.fieldname,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      const match = /^degree_(\d+)_(titulo|cedula)$/.exec(f.fieldname);
+      if (!match || !degreeIndices.includes(Number(match[1]))) {
+        return new Response(
+          JSON.stringify({
+            error: "Archivo no esperado",
+            code: "unexpected_file",
+            field: f.fieldname,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    const maxEnrollmentFiles = skipAcademicDegrees
+      ? MAX_ENROLLMENT_FILES_TALLER_ONLY
+      : MAX_ENROLLMENT_FILES;
+
     // Validate file count and contents
-    if (files.length > MAX_FILES_PER_REQUEST) {
+    if (files.length > maxEnrollmentFiles) {
       return new Response(
         JSON.stringify({
           error: "Demasiados archivos adjuntos",
@@ -189,9 +564,79 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    // Get program details from content collection
-    const programs = await getCollection("programas");
-    const program = programs.find((p) => p.slug === programSlug || p.data.title === programTitle);
+    // Per-nivel minimum degree check (e.g. Doctorado needs Licenciatura + Maestría).
+    if (program && !skipAcademicDegrees) {
+      const minErr = validateMinimumDegrees(program.data.nivel, degrees);
+      if (minErr) {
+        return new Response(
+          JSON.stringify({
+            error: minErr,
+            code: "insufficient_degrees",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    // Server-side variant validation: when the program defines `variantOptions`,
+    // the submitted IDs must match one of the configured options. Stops the user
+    // from posting arbitrary strings and protects downstream consumers (CSV /
+    // Stripe metadata) from unexpected values.
+    type VariantOptionsShape = {
+      moduleSelection?: { required?: boolean; options: { id: string }[] };
+      dateSelection?: { required?: boolean; options: { id: string }[] };
+    };
+    const programVariants =
+      (program?.data as { variantOptions?: VariantOptionsShape } | undefined)
+        ?.variantOptions;
+    if (programVariants?.moduleSelection) {
+      const moduleRequired = programVariants.moduleSelection.required !== false;
+      const moduleIds = programVariants.moduleSelection.options.map((o) => o.id);
+      if (moduleRequired && !selectedModule) {
+        return new Response(
+          JSON.stringify({
+            error: "Selecciona el módulo o paquete",
+            code: "missing_variant_module",
+            field: "selectedModule",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (selectedModule && !moduleIds.includes(selectedModule)) {
+        return new Response(
+          JSON.stringify({
+            error: "Opción de módulo no válida",
+            code: "invalid_variant_module",
+            field: "selectedModule",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+    if (programVariants?.dateSelection) {
+      const dateRequired = programVariants.dateSelection.required !== false;
+      const dateIds = programVariants.dateSelection.options.map((o) => o.id);
+      if (dateRequired && !selectedDate) {
+        return new Response(
+          JSON.stringify({
+            error: "Selecciona la fecha de inicio",
+            code: "missing_variant_date",
+            field: "selectedDate",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (selectedDate && !dateIds.includes(selectedDate)) {
+        return new Response(
+          JSON.stringify({
+            error: "Fecha de inicio no válida",
+            code: "invalid_variant_date",
+            field: "selectedDate",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
@@ -212,17 +657,97 @@ export const POST: APIRoute = async ({ request }) => {
       ...(senderEmail !== controlEscolar ? [{ email: senderEmail }] : []),
     ];
 
-    // Prepare email content with escaped values
-    const safeNombre = escapeHtml(nombre);
-    const safeApellidos = escapeHtml(apellidos);
-    const safeEmail = escapeHtml(email);
-    const safeTelefono = escapeHtml(telefono);
+    // Prepare email content with escaped values (use sanitized strings)
+    const safeNombre = escapeHtml(nombreS);
+    const safeApellidos = escapeHtml(apellidosS);
+    const safeEmail = escapeHtml(emailS);
+    const safeTelefono = escapeHtml(telefonoS);
     const safeProgramTitle = escapeHtml(programTitle || program?.data.title || "Programa");
     const safeModality = escapeHtml(modality);
-    const safeUltimoGrado = escapeHtml(ultimoGrado);
-    const safeCarrera = escapeHtml(carrera);
-    const safeInstitucion = escapeHtml(institucion);
-    const safeCedulaNum = escapeHtml(cedulaNum || "No proporcionada");
+
+    // Variant lines render only when the program had a variant step. We prefer
+    // the human label captured client-side and fall back to the ID otherwise.
+    const variantModuleDisplay = selectedModuleLabel || selectedModule;
+    const variantDateDisplay = selectedDateLabel || selectedDate;
+    const variantHtml = variantModuleDisplay || variantDateDisplay
+      ? `
+      <hr />
+      <h3>Opciones del Programa</h3>
+      ${variantModuleDisplay ? `<p><strong>Módulo / paquete:</strong> ${escapeHtml(variantModuleDisplay)}</p>` : ""}
+      ${variantDateDisplay ? `<p><strong>Fecha de inicio:</strong> ${escapeHtml(variantDateDisplay)}</p>` : ""}
+    `
+      : "";
+
+    // Render one row per declared degree. The table makes multi-degree
+    // Doctorado submissions easy to scan for admissions staff.
+    const degreesTableHtml = degrees.length
+      ? `
+        <table style="border-collapse:collapse;width:100%;font-size:14px;">
+          <thead>
+            <tr style="background:#f3f4f6;text-align:left;">
+              <th style="padding:8px;border:1px solid #e5e7eb;">#</th>
+              <th style="padding:8px;border:1px solid #e5e7eb;">Grado</th>
+              <th style="padding:8px;border:1px solid #e5e7eb;">Carrera</th>
+              <th style="padding:8px;border:1px solid #e5e7eb;">Institución</th>
+              <th style="padding:8px;border:1px solid #e5e7eb;">Cédula</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${degrees
+              .map(
+                (d, i) => `
+              <tr>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${i + 1}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${escapeHtml(d.grado)}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${escapeHtml(d.carrera)}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${escapeHtml(d.institucion)}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${escapeHtml(d.cedulaNum)}</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `
+      : "<p>No se proporcionaron grados académicos.</p>";
+
+    const detailIfYes = (flag: string, detail: string) =>
+      flag === "Sí" && detail
+        ? ` — ${escapeHtml(detail)}`
+        : "";
+
+    const extendedProfileHtml = needsExtendedProfile
+      ? `
+      <hr />
+      <h3>Datos personales adicionales</h3>
+      <p><strong>Género:</strong> ${escapeHtml(generoS)}</p>
+      <p><strong>Fecha de nacimiento:</strong> ${escapeHtml(fechaNacimientoS)}</p>
+      <p><strong>CURP:</strong> ${escapeHtml(curpS)}</p>
+      <p><strong>Nacionalidad:</strong> ${escapeHtml(nacionalidadS)}</p>
+      <p><strong>Estado civil:</strong> ${escapeHtml(estadoCivilS)}</p>
+      <p><strong>Entidad de nacimiento:</strong> ${escapeHtml(entidadNacimientoS)}</p>
+      <p><strong>Ocupación:</strong> ${escapeHtml(ocupacionS)}</p>
+      <p><strong>¿Habla lengua indígena?:</strong> ${escapeHtml(lenguaIndigenaS)}</p>
+      <p><strong>¿Cómo se enteró de nosotros?:</strong> ${escapeHtml(origenS)}</p>
+      <hr />
+      <h3>Dirección</h3>
+      <p><strong>Calle:</strong> ${escapeHtml(calleS)}</p>
+      <p><strong>Colonia:</strong> ${escapeHtml(coloniaS)}</p>
+      <p><strong>CP:</strong> ${escapeHtml(cpS)}</p>
+      <p><strong>Ciudad:</strong> ${escapeHtml(ciudadS)}</p>
+      <p><strong>Estado:</strong> ${escapeHtml(estadoDireccionS)}</p>
+      <hr />
+      <h3>Contacto de emergencia</h3>
+      <p><strong>Nombre:</strong> ${escapeHtml(contactoEmergenciaS)}</p>
+      <p><strong>Parentesco:</strong> ${escapeHtml(parentescoS)}</p>
+      <p><strong>Teléfono:</strong> ${escapeHtml(telEmergenciaS)}</p>
+      <hr />
+      <h3>Información de salud</h3>
+      <p><strong>Capacidad diferente:</strong> ${escapeHtml(capacidadDifS)}${detailIfYes(capacidadDifS, detalleCapacidadS)}</p>
+      <p><strong>Enfermedad crónica:</strong> ${escapeHtml(enfCronicaS)}${detailIfYes(enfCronicaS, detalleEnfS)}</p>
+      <p><strong>Alergia:</strong> ${escapeHtml(alergiaS)}${detailIfYes(alergiaS, detalleAlergiaS)}</p>
+      <p><strong>Tratamiento médico:</strong> ${escapeHtml(tratamientoS)}${detailIfYes(tratamientoS, detalleTratamientoS)}</p>
+    `
+      : "";
 
     const adminHtml = `
       <h2>Nueva Solicitud de Admisión</h2>
@@ -231,17 +756,16 @@ export const POST: APIRoute = async ({ request }) => {
       <h3>Programa</h3>
       <p><strong>Programa:</strong> ${safeProgramTitle}</p>
       <p><strong>Modalidad:</strong> ${safeModality}</p>
+      ${variantHtml}
       <hr />
       <h3>Información del Aspirante</h3>
       <p><strong>Nombre:</strong> ${safeNombre} ${safeApellidos}</p>
       <p><strong>Email:</strong> ${safeEmail}</p>
       <p><strong>Teléfono:</strong> ${safeTelefono}</p>
+      ${extendedProfileHtml}
       <hr />
       <h3>Formación Académica</h3>
-      <p><strong>Último Grado:</strong> ${safeUltimoGrado}</p>
-      <p><strong>Carrera:</strong> ${safeCarrera}</p>
-      <p><strong>Institución:</strong> ${safeInstitucion}</p>
-      <p><strong>Cédula:</strong> ${safeCedulaNum}</p>
+      ${degreesTableHtml}
       <hr />
       <p><strong>Documentos adjuntos:</strong></p>
       <ul>
@@ -264,7 +788,7 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify({
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: adminRecipients,
-        subject: `Nueva Solicitud de Admisión - ${programTitle} - ${nombre} ${apellidos}`,
+        subject: `Nueva Solicitud de Admisión - ${programTitle} - ${nombreS} ${apellidosS}`,
         htmlContent: adminHtml,
         attachment,
       }),
@@ -290,6 +814,8 @@ export const POST: APIRoute = async ({ request }) => {
             <p><strong>ID de Solicitud:</strong> ${escapeHtml(applicationId)}</p>
             <p><strong>Programa:</strong> ${safeProgramTitle}</p>
             <p><strong>Modalidad:</strong> ${safeModality}</p>
+            ${variantModuleDisplay ? `<p><strong>Módulo / paquete:</strong> ${escapeHtml(variantModuleDisplay)}</p>` : ""}
+            ${variantDateDisplay ? `<p><strong>Fecha de inicio:</strong> ${escapeHtml(variantDateDisplay)}</p>` : ""}
           </div>
           
           <h3 style="color: #003d82;">Próximos Pasos</h3>

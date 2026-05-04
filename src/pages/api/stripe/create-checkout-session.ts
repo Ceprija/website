@@ -72,6 +72,8 @@ export const POST: APIRoute = async ({ request }) => {
     applicationId,
     requiresInvoice,
     invoiceEmail,
+    selectedModule,
+    selectedDate,
   } = parsed.data;
 
   if (allowed.size > 0 && !allowed.has(priceId)) {
@@ -108,6 +110,12 @@ export const POST: APIRoute = async ({ request }) => {
         ...(applicationId
           ? { applicationId: truncateMeta(applicationId, 80) }
           : {}),
+        ...(selectedModule
+          ? { selectedModule: truncateMeta(selectedModule, 120) }
+          : {}),
+        ...(selectedDate
+          ? { selectedDate: truncateMeta(selectedDate, 120) }
+          : {}),
       },
       payment_intent_data: {
         metadata: {
@@ -118,6 +126,12 @@ export const POST: APIRoute = async ({ request }) => {
             : {}),
           ...(applicationId
             ? { applicationId: truncateMeta(applicationId, 80) }
+            : {}),
+          ...(selectedModule
+            ? { selectedModule: truncateMeta(selectedModule, 120) }
+            : {}),
+          ...(selectedDate
+            ? { selectedDate: truncateMeta(selectedDate, 120) }
             : {}),
         },
       },
