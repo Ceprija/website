@@ -19,6 +19,15 @@ export type UploadValidationError = {
   field?: string;
 };
 
+/**
+ * HEIC/HEIF files follow the ISO Base Media File Format (like MP4): a variable-length
+ * `ftyp` box whose brand (bytes 8-11) identifies the concrete format. iPhone photos
+ * use `heic` (stills) or `mif1`; we also allow common HEIF-family brands. HEIF variants
+ * are normalized to `image/heic` because downstream consumers (Brevo attachments, admin
+ * review) treat them interchangeably.
+ */
+const HEIC_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "mif1", "msf1", "heim", "heis"]);
+
 function detectMimeFromMagic(buf: Buffer): string | null {
   if (buf.length >= 4 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
     return "image/jpeg";
@@ -38,6 +47,13 @@ function detectMimeFromMagic(buf: Buffer): string | null {
   }
   if (buf.length >= 12 && buf.subarray(0, 4).toString("ascii") === "RIFF" && buf.subarray(8, 12).toString("ascii") === "WEBP") {
     return "image/webp";
+  }
+  if (
+    buf.length >= 12 &&
+    buf.subarray(4, 8).toString("ascii") === "ftyp" &&
+    HEIC_BRANDS.has(buf.subarray(8, 12).toString("ascii").toLowerCase())
+  ) {
+    return "image/heic";
   }
   if (buf.length >= 5 && buf.subarray(0, 5).toString("ascii") === "%PDF-") {
     return "application/pdf";
@@ -82,7 +98,14 @@ export function validateUploadBuffer(
       err: { code: "invalid_file_content", error: "El contenido no coincide con un formato permitido", field },
     };
   }
-  if (magic !== normalizedMime) {
+  // HEIF and HEIC share the same ISO BMFF container. Clients (and iOS) sometimes
+  // declare `image/heif` even when the brand is `heic`, and vice versa — treat
+  // them as equivalent so legitimate iPhone uploads aren't rejected.
+  const heifFamily = new Set(["image/heic", "image/heif"]);
+  const magicMatches =
+    magic === normalizedMime ||
+    (heifFamily.has(magic) && heifFamily.has(normalizedMime));
+  if (!magicMatches) {
     return {
       ok: false,
       err: {

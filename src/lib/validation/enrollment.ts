@@ -144,7 +144,12 @@ export type CheckoutSessionBody = {
   /** Facturación (metadata en Stripe; CSF vía `/api/stripe/fiscal-preflight` si aplica) */
   requiresInvoice: "Sí" | "No";
   invoiceEmail: string;
+  /** Optional variant selections (only for programs with `variantOptions`) */
+  selectedModule?: string;
+  selectedDate?: string;
 };
+
+const VARIANT_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/;
 
 export function parseCheckoutSessionBody(
   body: Record<string, unknown> | null,
@@ -167,6 +172,10 @@ export function parseCheckoutSessionBody(
     typeof body.requiresInvoice === "string" ? body.requiresInvoice.trim() : "";
   const invoiceEmailRaw =
     typeof body.invoiceEmail === "string" ? body.invoiceEmail.trim() : "";
+  const selectedModuleRaw =
+    typeof body.selectedModule === "string" ? body.selectedModule.trim() : "";
+  const selectedDateRaw =
+    typeof body.selectedDate === "string" ? body.selectedDate.trim() : "";
 
   if (!priceId || !programSlug || !participantName || !participantPhone || !modalityRaw) {
     return { ok: false, err: { code: "missing_fields", error: "Faltan campos requeridos" } };
@@ -220,6 +229,38 @@ export function parseCheckoutSessionBody(
     applicationId = applicationIdRaw;
   }
 
+  // Variant IDs are opaque tokens chosen in the program's MD file. We don't
+  // know the catalogue from this generic validator, so we just enforce a safe
+  // shape and length to keep Stripe metadata predictable.
+  let selectedModule: string | undefined;
+  if (selectedModuleRaw) {
+    if (!VARIANT_ID_RE.test(selectedModuleRaw)) {
+      return {
+        ok: false,
+        err: {
+          field: "selectedModule",
+          code: "invalid_variant_module",
+          error: "Opción de módulo no válida",
+        },
+      };
+    }
+    selectedModule = selectedModuleRaw;
+  }
+  let selectedDate: string | undefined;
+  if (selectedDateRaw) {
+    if (!VARIANT_ID_RE.test(selectedDateRaw)) {
+      return {
+        ok: false,
+        err: {
+          field: "selectedDate",
+          code: "invalid_variant_date",
+          error: "Fecha de inicio no válida",
+        },
+      };
+    }
+    selectedDate = selectedDateRaw;
+  }
+
   let e = validateStripePriceId(priceId);
   if (e) return { ok: false, err: e };
   e = validateProgramSlug(programSlug);
@@ -253,6 +294,8 @@ export function parseCheckoutSessionBody(
       requiresInvoice,
       invoiceEmail,
       ...(applicationId ? { applicationId } : {}),
+      ...(selectedModule ? { selectedModule } : {}),
+      ...(selectedDate ? { selectedDate } : {}),
     },
   };
 }
