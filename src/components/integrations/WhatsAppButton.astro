@@ -26,11 +26,12 @@ const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(mess
 </a>
 
 <style is:global>
+    /* Por encima del contenido y de la “card” del formulario (z-auto); por debajo del header/cookies (z-50) usar 55. */
     #whatsapp-float {
         position: fixed !important;
         bottom: 24px !important;
         right: 24px !important;
-        z-index: 2147483647 !important;
+        z-index: 55 !important;
         background-color: #25d366 !important;
         color: white !important;
         width: 60px !important;
