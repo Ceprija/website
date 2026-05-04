@@ -1,12 +1,11 @@
 ---
-slug: "curso-actualizacion-en-jurisprudencia"
+slug: "curso-actualizacion-jurisprudencial-en-materia-fiscal"
 title: "Actualización Jurisprudencial en Materia Fiscal"
 description: "Domina las jurisprudencias fiscales más recientes y su impacto estratégico en el sector."
 excerpt: "Domina las jurisprudencias fiscales más recientes y su impacto estratégico en el sector."
 image: "/images/programs/actualizacion-jurisprudencial-en-materia-fiscal.webp"
 escuela: "integral"
 nivel: "curso"
-rvoe: ""
 horario: ""
 startDate: "19 de marzo de 2026"
 duracion: "3 horas 30 minutos"
