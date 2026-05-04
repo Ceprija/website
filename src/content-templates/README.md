@@ -6,6 +6,7 @@ Esta carpeta **no** forma parte de las [content collections](https://docs.astro.
   - `src/content/programas/*.md`
   - `src/content/revista/*.md`
 - Esquema y tipos: `src/content.config.ts`
+- **YAML y campos opcionales:** varias claves de texto (p. ej. `rvoe`, `registroAcademico`, `date`, datos de ficha extendida) se pueden **omitir**, dejar **vacías** o poner explícitamente `null` en YAML; el build las normaliza a “sin valor” para que un solo campo vacío no rompa `astro dev`. Los campos que siguen siendo obligatorios aparecen como `z.string()` (sin `optional`) en `content.config.ts`.
 - **Ruta del programa:** Astro toma el campo `slug` del frontmatter como segmento de URL. Si se omite, usa el nombre del archivo (`curso-foo.md` → `/oferta-academica/curso-foo`). Con `slug` explícito se puede cambiar la URL sin renombrar el archivo. El build falla si dos programas comparten el mismo slug (ver `validateUniqueSlugs`).
 - **Prerequisitos:** si el programa tiene `prerequisites`, la página detalle renderiza una card "Requisitos previos" automáticamente.
 - **Registro académico:** campo opcional `registroAcademico` (p. ej. diplomados ESDIP-…); en la ficha se muestra como “Registro:”. `rvoe` sigue siendo para RVOE de titulación.

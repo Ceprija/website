@@ -25,6 +25,7 @@ import type { ProgramaNivel } from "@lib/programNiveles";
 import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
 import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
 /** Hard cap to bound memory when parsing indexed form fields. */
@@ -52,6 +53,23 @@ function sanitizeFilename(name: string): string {
     .replace(/[^a-z0-9]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function enrollmentRespond(
+  body: Record<string, unknown>,
+  status: number,
+  requestId: string,
+  programSlug: string,
+): Response {
+  if (status >= 400) {
+    apiLog(status >= 500 ? "error" : "warn", "POST /api/enrollment", "http_response", {
+      requestId,
+      httpStatus: status,
+      code: typeof body.code === "string" ? body.code : undefined,
+      programSlug: programSlug.trim() || undefined,
+    });
+  }
+  return jsonResponse(body, status, requestId);
 }
 
 async function parseFormData(request: Request) {
@@ -141,6 +159,8 @@ async function parseFormData(request: Request) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
     const applicationId = crypto.randomUUID();
@@ -150,7 +170,7 @@ export const POST: APIRoute = async ({ request }) => {
     const apellidos = (fields.apellidos ?? "").trim();
     const email = (fields.email ?? "").trim();
     const telefono = (fields.telefono ?? "").trim();
-    const programSlug = (fields.programSlug ?? "").trim();
+    programSlug = (fields.programSlug ?? "").trim();
     const programTitle = (fields.programTitle ?? "").trim();
     const modality = (fields.modality ?? "").trim();
 
@@ -178,24 +198,18 @@ export const POST: APIRoute = async ({ request }) => {
         files.some((f) => f.fieldname.startsWith(`degree_${i}_`));
       if (!rowExists) continue;
       if (!ALLOWED_DEGREE_LEVELS.has(grado)) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Grado académico no válido",
             code: "invalid_grado",
             field: `degree_${i}_grado`,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       if (!carrera || !institucion || !cedulaNum) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Faltan datos del grado académico",
             code: "missing_degree_fields",
             field: `degree_${i}`,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       degrees.push({
         index: i,
@@ -228,13 +242,10 @@ export const POST: APIRoute = async ({ request }) => {
       !!nivel && requiresExtendedApplicantProfile(nivel);
 
     if (skipAcademicDegrees && degrees.length > 0) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Este programa no requiere datos de grados académicos",
           code: "degrees_not_allowed",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+        }, 400, requestId, programSlug);
     }
 
     const nombreS = stripControlChars(nombre);
@@ -285,25 +296,16 @@ export const POST: APIRoute = async ({ request }) => {
     if (!skipAcademicDegrees && degrees.length === 0) missing.push("degrees");
 
     if (!validateEmailBasic(emailS)) {
-      return new Response(
-        JSON.stringify({ error: "Correo electrónico no válido", code: "invalid_email" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      return enrollmentRespond({ error: "Correo electrónico no válido", code: "invalid_email" }, 400, requestId, programSlug);
     }
     if (!validatePhoneBasic(telefonoS)) {
-      return new Response(
-        JSON.stringify({ error: "Teléfono no válido", code: "invalid_phone" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      return enrollmentRespond({ error: "Teléfono no válido", code: "invalid_phone" }, 400, requestId, programSlug);
     }
     if (!validatePersonName(nombreS) || !validatePersonName(apellidosS)) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Nombre o apellidos contienen caracteres no permitidos",
           code: "invalid_name",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+        }, 400, requestId, programSlug);
     }
 
     if (needsExtendedProfile) {
@@ -336,14 +338,11 @@ export const POST: APIRoute = async ({ request }) => {
       ];
       for (const [name, val] of requiredPersonal) {
         if (!val) {
-          return new Response(
-            JSON.stringify({
+          return enrollmentRespond({
               error: `Falta el campo ${name}`,
               code: "missing_extended_field",
               field: name,
-            }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+            }, 400, requestId, programSlug);
         }
       }
 
@@ -366,39 +365,30 @@ export const POST: APIRoute = async ({ request }) => {
         ocupacion: ocupacionS,
       });
       if (dossierErr) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: dossierErr.error,
             code: dossierErr.code,
             field: dossierErr.field,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
 
       // Birth date: ISO yyyy-mm-dd, applicant must be at least 18 years old.
       const birthDate = new Date(fechaNacimientoS);
       if (Number.isNaN(birthDate.getTime())) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Fecha de nacimiento inválida",
             code: "invalid_birthdate",
             field: "fechaNacimiento",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       const ageMs = Date.now() - birthDate.getTime();
       const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
       if (ageYears < 18 || ageYears > 120) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Debe ser mayor de edad para inscribirse",
             code: "invalid_age",
             field: "fechaNacimiento",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
 
       // Conditional health details: required when the flag is "Sí".
@@ -410,14 +400,11 @@ export const POST: APIRoute = async ({ request }) => {
       ];
       for (const [flag, flagVal, detail] of conditional) {
         if (flagVal === "Sí" && !detail) {
-          return new Response(
-            JSON.stringify({
+          return enrollmentRespond({
               error: `Indique el detalle para ${flag}`,
               code: "missing_health_detail",
               field: `detalle${flag.charAt(0).toUpperCase()}${flag.slice(1)}`,
-            }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+            }, 400, requestId, programSlug);
         }
       }
 
@@ -430,27 +417,21 @@ export const POST: APIRoute = async ({ request }) => {
         ["lenguaIndigena", lenguaIndigenaS],
       ] as const) {
         if (flagVal !== "Sí" && flagVal !== "No") {
-          return new Response(
-            JSON.stringify({
+          return enrollmentRespond({
               error: `Valor inválido para ${flag}`,
               code: "invalid_yes_no",
               field: flag,
-            }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+            }, 400, requestId, programSlug);
         }
       }
 
       // Person-name regex catches injection-style chars in the emergency contact.
       if (!validatePersonName(contactoEmergenciaS)) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Contacto de emergencia contiene caracteres no permitidos",
             code: "invalid_emergency_name",
             field: "contactoEmergencia",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
 
@@ -460,23 +441,17 @@ export const POST: APIRoute = async ({ request }) => {
         const instS = stripControlChars(d.institucion);
         const cedS = stripControlChars(d.cedulaNum);
         if (!validatePersonName(carreraS) || !validatePersonName(instS)) {
-          return new Response(
-            JSON.stringify({
+          return enrollmentRespond({
               error: "Carrera o institución contienen caracteres no permitidos",
               code: "invalid_degree_text",
-            }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+            }, 400, requestId, programSlug);
         }
         if (d.grado === "Doctorado" && !validateCedulaDoctorado(cedS)) {
-          return new Response(
-            JSON.stringify({
+          return enrollmentRespond({
               error: "La cédula profesional debe ser numérica de 7 u 8 dígitos",
               code: "invalid_cedula",
               field: `degree_${d.index}_cedulaNum`,
-            }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+            }, 400, requestId, programSlug);
         }
       }
     }
@@ -498,39 +473,30 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (missing.length > 0 || missingFiles.length > 0) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Faltan campos requeridos",
           code: "missing_fields",
           missing: [...missing, ...missingFiles.map((f) => `file:${f}`)],
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+        }, 400, requestId, programSlug);
     }
 
     // Reject stray files
     for (const f of files) {
       if (f.fieldname === "cv") continue;
       if (skipAcademicDegrees) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Archivo no esperado para este programa",
             code: "unexpected_file",
             field: f.fieldname,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       const match = /^degree_(\d+)_(titulo|cedula)$/.exec(f.fieldname);
       if (!match || !degreeIndices.includes(Number(match[1]))) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Archivo no esperado",
             code: "unexpected_file",
             field: f.fieldname,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
 
@@ -540,27 +506,21 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Validate file count and contents
     if (files.length > maxEnrollmentFiles) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Demasiados archivos adjuntos",
           code: "too_many_files",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+        }, 400, requestId, programSlug);
     }
 
     for (const file of files) {
       if (file.buffer.length === 0) continue;
       const v = validateUploadBuffer(file.buffer, file.mimetype, { field: file.fieldname });
       if (!v.ok) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: v.err.error,
             code: v.err.code,
             field: v.err.field ?? file.fieldname,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
 
@@ -568,13 +528,10 @@ export const POST: APIRoute = async ({ request }) => {
     if (program && !skipAcademicDegrees) {
       const minErr = validateMinimumDegrees(program.data.nivel, degrees);
       if (minErr) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: minErr,
             code: "insufficient_degrees",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
 
@@ -593,48 +550,36 @@ export const POST: APIRoute = async ({ request }) => {
       const moduleRequired = programVariants.moduleSelection.required !== false;
       const moduleIds = programVariants.moduleSelection.options.map((o) => o.id);
       if (moduleRequired && !selectedModule) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Selecciona el módulo o paquete",
             code: "missing_variant_module",
             field: "selectedModule",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       if (selectedModule && !moduleIds.includes(selectedModule)) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Opción de módulo no válida",
             code: "invalid_variant_module",
             field: "selectedModule",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
     if (programVariants?.dateSelection) {
       const dateRequired = programVariants.dateSelection.required !== false;
       const dateIds = programVariants.dateSelection.options.map((o) => o.id);
       if (dateRequired && !selectedDate) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Selecciona la fecha de inicio",
             code: "missing_variant_date",
             field: "selectedDate",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
       if (selectedDate && !dateIds.includes(selectedDate)) {
-        return new Response(
-          JSON.stringify({
+        return enrollmentRespond({
             error: "Fecha de inicio no válida",
             code: "invalid_variant_date",
             field: "selectedDate",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+          }, 400, requestId, programSlug);
       }
     }
 
@@ -643,13 +588,10 @@ export const POST: APIRoute = async ({ request }) => {
     const controlEscolar = (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
 
     if (!brevoKey) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Correo no configurado en el servidor (KEY_API_BREVO)",
           code: "brevo_not_configured",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } },
-      );
+        }, 503, requestId, programSlug);
     }
 
     const adminRecipients = [
@@ -859,14 +801,11 @@ export const POST: APIRoute = async ({ request }) => {
       console.error("[enrollment] Brevo user error:", userRes.status, await userRes.text());
     }
 
-    return new Response(
-      JSON.stringify({
+    return jsonResponse({
         success: true,
         applicationId,
         message: "Solicitud enviada exitosamente",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+      }, 200, requestId);
   } catch (error) {
     if (
       error &&
@@ -874,21 +813,25 @@ export const POST: APIRoute = async ({ request }) => {
       "code" in error &&
       (error as { code?: string }).code === "file_too_large"
     ) {
-      return new Response(
-        JSON.stringify({
+      return enrollmentRespond({
           error: "Archivo demasiado grande (máx. 10 MB)",
           code: "file_too_large",
           ...("field" in error && typeof (error as { field?: string }).field === "string"
             ? { field: (error as { field: string }).field }
             : {}),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+        }, 400, requestId, programSlug);
     }
     console.error("[enrollment] Internal error:", error);
-    return new Response(
-      JSON.stringify({ error: "Error interno del servidor", code: "internal_error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    apiLog("error", "POST /api/enrollment", "internal_error", {
+      requestId,
+      programSlug: programSlug || undefined,
+      code: "internal_error",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse(
+      { error: "Error interno del servidor", code: "internal_error" },
+      500,
+      requestId,
     );
   }
 };

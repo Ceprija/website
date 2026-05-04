@@ -12,19 +12,24 @@ import {
   hasWebhookEventBeenProcessed,
   markWebhookEventProcessed,
 } from "@lib/processedStripeStore";
+import { apiLog, getRequestId, jsonResponse, textResponse } from "@lib/server/apiRequestLog";
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/stripe/webhook";
   const secret = STRIPE_SECRET_KEY;
   const whSecret = STRIPE_WEBHOOK_SECRET;
 
   if (!secret || !whSecret) {
-    return new Response("Not configured", { status: 503 });
+    apiLog("error", route, "stripe_webhook_not_configured", { requestId });
+    return textResponse("Not configured", 503, requestId);
   }
 
   const stripe = new Stripe(secret);
   const sig = request.headers.get("stripe-signature");
   if (!sig) {
-    return new Response("No signature", { status: 400 });
+    apiLog("warn", route, "missing_stripe_signature", { requestId });
+    return textResponse("No signature", 400, requestId);
   }
 
   const rawBody = Buffer.from(await request.arrayBuffer());
@@ -33,79 +38,88 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, whSecret);
   } catch {
-    return new Response("Invalid signature", { status: 400 });
+    apiLog("warn", route, "invalid_stripe_signature", { requestId });
+    return textResponse("Invalid signature", 400, requestId);
   }
 
   if (hasWebhookEventBeenProcessed(event.id)) {
-    return new Response(JSON.stringify({ received: true, duplicate: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    apiLog("info", route, "duplicate_event", {
+      requestId,
+      eventId: event.id,
+      type: event.type,
     });
+    return jsonResponse({ received: true, duplicate: true }, 200, requestId);
   }
 
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      console.info(
-        "[stripe] checkout.session.completed",
-        session.id,
-        session.payment_status,
-        session.metadata,
-      );
+      apiLog("info", route, "checkout_session_completed", {
+        requestId,
+        eventId: event.id,
+        sessionId: session.id,
+        paymentStatus: session.payment_status,
+        programSlug: session.metadata?.programSlug,
+      });
       break;
     }
 
     case "payment_intent.payment_failed": {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.warn(
-        "[stripe] payment_intent.payment_failed",
-        paymentIntent.id,
-        paymentIntent.last_payment_error?.message,
-        paymentIntent.metadata,
-      );
+      apiLog("warn", route, "payment_intent_failed", {
+        requestId,
+        eventId: event.id,
+        paymentIntentId: paymentIntent.id,
+        programSlug: paymentIntent.metadata?.programSlug,
+        message: paymentIntent.last_payment_error?.message,
+      });
       break;
     }
 
     case "charge.refunded": {
       const charge = event.data.object as Stripe.Charge;
-      console.warn(
-        "[stripe] charge.refunded",
-        charge.id,
-        `Amount: ${charge.amount_refunded}`,
-        charge.metadata,
-      );
+      apiLog("warn", route, "charge_refunded", {
+        requestId,
+        eventId: event.id,
+        chargeId: charge.id,
+        amountRefunded: charge.amount_refunded,
+        programSlug: charge.metadata?.programSlug,
+      });
       break;
     }
 
     case "charge.dispute.created": {
       const dispute = event.data.object as Stripe.Dispute;
-      console.error(
-        "[stripe] charge.dispute.created",
-        dispute.id,
-        `Reason: ${dispute.reason}`,
-        `Amount: ${dispute.amount}`,
-      );
+      apiLog("error", route, "charge_dispute_created", {
+        requestId,
+        eventId: event.id,
+        disputeId: dispute.id,
+        reason: dispute.reason,
+        amount: dispute.amount,
+      });
       break;
     }
 
     case "charge.dispute.closed": {
       const dispute = event.data.object as Stripe.Dispute;
-      console.info(
-        "[stripe] charge.dispute.closed",
-        dispute.id,
-        `Status: ${dispute.status}`,
-      );
+      apiLog("info", route, "charge_dispute_closed", {
+        requestId,
+        eventId: event.id,
+        disputeId: dispute.id,
+        status: dispute.status,
+      });
       break;
     }
 
     default:
-      console.log(`[stripe] Unhandled event type: ${event.type}`);
+      apiLog("info", route, "unhandled_event_type", {
+        requestId,
+        eventId: event.id,
+        type: event.type,
+      });
   }
 
   markWebhookEventProcessed(event.id);
 
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  return jsonResponse({ received: true }, 200, requestId);
 };

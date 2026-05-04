@@ -10,6 +10,7 @@ import Stripe from "stripe";
 import { resolveCheckoutOrigin } from "@lib/stripeRedirects";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 import { parseCheckoutSessionBody } from "@lib/validation/enrollment";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 function stripeErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
@@ -36,12 +37,16 @@ function truncateMeta(value: string, max = 450): string {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/stripe/create-checkout-session";
   const secret = STRIPE_SECRET_KEY;
   if (!secret) {
-    return new Response(JSON.stringify({ error: "Stripe no configurado" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
+    apiLog("error", route, "stripe_secret_missing", { requestId });
+    return jsonResponse(
+      { error: "Stripe no configurado", code: "stripe_not_configured" },
+      503,
+      requestId,
+    );
   }
 
   const allowed = parseStripeAllowedPriceIds(STRIPE_ALLOWED_PRICE_IDS);
@@ -77,9 +82,16 @@ export const POST: APIRoute = async ({ request }) => {
   } = parsed.data;
 
   if (allowed.size > 0 && !allowed.has(priceId)) {
-    return new Response(
-      JSON.stringify({ error: "Precio no permitido", code: "price_not_allowed" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+    apiLog("warn", route, "price_not_allowed", {
+      requestId,
+      programSlug,
+      priceId,
+      code: "price_not_allowed",
+    });
+    return jsonResponse(
+      { error: "Precio no permitido", code: "price_not_allowed" },
+      400,
+      requestId,
     );
   }
 
@@ -137,15 +149,25 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    apiLog("info", route, "checkout_session_created", {
+      requestId,
+      programSlug,
+      sessionId: session.id,
     });
+    return jsonResponse({ url: session.url }, 200, requestId);
   } catch (e) {
     const message = stripeErrorMessage(e);
-    return new Response(JSON.stringify({ error: message, code: "stripe_error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+    const stripeCode =
+      e && typeof e === "object" && "code" in e
+        ? String((e as { code?: unknown }).code ?? "")
+        : "";
+    apiLog("error", route, "stripe_api_error", {
+      requestId,
+      programSlug,
+      code: "stripe_error",
+      stripeCode: stripeCode || undefined,
+      error: message,
     });
+    return jsonResponse({ error: message, code: "stripe_error" }, 500, requestId);
   }
 };

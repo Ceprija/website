@@ -1,6 +1,22 @@
 import { defineCollection, z } from 'astro:content';
 import { PROGRAMA_NIVELES_TUPLE } from './lib/programNiveles';
 
+/**
+ * YAML often emits `null` for empty keys; plain `z.string().optional()` only
+ * accepts `undefined`. Coerce null / "" / whitespace to undefined so one bad
+ * field does not break `astro dev` for the whole collection.
+ */
+function optionalYamlString() {
+  return z.preprocess((val) => {
+    if (val === null || val === undefined) return undefined;
+    if (typeof val === "string") {
+      const t = val.trim();
+      return t.length > 0 ? t : undefined;
+    }
+    return val;
+  }, z.string().optional());
+}
+
 const revista = defineCollection({
   schema: z.object({
     slug: z.string().optional(),
@@ -25,26 +41,26 @@ const programas = defineCollection({
     escuela: z.enum(["juridica", "economica", "integral"]),
     nivel: z.enum(PROGRAMA_NIVELES_TUPLE),
     /** RVOE (programas de titulación). Omitir o dejar vacío si solo aplica `registroAcademico`. */
-    rvoe: z.string().optional(),
+    rvoe: optionalYamlString(),
     /** Registro académico de diplomados (p. ej. ESDIP-2024-xxx). Se muestra como “Registro” en la ficha. */
-    registroAcademico: z.string().optional(),
+    registroAcademico: optionalYamlString(),
     horario: z.string(),
     startDate: z.string(),
     duracion: z.string(),
     modalidad: z.string(),
     price: z.union([z.number(), z.record(z.string())]).optional(),
     featured: z.boolean().optional(),
-    date: z.string().optional(),
+    date: optionalYamlString(),
     
     // Extended fields for rich program data
     curriculum: z.array(z.object({
       period: z.string(),
       subjects: z.array(z.string())
     })).optional(),
-    curriculumTitle: z.string().optional(),
-    profile: z.string().optional(),
-    profileAudience: z.string().optional(),
-    fieldOfWork: z.string().optional(),
+    curriculumTitle: optionalYamlString(),
+    profile: optionalYamlString(),
+    profileAudience: optionalYamlString(),
+    fieldOfWork: optionalYamlString(),
     includes: z.array(z.string()).optional(),
     prerequisites: z.array(z.string()).optional(),
     paymentLinks: z.object({
@@ -56,10 +72,10 @@ const programas = defineCollection({
       presencial: z.string().optional()
     }).optional(),
     requiresVerification: z.boolean().optional().default(false),
-    address: z.string().optional(),
-    instructor: z.string().optional(),
-    schedule: z.string().optional(),
-    meetingLink: z.string().optional(),
+    address: optionalYamlString(),
+    instructor: optionalYamlString(),
+    schedule: optionalYamlString(),
+    meetingLink: optionalYamlString(),
 
     /**
      * Opciones de variante para programas con módulos seleccionables y/o varias

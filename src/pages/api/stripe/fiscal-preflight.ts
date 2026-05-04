@@ -10,6 +10,7 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { validateStripeFiscalPreflightFields } from "@lib/validation/enrollment";
+import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 type UploadedFile = {
   fieldname: string;
@@ -115,25 +116,41 @@ async function parseFormData(request: Request) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/stripe/fiscal-preflight";
   try {
     const { fields, files } = await parseFormData(request);
+    const programSlugEarly = (fields.programSlug ?? "").trim();
 
     const fieldErr = validateStripeFiscalPreflightFields(fields);
     if (fieldErr) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "validation_failed", {
+        requestId,
+        programSlug: programSlugEarly || undefined,
+        code: fieldErr.code,
+        field: fieldErr.field,
+      });
+      return jsonResponse(
+        {
           error: fieldErr.error,
           code: fieldErr.code,
           ...(fieldErr.field && { field: fieldErr.field }),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
     if (files.length > MAX_FILES_PER_REQUEST) {
-      return new Response(
-        JSON.stringify({ error: "Demasiados archivos", code: "too_many_files" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+      apiLog("warn", route, "too_many_files", {
+        requestId,
+        programSlug: programSlugEarly || undefined,
+        code: "too_many_files",
+      });
+      return jsonResponse(
+        { error: "Demasiados archivos", code: "too_many_files" },
+        400,
+        requestId,
       );
     }
 
@@ -142,13 +159,19 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
     if (!fiscal || fiscal.buffer.length === 0) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "missing_fiscal_constancy", {
+        requestId,
+        programSlug: programSlugEarly || undefined,
+        code: "missing_fiscal_constancy",
+      });
+      return jsonResponse(
+        {
           error: "Falta la constancia de situación fiscal (CSF)",
           code: "missing_fiscal_constancy",
           field: "fiscalConstancy",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -156,13 +179,20 @@ export const POST: APIRoute = async ({ request }) => {
       field: fiscal.fieldname,
     });
     if (!v.ok) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "upload_validation_failed", {
+        requestId,
+        programSlug: programSlugEarly || undefined,
+        code: v.err.code,
+        field: v.err.field ?? fiscal.fieldname,
+      });
+      return jsonResponse(
+        {
           error: v.err.error,
           code: v.err.code,
           field: v.err.field ?? fiscal.fieldname,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
 
@@ -182,12 +212,18 @@ export const POST: APIRoute = async ({ request }) => {
       (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
 
     if (!brevoKey) {
-      return new Response(
-        JSON.stringify({
+      apiLog("error", route, "brevo_not_configured", {
+        requestId,
+        programSlug: programSlug || undefined,
+        code: "brevo_not_configured",
+      });
+      return jsonResponse(
+        {
           error: "Correo no configurado (KEY_API_BREVO)",
           code: "brevo_not_configured",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } },
+        },
+        503,
+        requestId,
       );
     }
 
@@ -228,13 +264,21 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (!adminRes.ok) {
-      console.error("[fiscal-preflight] Brevo:", adminRes.status, await adminRes.text());
+      const brevoBody = await adminRes.text();
+      apiLog("error", route, "brevo_send_failed", {
+        requestId,
+        programSlug: programSlug || undefined,
+        brevoStatus: adminRes.status,
+        brevoBody: brevoBody.slice(0, 500),
+      });
+    } else {
+      apiLog("info", route, "preflight_ok", {
+        requestId,
+        programSlug: programSlug || undefined,
+      });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true }, 200, requestId);
   } catch (error) {
     if (
       error &&
@@ -242,21 +286,35 @@ export const POST: APIRoute = async ({ request }) => {
       "code" in error &&
       (error as { code?: string }).code === "file_too_large"
     ) {
-      return new Response(
-        JSON.stringify({
+      apiLog("warn", route, "file_too_large", {
+        requestId,
+        code: "file_too_large",
+        field:
+          "field" in error && typeof (error as { field?: string }).field === "string"
+            ? (error as { field: string }).field
+            : undefined,
+      });
+      return jsonResponse(
+        {
           error: "Archivo demasiado grande (máx. 10 MB)",
           code: "file_too_large",
           ...("field" in error && typeof (error as { field?: string }).field === "string"
             ? { field: (error as { field: string }).field }
             : {}),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        },
+        400,
+        requestId,
       );
     }
-    console.error("[fiscal-preflight]", error);
-    return new Response(
-      JSON.stringify({ error: "Error interno", code: "internal_error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    apiLog("error", route, "internal_error", {
+      requestId,
+      code: "internal_error",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse(
+      { error: "Error interno", code: "internal_error" },
+      500,
+      requestId,
     );
   }
 };
