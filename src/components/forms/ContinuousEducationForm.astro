@@ -30,13 +30,16 @@ const {
     embedInAsideCard = false,
 } = Astro.props;
 
-const outerClass = embedInAsideCard ? "w-full" : "max-w-4xl mx-auto";
+const outerClass = embedInAsideCard ? "w-full" : "max-w-4xl mx-auto overflow-visible";
 const formSurfaceClass = embedInAsideCard
     ? "bg-transparent border-0 shadow-none rounded-none overflow-visible"
-    : "bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden";
+    : "bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-visible";
 const successSurfaceClass = embedInAsideCard
     ? "rounded-2xl border border-gray-100 shadow-sm"
     : "rounded-3xl shadow-xl border border-gray-100";
+const formFooterClass = embedInAsideCard
+    ? "bg-white px-0 py-6 border-t border-gray-100 flex items-center justify-between gap-4"
+    : "bg-white px-8 py-6 md:px-12 md:py-8 border-t border-gray-100 flex items-center justify-between gap-4 rounded-b-3xl";
 ---
 
 <div class:list={[outerClass]}>
@@ -88,6 +91,7 @@ const successSurfaceClass = embedInAsideCard
         />
         <input type="hidden" name="paymentMethod" id="payment-method" value="stripe" />
         <input type="hidden" name="wireReference" id="wire-reference" value="" />
+        <input type="hidden" name="enrollmentSessionId" id="ce-enrollment-session-id" value="" />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
         <div class="step-section p-8 md:p-12" id="step-1">
@@ -611,6 +615,7 @@ const successSurfaceClass = embedInAsideCard
                 </div>
             </div>
         </div>
+        </div>
 
         <!-- SECCIÓN 3: DECLARACIÓN Y ENVÍO -->
         <div class="step-section p-8 md:p-12 hidden" id="step-3">
@@ -660,29 +665,29 @@ const successSurfaceClass = embedInAsideCard
             </div>
         </div>
 
-        <!-- Footer: Botones -->
-        <div
-            class="bg-gray-50 px-8 py-6 md:px-12 md:py-8 border-t border-gray-100 flex items-center justify-between gap-4"
-        >
+        <!-- Footer: flujo normal (como origin/main). Evitar position:fixed dentro
+             de secciones con data-animate/transform: el botón queda fuera de vista.
+             Cuando embedInAsideCard, usar px-0 para evitar overflow del card parent. -->
+        <div class:list={[formFooterClass]}>
             <button
                 type="button"
                 id="prev-btn"
-                class="hidden px-8 py-3 rounded-xl font-bold bg-white text-gray-600 border-2 border-gray-100 hover:border-gray-200 hover:bg-gray-100 transition-all"
+                class="hidden shrink-0 px-8 py-3 rounded-xl font-bold bg-white text-gray-600 border-2 border-gray-100 hover:border-gray-200 hover:bg-gray-100 transition-all"
             >
                 Anterior
             </button>
-            <div class="flex-grow"></div>
+            <div class="min-w-2 flex-grow"></div>
             <button
                 type="button"
                 id="next-btn"
-                class="px-12 py-3 rounded-xl font-bold bg-secondary text-primary hover:bg-yellow-400 shadow-lg shadow-secondary/20 transition-all"
+                class="shrink-0 px-12 py-3 rounded-xl font-bold bg-secondary text-primary hover:bg-yellow-400 shadow-lg shadow-secondary/20 transition-all"
             >
                 Siguiente
             </button>
             <button
                 type="submit"
                 id="submit-btn"
-                class="hidden px-12 py-3 rounded-xl font-bold bg-primary text-white hover:bg-blue-900 shadow-lg shadow-primary/20 transition-all flex items-center gap-3"
+                class="hidden shrink-0 px-12 py-3 rounded-xl font-bold bg-primary text-white hover:bg-blue-900 shadow-lg shadow-primary/20 transition-all flex items-center gap-3"
             >
                 <span>Finalizar</span>
                 <svg
@@ -752,45 +757,54 @@ const successSurfaceClass = embedInAsideCard
 
 <script>
     import {
-        validateRequiredFieldsInContainer,
+        validateStepSection,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
+    import { wireReferenceFromSessionId } from "@lib/wireReference";
 
     const form = document.getElementById("ce-inscription-form") as HTMLFormElement | null;
-    const progress = document.getElementById("progress-bar");
-    const stepLabel = document.getElementById("step-label");
-    const stepNumberLabel = document.getElementById("step-number");
-    const sections = document.querySelectorAll(".step-section");
-    const prevBtn = document.getElementById("prev-btn");
-    const nextBtn = document.getElementById("next-btn");
-    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
-    const successMsg = document.getElementById("success-msg");
+    const enrollmentSessionIdEl = form?.querySelector(
+        "#ce-enrollment-session-id",
+    ) as HTMLInputElement | null;
+    if (enrollmentSessionIdEl && !enrollmentSessionIdEl.value.trim()) {
+        enrollmentSessionIdEl.value = crypto.randomUUID();
+    }
+    // Wrapper = parent of <form> (stepper header + form live in the same root).
+    const outer = form?.parentElement ?? null;
+    const progress = outer?.querySelector("#progress-bar") as HTMLElement | null;
+    const stepLabel = outer?.querySelector("#step-label") as HTMLElement | null;
+    const stepNumberLabel = outer?.querySelector("#step-number") as HTMLElement | null;
+    const sections = form?.querySelectorAll<HTMLElement>(".step-section") ?? [];
+    const prevBtn = form?.querySelector("#prev-btn") as HTMLButtonElement | null;
+    const nextBtn = form?.querySelector("#next-btn") as HTMLButtonElement | null;
+    const submitBtn = form?.querySelector("#submit-btn") as HTMLButtonElement | null;
+    const successMsg = outer?.querySelector("#success-msg") as HTMLElement | null;
 
     // Facturación Logic
-    const invoiceRadios = document.querySelectorAll(
-        'input[name="requiresInvoice"]',
-    );
-    const invoiceFields = document.getElementById("invoice-fields");
+    const invoiceRadios =
+        form?.querySelectorAll<HTMLInputElement>('input[name="requiresInvoice"]') ?? [];
+    const invoiceFields = form?.querySelector("#invoice-fields");
     const fiscalInputs =
         invoiceFields?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
             "input, textarea",
         ) ?? [];
 
     // Modality selection
-    const paymentMethodRadios = document.querySelectorAll('input[name="paymentMethodChoice"]');
-    const paymentMethodHidden = document.getElementById(
-        "payment-method",
+    const paymentMethodRadios =
+        form?.querySelectorAll<HTMLInputElement>('input[name="paymentMethodChoice"]') ?? [];
+    const paymentMethodHidden = form?.querySelector(
+        "#payment-method",
     ) as HTMLInputElement | null;
-    const wireReferenceHidden = document.getElementById(
-        "wire-reference",
+    const wireReferenceHidden = form?.querySelector(
+        "#wire-reference",
     ) as HTMLInputElement | null;
-    const wireReferencePreview = document.getElementById("wire-reference-preview");
-    const wireProofSection = document.getElementById("wire-proof-section");
-    const paymentProofInput = document.getElementById(
-        "payment-proof-input",
+    const wireReferencePreview = form?.querySelector("#wire-reference-preview");
+    const wireProofSection = form?.querySelector("#wire-proof-section");
+    const paymentProofInput = form?.querySelector(
+        "#payment-proof-input",
     ) as HTMLInputElement | null;
-    const stripePanel = document.getElementById("stripe-panel");
-    const wirePanel = document.getElementById("wire-panel");
+    const stripePanel = form?.querySelector("#stripe-panel");
+    const wirePanel = form?.querySelector("#wire-panel");
 
     let currentStep = 1;
     const totalSteps = 3;
@@ -822,7 +836,10 @@ const successSurfaceClass = embedInAsideCard
     nextBtn?.addEventListener("click", () => {
         const section = sections[currentStep - 1];
         if (!section || !form) return;
-        const result = validateRequiredFieldsInContainer(section);
+        // Check formats (phone, email) in addition to required-ness so users
+        // can't advance past a step with a bad value only to find out at the
+        // server-side validation that their phone was rejected.
+        const result = validateStepSection(section);
         if (!result.ok) {
             const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
             reportStepValidationFailure(title, result);
@@ -859,8 +876,8 @@ const successSurfaceClass = embedInAsideCard
     });
 
     // Stripe Checkout Logic
-    const stripeCheckoutBtn = document.getElementById(
-        "stripe-checkout-btn",
+    const stripeCheckoutBtn = form?.querySelector(
+        "#stripe-checkout-btn",
     ) as HTMLButtonElement | null;
 
     function readStripePriceIdsFromForm(): Record<string, string> {
@@ -880,7 +897,7 @@ const successSurfaceClass = embedInAsideCard
         if (!stripeCheckoutBtn || !form) return;
         const method =
             (
-                document.querySelector(
+                form.querySelector(
                     'input[name="paymentMethodChoice"]:checked',
                 ) as HTMLInputElement | null
             )?.value || "stripe";
@@ -890,7 +907,7 @@ const successSurfaceClass = embedInAsideCard
         }
 
         const modality = (
-            document.querySelector(
+            form.querySelector(
                 'input[name="modality"]:checked',
             ) as HTMLInputElement | null
         )?.value;
@@ -912,8 +929,7 @@ const successSurfaceClass = embedInAsideCard
 
         const priceOk =
             typeof priceId === "string" &&
-            /^price_[a-zA-Z0-9]+$/.test(priceId) &&
-            !/PLACEHOLDER|REPLACE/i.test(priceId);
+            /^price_[a-zA-Z0-9]+$/.test(priceId);
         if (!priceOk) {
             alert(
                 "Este programa no tiene un Price ID de Stripe válido. Crea precios en el Dashboard de Stripe y agrégalos al archivo del programa en content/programas (stripePriceIds).",
@@ -923,7 +939,7 @@ const successSurfaceClass = embedInAsideCard
 
         // Pasos 1 y 2 deben estar completos antes de Stripe (el botón vive en el paso 2)
         for (let s = 0; s <= 1; s++) {
-            const stepResult = validateRequiredFieldsInContainer(sections[s]);
+            const stepResult = validateStepSection(sections[s]);
             if (!stepResult.ok) {
                 const title = `Paso ${s + 1} de ${totalSteps}: ${stepNames[s]}`;
                 reportStepValidationFailure(title, stepResult);
@@ -943,12 +959,12 @@ const successSurfaceClass = embedInAsideCard
         const participantPhone = String(formData.get("phone") ?? "").trim();
         const needsInvoice =
             (
-                document.querySelector(
+                form.querySelector(
                     'input[name="requiresInvoice"]:checked',
                 ) as HTMLInputElement | null
             )?.value === "Sí";
         const invoiceEmail = String(formData.get("invoiceEmail") ?? "").trim();
-        const csfInput = document.getElementById("csf-input") as HTMLInputElement | null;
+        const csfInput = form.querySelector("#csf-input") as HTMLInputElement | null;
 
         if (needsInvoice) {
             if (!invoiceEmail) {
@@ -1029,33 +1045,15 @@ const successSurfaceClass = embedInAsideCard
     });
 
     function generateWireReference() {
-        let bank: { referencePrefix?: string } = {};
-        try {
-            bank = JSON.parse(form?.dataset.bankInfo || "{}");
-        } catch {
-            /* ignore */
-        }
-        const prefix = bank.referencePrefix || "CEPRIJA";
-        const program = String(
-            (document.getElementById("form-program-id") as HTMLInputElement | null)
-                ?.value || "programa",
-        )
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "");
-        const stamp = new Date();
-        const y = String(stamp.getFullYear());
-        const m = String(stamp.getMonth() + 1).padStart(2, "0");
-        const d = String(stamp.getDate()).padStart(2, "0");
-        const t = Math.floor(stamp.getTime() / 1000) % 46656; // 36^3
-        const suffix = t.toString(36).toUpperCase().padStart(3, "0");
-        return `${prefix}-${program}-${y}${m}${d}${suffix}`;
+        const sid = enrollmentSessionIdEl?.value?.trim();
+        if (sid) return wireReferenceFromSessionId(sid);
+        return "CEPRIJA-PENDING";
     }
 
     function applyPaymentMethodUI() {
         const method =
             (
-                document.querySelector(
+                form?.querySelector(
                     'input[name="paymentMethodChoice"]:checked',
                 ) as HTMLInputElement | null
             )?.value || "stripe";
@@ -1084,7 +1082,7 @@ const successSurfaceClass = embedInAsideCard
     applyPaymentMethodUI();
 
     // Copy-to-clipboard for bank fields
-    document.querySelectorAll("[data-copy]").forEach((btn) => {
+    form?.querySelectorAll("[data-copy]").forEach((btn) => {
         btn.addEventListener("click", async () => {
             const value = btn.getAttribute("data-copy") || "";
             try {
@@ -1101,14 +1099,14 @@ const successSurfaceClass = embedInAsideCard
     });
 
     // Uppercase & Number validations (already in HTML but reinforced)
-    document.querySelectorAll('input[type="text"], textarea').forEach((el) => {
+    form?.querySelectorAll('input[type="text"], textarea').forEach((el) => {
         el.addEventListener("input", (e) => {
             const t = e.target as HTMLInputElement | HTMLTextAreaElement;
             t.value = t.value.toUpperCase();
         });
     });
 
-    document.querySelectorAll('input[type="tel"]').forEach((el) => {
+    form?.querySelectorAll('input[type="tel"]').forEach((el) => {
         el.addEventListener("input", (e) => {
             const t = e.target as HTMLInputElement;
             t.value = t.value.replace(/[^0-9]/g, "");
@@ -1117,8 +1115,8 @@ const successSurfaceClass = embedInAsideCard
 
     // File Label logic (for CSF file only, payment proof removed)
 
-    document.getElementById("csf-input")?.addEventListener("change", (e) => {
-        const label = document.getElementById("csf-file-label");
+    form?.querySelector("#csf-input")?.addEventListener("change", (e) => {
+        const label = form?.querySelector("#csf-file-label");
         const input = e.target as HTMLInputElement;
         const f = input.files?.[0];
         if (f && label) {
@@ -1133,7 +1131,7 @@ const successSurfaceClass = embedInAsideCard
         if (!submitBtn || !form) return;
 
         for (let i = 0; i < totalSteps; i++) {
-            const r = validateRequiredFieldsInContainer(sections[i]);
+            const r = validateStepSection(sections[i]);
             if (!r.ok) {
                 currentStep = i + 1;
                 updateStep();
@@ -1145,7 +1143,7 @@ const successSurfaceClass = embedInAsideCard
         }
 
         const paymentChoice = (
-            document.querySelector(
+            form.querySelector(
                 'input[name="paymentMethodChoice"]:checked',
             ) as HTMLInputElement | null
         )?.value;
@@ -1155,14 +1153,14 @@ const successSurfaceClass = embedInAsideCard
             );
             currentStep = 2;
             updateStep();
-            document.getElementById("stripe-checkout-btn")?.scrollIntoView({
+            stripeCheckoutBtn?.scrollIntoView({
                 behavior: "smooth",
                 block: "center",
             });
             return;
         }
 
-        const spinner = document.getElementById("spinner");
+        const spinner = form.querySelector("#spinner");
         const btnText = submitBtn.querySelector("span");
 
         submitBtn.disabled = true;
@@ -1200,4 +1198,7 @@ const successSurfaceClass = embedInAsideCard
             if (btnText) btnText.textContent = "Finalizar";
         }
     });
+
+    // Sync button visibility with the initial DOM (and recover if markup changes).
+    updateStep();
 </script>

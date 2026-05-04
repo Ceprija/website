@@ -24,7 +24,10 @@ const programas = defineCollection({
     image: z.string(),
     escuela: z.enum(["juridica", "economica", "integral"]),
     nivel: z.enum(PROGRAMA_NIVELES_TUPLE),
-    rvoe: z.string(),
+    /** RVOE (programas de titulación). Omitir o dejar vacío si solo aplica `registroAcademico`. */
+    rvoe: z.string().optional(),
+    /** Registro académico de diplomados (p. ej. ESDIP-2024-xxx). Se muestra como “Registro” en la ficha. */
+    registroAcademico: z.string().optional(),
     horario: z.string(),
     startDate: z.string(),
     duracion: z.string(),
@@ -57,6 +60,39 @@ const programas = defineCollection({
     instructor: z.string().optional(),
     schedule: z.string().optional(),
     meetingLink: z.string().optional(),
+
+    /**
+     * Opciones de variante para programas con módulos seleccionables y/o varias
+     * fechas de cohorte (p. ej. talleres). Cuando está presente, el flujo de
+     * inscripción muestra un paso adicional con los dropdowns correspondientes
+     * y resuelve el `priceId` de Stripe a partir de la opción elegida y la
+     * modalidad. Es completamente opcional para mantener compatibilidad con los
+     * programas existentes.
+     */
+    variantOptions: z.object({
+      moduleSelection: z.object({
+        label: z.string(),
+        required: z.boolean().optional().default(true),
+        options: z.array(z.object({
+          id: z.string(),
+          label: z.string(),
+          description: z.string().optional(),
+          stripePriceIds: z.object({
+            presencial: z.string().optional(),
+            online: z.string().optional()
+          }).optional()
+        })).min(1)
+      }).optional(),
+      dateSelection: z.object({
+        label: z.string(),
+        required: z.boolean().optional().default(true),
+        options: z.array(z.object({
+          id: z.string(),
+          label: z.string(),
+          description: z.string().optional()
+        })).min(1)
+      }).optional()
+    }).optional(),
     
     // Enrollment flow: determines if program uses inline form or dedicated application page
     // "inline" = simple registration on program page (curso, diplomado default)

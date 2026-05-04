@@ -16,7 +16,7 @@ import {
 
 const HIGHLIGHT_CLASSES = ["border-red-500", "ring-2", "ring-red-400"] as const;
 
-const ALLOWED_UPLOAD_EXT_RE = /\.(pdf|jpe?g|png|webp)$/i;
+const ALLOWED_UPLOAD_EXT_RE = /\.(pdf|jpe?g|png|webp|heic|heif)$/i;
 
 export function normalizeLabelText(raw: string): string {
   return raw
@@ -111,7 +111,10 @@ function shouldValidateControl(
   if (!container.contains(el)) return false;
   if (!el.required) return false;
   if (el.disabled) return false;
-  if (el instanceof HTMLInputElement && el.type === "hidden") return false;
+  // Do not skip `type="hidden"` inputs here. Flatpickr (used for date pickers)
+  // converts the original input to `type=hidden` while keeping `required` so the
+  // submitted value is the backend-friendly ISO date. Skipping these would let
+  // empty dates slip past client validation.
   if (isHiddenInFormTree(el)) return false;
   return true;
 }

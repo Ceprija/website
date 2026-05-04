@@ -13,7 +13,10 @@ image: "/images/programs/ejemplo.webp"
 escuela: "juridica"
 nivel: "curso"
 
-rvoe: ""
+# RVOE (titulación). Opcional si solo aplica registro de diplomado.
+# rvoe: "ESM142024000"
+# Diplomados u otros con registro (se muestra “Registro:” en la ficha). Opcional.
+# registroAcademico: "ESDIP-2024-000"
 horario: ""
 startDate: ""
 duracion: ""
@@ -56,4 +59,35 @@ prerequisites:
 
 # enrollmentFlow: "inline"
 # enrollmentFlow: "application"
+
+# Variantes opcionales (módulos seleccionables y/o cohortes con fecha).
+# Solo aplica para programas que se vendan por módulo individual o paquete (p. ej. talleres modulares).
+# Cuando se define, el flujo de inscripción multi-paso muestra dropdowns
+# adicionales para elegir el módulo/paquete y la fecha de inicio. El precio
+# de Stripe se resuelve a partir del módulo elegido + la modalidad.
+# Requiere `enrollmentFlow: "application"`.
+# variantOptions:
+#   moduleSelection:
+#     label: "Selecciona el formato"
+#     required: true
+#     options:
+#       - id: "modulo_1"
+#         label: "Módulo individual: Tema 1"
+#         description: "$2,500 MXN · 12 horas"
+#         stripePriceIds:
+#           presencial: "price_..."
+#           online: "price_..."
+#       - id: "paquete_completo"
+#         label: "Paquete completo (3 módulos)"
+#         description: "$6,750 MXN · 36 horas"
+#         stripePriceIds:
+#           presencial: "price_..."
+#           online: "price_..."
+#   dateSelection:
+#     label: "Selecciona la fecha de inicio"
+#     required: true
+#     options:
+#       - id: "cohorte_mayo_2026"
+#         label: "14 de mayo de 2026"
+#         description: "Horario: 6:00 p.m. - 9:00 p.m."
 ---
