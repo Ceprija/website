@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/busboy": "^1.5.4",
-    "@types/nodemailer": "^7.0.4"
+    "@types/nodemailer": "^7.0.4",
+    "baseline-browser-mapping": "^2.10.27"
   }
 }

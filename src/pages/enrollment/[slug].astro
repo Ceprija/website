@@ -3,7 +3,23 @@ import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
+import { getVariantOptions } from "@lib/programVariants";
+import { getInitialDegreesForNivel } from "@lib/enrollmentDegrees";
+import {
+    requiresAcademicDegreeSteps,
+    requiresExtendedApplicantProfile,
+} from "@lib/enrollmentAdmissionFlags";
+import VariantSelectionStep from "@components/enrollment/VariantSelectionStep.astro";
 import bankInfo from "../../data/bank-info.json";
+import {
+    civilStates,
+    genres,
+    nationalities,
+    relatives,
+    sources,
+    states as mexicanStates,
+    yesNo,
+} from "@data/forms/inscription-options.js";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -28,6 +44,49 @@ const stripePriceIdsForClient =
         ? rawStripe
         : null;
 
+const variantOptions = getVariantOptions(program);
+const hasVariantStep = variantOptions !== null;
+
+// Multi-degree scaffolding: `initialDegrees` is the minimum list the form should
+// render (e.g. 1 Licenciatura for Maestría/Especialidad, Licenciatura + Maestría
+// for Doctorado). The client script hydrates from this array and lets users add
+// more degrees. `nivel` is passed along so client-side validation can enforce
+// the per-program minimums without re-deriving the rule.
+const programNivel = program.data.nivel;
+const requiresDegreeSteps = requiresAcademicDegreeSteps(programNivel);
+const requiresExtendedProfile = requiresExtendedApplicantProfile(programNivel);
+const initialDegrees = requiresDegreeSteps ? getInitialDegreesForNivel(programNivel) : [];
+
+// Extended profile splits into 4 sub-steps (personal, address, emergency, health)
+// for maestría/doctorado/especialidad to mirror the historical inscription form.
+const EXTENDED_PROFILE_STEPS = 4;
+const stepCount =
+    (hasVariantStep ? 1 : 0) +
+    1 +
+    (requiresExtendedProfile ? EXTENDED_PROFILE_STEPS : 0) +
+    (requiresDegreeSteps ? 1 : 0) +
+    1;
+const firstStepPct = Math.round((1 / stepCount) * 100);
+
+// Birth date bounds for the Flatpickr date picker. We compute them at render
+// time so the 18+ check stays correct across deploys without touching the
+// template. The server re-validates (`age >= 18 && age <= 120`) in
+// `/api/enrollment`.
+const birthDateToday = new Date();
+const birthDateMax = new Date(
+    birthDateToday.getFullYear() - 18,
+    birthDateToday.getMonth(),
+    birthDateToday.getDate(),
+);
+const birthDateMin = new Date(
+    birthDateToday.getFullYear() - 120,
+    birthDateToday.getMonth(),
+    birthDateToday.getDate(),
+);
+const toIsoDate = (d: Date) => d.toISOString().slice(0, 10);
+const birthDateMaxIso = toIsoDate(birthDateMax);
+const birthDateMinIso = toIsoDate(birthDateMin);
+
 const seo = {
     title: `Solicitud de Admisión - ${program.data.title} | CEPRIJA`,
     description: `Complete su solicitud de admisión para ${program.data.title} en CEPRIJA.`,
@@ -35,6 +94,44 @@ const seo = {
 ---
 
 <Layout seo={seo}>
+    <!-- Flatpickr calendar (used for Fecha de nacimiento). We reuse the same
+         CDN + branding tokens as InscriptionForm so the picker matches the
+         rest of the site without bundling another dependency. -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
+    <style>
+        .flatpickr-calendar {
+            font-family: inherit;
+            border: 2px solid #f3f4f6;
+            border-radius: 1rem;
+            box-shadow:
+                0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .flatpickr-day.selected,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange,
+        .flatpickr-day.selected.inRange,
+        .flatpickr-day.startRange.inRange,
+        .flatpickr-day.endRange.inRange,
+        .flatpickr-day.selected:focus,
+        .flatpickr-day.startRange:focus,
+        .flatpickr-day.endRange:focus,
+        .flatpickr-day.selected:hover,
+        .flatpickr-day.startRange:hover,
+        .flatpickr-day.endRange:hover,
+        .flatpickr-day.selected.prevMonthDay,
+        .flatpickr-day.startRange.prevMonthDay,
+        .flatpickr-day.endRange.prevMonthDay,
+        .flatpickr-day.selected.nextMonthDay,
+        .flatpickr-day.startRange.nextMonthDay,
+        .flatpickr-day.endRange.nextMonthDay {
+            background: #1e3a8a;
+            border-color: #1e3a8a;
+        }
+    </style>
     <main class="bg-gray-50 min-h-screen pb-20">
         <!-- Header -->
         <section class="bg-primary text-white py-12">
@@ -75,16 +172,19 @@ const seo = {
                         class="text-xl font-bold text-primary font-serif"
                         id="step-label"
                     >
-                        Paso 1 de 3: Información Personal
+                        {
+                            `Paso 1 de ${stepCount}: ${hasVariantStep ? "Opciones del programa" : "Información Personal"}`
+                        }
                     </h2>
                     <span class="text-sm font-semibold text-gray-500" id="step-number"
-                        >33% completado</span
+                        >{firstStepPct}% completado</span
                     >
                 </div>
                 <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
                     <div
                         id="progress-bar"
-                        class="bg-secondary h-full w-1/3 transition-all duration-500 ease-out shadow-sm"
+                        class="bg-secondary h-full transition-all duration-500 ease-out shadow-sm"
+                        style={`width: ${firstStepPct}%`}
                     >
                     </div>
                 </div>
@@ -96,14 +196,34 @@ const seo = {
                 class="bg-white rounded-2xl shadow-xl overflow-hidden"
                 data-program-slug={programSlug}
                 data-program-title={String(program.data.title)}
+                data-program-nivel={programNivel}
+                data-initial-degrees={JSON.stringify(initialDegrees)}
                 data-stripe-price-ids={JSON.stringify(stripePriceIdsForClient)}
+                data-has-variant-step={hasVariantStep ? "1" : "0"}
+                data-requires-degree-steps={requiresDegreeSteps ? "1" : "0"}
+                data-requires-extended-profile={requiresExtendedProfile ? "1" : "0"}
+                data-variant-options={
+                    hasVariantStep ? JSON.stringify(variantOptions) : ""
+                }
             >
                 <!-- Hidden fields -->
                 <input type="hidden" name="programSlug" value={programSlug} />
                 <input type="hidden" name="programTitle" value={String(program.data.title)} />
 
+                {
+                    hasVariantStep && variantOptions && (
+                        <VariantSelectionStep variants={variantOptions} />
+                    )
+                }
+
                 <!-- Step 1: Personal Information -->
-                <div class="step-section p-8 md:p-12" id="step-1">
+                <div
+                    class:list={[
+                        "step-section p-8 md:p-12",
+                        hasVariantStep && "hidden",
+                    ]}
+                    id="step-1"
+                >
                     <div class="mb-8 text-center">
                         <div
                             class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary"
@@ -228,7 +348,589 @@ const seo = {
                     </div>
                 </div>
 
-                <!-- Step 2: Academic Background -->
+                {
+                    requiresExtendedProfile && (
+                        <>
+                            {/* PROFILE STEP 1: Personal data */}
+                            <div
+                                class="step-section p-8 md:p-12 hidden"
+                                id="step-profile-personal"
+                            >
+                                <div class="mb-8 text-center">
+                                    <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-8 w-8"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                                        Datos personales adicionales requeridos para tu
+                                        expediente académico.
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Género *
+                                        </label>
+                                        <select
+                                            name="genero"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {genres.map((g: string) => (
+                                                <option value={g}>{g}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Fecha de nacimiento *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="fechaNacimiento"
+                                            required
+                                            placeholder="DD/MM/AAAA"
+                                            aria-label="Fecha de nacimiento"
+                                            data-min-date={birthDateMinIso}
+                                            data-max-date={birthDateMaxIso}
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all date-picker bg-white"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            CURP *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="curp"
+                                            required
+                                            maxlength="18"
+                                            minlength="18"
+                                            pattern="[A-Z0-9]{18}"
+                                            title="18 caracteres en mayúsculas (alfanuméricos)"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all uppercase"
+                                            placeholder="18 caracteres"
+                                            style="text-transform: uppercase;"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Nacionalidad *
+                                        </label>
+                                        <select
+                                            name="nacionalidad"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {nationalities.map((n: string) => (
+                                                <option value={n}>{n}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Estado civil *
+                                        </label>
+                                        <select
+                                            name="estadoCivil"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {civilStates.map((s: string) => (
+                                                <option value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Entidad de nacimiento *
+                                        </label>
+                                        <select
+                                            name="entidadNacimiento"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {mexicanStates.map((s: string) => (
+                                                <option value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Ocupación actual *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="ocupacion"
+                                            required
+                                            maxlength="100"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                            placeholder="Tu ocupación o profesión"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            ¿Habla lengua indígena? *
+                                        </label>
+                                        <select
+                                            name="lenguaIndigena"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {yesNo.map((v: string) => (
+                                                <option value={v}>{v}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            ¿Cómo se enteró de nosotros? *
+                                        </label>
+                                        <select
+                                            name="origen"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {sources.map((s: string) => (
+                                                <option value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                                    <button
+                                        type="button"
+                                        id="prev-step-profile-personal"
+                                        class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="next-step-profile-personal"
+                                        class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* PROFILE STEP 2: Address */}
+                            <div
+                                class="step-section p-8 md:p-12 hidden"
+                                id="step-profile-address"
+                            >
+                                <div class="mb-8 text-center">
+                                    <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-8 w-8"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                            />
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                                        Tu dirección particular para envíos y notificaciones
+                                        oficiales.
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Calle y número *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="calle"
+                                            required
+                                            maxlength="200"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                            placeholder="Ej: Av. Reforma #123"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Colonia *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="colonia"
+                                            required
+                                            maxlength="120"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Código Postal *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="cp"
+                                            required
+                                            maxlength="5"
+                                            minlength="5"
+                                            pattern="[0-9]{5}"
+                                            inputmode="numeric"
+                                            title="5 dígitos numéricos"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                            placeholder="44500"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Ciudad / Municipio *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="ciudad"
+                                            required
+                                            maxlength="120"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Estado *
+                                        </label>
+                                        <select
+                                            name="estadoDireccion"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {mexicanStates.map((s: string) => (
+                                                <option value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                                    <button
+                                        type="button"
+                                        id="prev-step-profile-address"
+                                        class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="next-step-profile-address"
+                                        class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* PROFILE STEP 3: Emergency contact */}
+                            <div
+                                class="step-section p-8 md:p-12 hidden"
+                                id="step-profile-emergency"
+                            >
+                                <div class="mb-8 text-center">
+                                    <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-8 w-8"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                                        Persona a contactar en caso de emergencia.
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Contacto de emergencia (nombre completo) *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="contactoEmergencia"
+                                            required
+                                            maxlength="200"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                            placeholder="Nombre completo"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Parentesco *
+                                        </label>
+                                        <select
+                                            name="parentesco"
+                                            required
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        >
+                                            <option value="">Selecciona…</option>
+                                            {relatives.map((r: string) => (
+                                                <option value={r}>{r}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Teléfono de emergencia *
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            name="telEmergencia"
+                                            required
+                                            maxlength="25"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                            placeholder="10 dígitos o formato internacional"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                                    <button
+                                        type="button"
+                                        id="prev-step-profile-emergency"
+                                        class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="next-step-profile-emergency"
+                                        class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* PROFILE STEP 4: Health */}
+                            <div
+                                class="step-section p-8 md:p-12 hidden"
+                                id="step-profile-health"
+                            >
+                                <div class="mb-8 text-center">
+                                    <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-8 w-8"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                                        Información de salud para fines administrativos y
+                                        de seguridad. Solo se usa internamente.
+                                    </p>
+                                </div>
+
+                                <div class="space-y-5 max-w-4xl mx-auto">
+                                    <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <label class="block font-semibold text-gray-800 mb-3">
+                                            ¿Presenta alguna capacidad diferente? *
+                                        </label>
+                                        <div class="flex gap-6 mb-3">
+                                            {yesNo.map((v: string) => (
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="capacidadDif"
+                                                        value={v}
+                                                        required
+                                                        class="w-5 h-5 accent-primary health-toggle"
+                                                        data-target="detalleCapacidad"
+                                                    />
+                                                    <span>{v}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            name="detalleCapacidad"
+                                            data-detail-for="capacidadDif"
+                                            placeholder="Especifique cuál(es)…"
+                                            rows={2}
+                                            maxlength="500"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all hidden"
+                                        />
+                                    </div>
+
+                                    <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <label class="block font-semibold text-gray-800 mb-3">
+                                            ¿Padece alguna enfermedad crónica? *
+                                        </label>
+                                        <div class="flex gap-6 mb-3">
+                                            {yesNo.map((v: string) => (
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="enfCronica"
+                                                        value={v}
+                                                        required
+                                                        class="w-5 h-5 accent-primary health-toggle"
+                                                        data-target="detalleEnf"
+                                                    />
+                                                    <span>{v}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            name="detalleEnf"
+                                            data-detail-for="enfCronica"
+                                            placeholder="Describa la enfermedad y si requiere medicación…"
+                                            rows={2}
+                                            maxlength="500"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all hidden"
+                                        />
+                                    </div>
+
+                                    <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <label class="block font-semibold text-gray-800 mb-3">
+                                            ¿Padece alguna alergia? *
+                                        </label>
+                                        <div class="flex gap-6 mb-3">
+                                            {yesNo.map((v: string) => (
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="alergia"
+                                                        value={v}
+                                                        required
+                                                        class="w-5 h-5 accent-primary health-toggle"
+                                                        data-target="detalleAlergia"
+                                                    />
+                                                    <span>{v}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            name="detalleAlergia"
+                                            data-detail-for="alergia"
+                                            placeholder="Describa la alergia y cuidados…"
+                                            rows={2}
+                                            maxlength="500"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all hidden"
+                                        />
+                                    </div>
+
+                                    <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <label class="block font-semibold text-gray-800 mb-3">
+                                            ¿Está bajo tratamiento médico controlado? *
+                                        </label>
+                                        <div class="flex gap-6 mb-3">
+                                            {yesNo.map((v: string) => (
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="tratamiento"
+                                                        value={v}
+                                                        required
+                                                        class="w-5 h-5 accent-primary health-toggle"
+                                                        data-target="detalleTratamiento"
+                                                    />
+                                                    <span>{v}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            name="detalleTratamiento"
+                                            data-detail-for="tratamiento"
+                                            placeholder="Especifique medicamentos y dosis…"
+                                            rows={2}
+                                            maxlength="500"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all hidden"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                                    <button
+                                        type="button"
+                                        id="prev-step-profile-health"
+                                        class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="next-step-profile-health"
+                                        class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )
+                }
+
+                <!-- Step 2: Academic Background (dynamic multi-degree) -->
+                {requiresDegreeSteps && (
                 <div class="step-section p-8 md:p-12 hidden" id="step-2">
                     <div class="mb-8 text-center">
                         <div
@@ -255,65 +957,48 @@ const seo = {
                             </svg>
                         </div>
                         <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Información sobre su formación académica previa.
+                            Agregue todos sus grados académicos relevantes en orden cronológico.
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Grado Académico Previo *
-                            </label>
-                            <select
-                                name="ultimoGrado"
-                                required
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                    <div class="max-w-4xl mx-auto">
+                        <div
+                            id="degree-requirements-info"
+                            class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900"
+                        >
+                            <p class="font-semibold mb-1">
+                                Requisitos mínimos para este programa:
+                            </p>
+                            <ul
+                                id="degree-requirements-list"
+                                class="list-disc ml-5"
                             >
-                                <option value="">Seleccione...</option>
-                                <option value="Licenciatura">Licenciatura</option>
-                                <option value="Maestría">Maestría</option>
-                                <option value="Especialidad">Especialidad</option>
-                                <option value="Doctorado">Doctorado</option>
-                            </select>
+                            </ul>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Carrera o Programa de Estudios *
-                            </label>
-                            <input
-                                type="text"
-                                name="carrera"
-                                required
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
-                                placeholder="Ej: Derecho, Administración..."
-                            />
+                        <div id="degrees-container" class="space-y-6">
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Institución de Egreso *
-                            </label>
-                            <input
-                                type="text"
-                                name="institucion"
-                                required
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
-                                placeholder="Nombre de la universidad"
-                            />
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Número de Cédula Profesional
-                            </label>
-                            <input
-                                type="text"
-                                name="cedulaNum"
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
-                                placeholder="Número de cédula (opcional)"
-                            />
-                        </div>
+                        <button
+                            type="button"
+                            id="add-degree-btn"
+                            class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-primary font-semibold rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-all"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar otro grado académico
+                        </button>
                     </div>
 
                     <div class="flex justify-between mt-8 max-w-4xl mx-auto">
@@ -333,8 +1018,123 @@ const seo = {
                         </button>
                     </div>
                 </div>
+                )}
 
-                <!-- Step 3: Documents Upload -->
+                <!--
+                    Degree entry template: cloned by the client script for each
+                    degree row. `{{INDEX}}` is replaced with the 0-based index so
+                    every field gets a stable, indexed name (`degree_0_grado`,
+                    `degree_1_carrera`, etc.) that the API can enumerate.
+                -->
+                <template id="degree-entry-template">
+                    <div
+                        class="degree-entry p-6 bg-gray-50 border border-gray-200 rounded-2xl"
+                        data-degree-index="{{INDEX}}"
+                    >
+                        <div
+                            class="flex items-center justify-between mb-4 gap-4"
+                        >
+                            <h3 class="font-bold text-primary text-lg font-serif">
+                                Grado académico <span
+                                    class="degree-entry-number">{"#{{POSITION}}"}</span
+                                >
+                            </h3>
+                            <button
+                                type="button"
+                                class="remove-degree-btn text-red-600 hover:text-red-800 text-sm font-semibold transition-colors inline-flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                data-index="{{INDEX}}"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"
+                                    ></path>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >Grado *</label
+                                >
+                                <select
+                                    name="degree_{{INDEX}}_grado"
+                                    required
+                                    class="degree-grado w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                >
+                                    <option value="">Seleccione...</option>
+                                    <option value="Licenciatura"
+                                        >Licenciatura</option
+                                    >
+                                    <option value="Especialidad"
+                                        >Especialidad</option
+                                    >
+                                    <option value="Maestría">Maestría</option>
+                                    <option value="Doctorado">Doctorado</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >Carrera o Programa *</label
+                                >
+                                <input
+                                    type="text"
+                                    name="degree_{{INDEX}}_carrera"
+                                    required
+                                    class="degree-carrera w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                    placeholder="Ej: Licenciatura en Derecho"
+                                />
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >Institución *</label
+                                >
+                                <input
+                                    type="text"
+                                    name="degree_{{INDEX}}_institucion"
+                                    required
+                                    class="degree-institucion w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                    placeholder="Nombre de la universidad"
+                                />
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >Número de Cédula Profesional *</label
+                                >
+                                <input
+                                    type="text"
+                                    name="degree_{{INDEX}}_cedulaNum"
+                                    required
+                                    maxlength="8"
+                                    pattern="[0-9]{7,8}"
+                                    inputmode="numeric"
+                                    title="7 u 8 dígitos numéricos"
+                                    class="degree-cedula-num w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                    placeholder="Ej: 12345678"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Step 3: Documents Upload (dynamic per-degree) -->
                 <div class="step-section p-8 md:p-12 hidden" id="step-3">
                     <div class="mb-8 text-center">
                         <div
@@ -356,12 +1156,28 @@ const seo = {
                             </svg>
                         </div>
                         <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Adjunte los documentos requeridos. Solo se aceptan archivos PDF o imágenes (máx. 10 MB cada uno).
+                            {
+                                requiresDegreeSteps ? (
+                                    <>
+                                        Adjunte los documentos requeridos. Se
+                                        generará una sección por cada grado que
+                                        agregó en el paso anterior.
+                                    </>
+                                ) : (
+                                    <>
+                                        Adjunte únicamente su curriculum vitae (CV)
+                                        en el formato indicado.
+                                    </>
+                                )
+                            }
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                    <div class="max-w-4xl mx-auto space-y-8">
                         <div>
+                            <h3 class="font-bold text-primary text-lg font-serif mb-3">
+                                Documentos generales
+                            </h3>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 Curriculum Vitae (CV) *
                             </label>
@@ -369,52 +1185,72 @@ const seo = {
                                 type="file"
                                 name="cv"
                                 required
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
+                            <p class="text-xs text-gray-500 mt-1">
+                                Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                            </p>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Historial Académico (Kardex) *
-                            </label>
-                            <input
-                                type="file"
-                                name="kardex"
-                                required
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
-                            />
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Título Profesional *
-                            </label>
-                            <input
-                                type="file"
-                                name="titulo"
-                                required
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
-                            />
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Cédula Profesional
-                            </label>
-                            <input
-                                type="file"
-                                name="cedula"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
-                            />
-                            <p class="text-xs text-gray-500 mt-1">Opcional si aún no cuenta con ella</p>
+                        <div id="degree-documents-container" class="space-y-6">
                         </div>
                     </div>
 
                     <div id="form-status" class="hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto"></div>
+
+                    <!--
+                        Per-degree documents template: cloned once for every degree
+                        entry. Field names use the same `degree_{index}_...` prefix
+                        as Step 2 so the API can correlate text fields with file
+                        uploads by index.
+                    -->
+                    <template id="degree-documents-template">
+                        <div
+                            class="degree-documents p-6 bg-gray-50 border border-gray-200 rounded-2xl"
+                            data-degree-index="{{INDEX}}"
+                        >
+                            <h4
+                                class="font-bold text-primary text-base font-serif mb-4 degree-documents-title"
+                            >
+                                {"Documentos del grado #{{POSITION}}"}
+                            </h4>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Título Profesional *
+                                    </label>
+                                    <input
+                                        type="file"
+                                        name="degree_{{INDEX}}_titulo"
+                                        required
+                                        accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                    />
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Cédula Profesional *
+                                    </label>
+                                    <input
+                                        type="file"
+                                        name="degree_{{INDEX}}_cedula"
+                                        required
+                                        accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                    />
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
 
                     <div class="flex justify-between mt-8 max-w-4xl mx-auto">
                         <button
@@ -942,12 +1778,55 @@ const seo = {
 
 <script>
     import {
-        validateRequiredFieldsInContainer,
+        validateStepSection,
         reportStepValidationFailure,
+        formatStepValidationMessage,
     } from "@lib/client/multiStepFormValidation";
+    import { wireReferenceFromSessionId } from "@lib/wireReference";
 
     const form = document.getElementById("enrollment-form") as HTMLFormElement;
-    const steps = [1, 2, 3];
+
+    /**
+     * Step orchestration is data-driven so we can prepend an optional Variant
+     * Selection step (only present when the program defines `variantOptions`)
+     * without sprinkling conditionals across the navigation handlers.
+     * Each entry's `id` matches its `<section id="step-...">`.
+     */
+    type StepEntry = { id: string; baseTitle: string };
+    const hasVariantStep = form?.dataset.hasVariantStep === "1";
+    const requiresDegreeSteps = form?.dataset.requiresDegreeSteps === "1";
+    const requiresExtendedProfile = form?.dataset.requiresExtendedProfile === "1";
+    const stepEntries: StepEntry[] = [
+        ...(hasVariantStep
+            ? [{ id: "step-variant", baseTitle: "Opciones del programa" }]
+            : []),
+        { id: "step-1", baseTitle: "Información Personal" },
+        ...(requiresExtendedProfile
+            ? [
+                  {
+                      id: "step-profile-personal",
+                      baseTitle: "Datos personales adicionales",
+                  },
+                  {
+                      id: "step-profile-address",
+                      baseTitle: "Dirección particular",
+                  },
+                  {
+                      id: "step-profile-emergency",
+                      baseTitle: "Contacto de emergencia",
+                  },
+                  {
+                      id: "step-profile-health",
+                      baseTitle: "Información de salud",
+                  },
+              ]
+            : []),
+        ...(requiresDegreeSteps
+            ? [{ id: "step-2", baseTitle: "Formación Académica" }]
+            : []),
+        { id: "step-3", baseTitle: "Documentos" },
+    ];
+    const totalSteps = stepEntries.length;
     let currentStep = 1;
 
     const stepperCard = document.getElementById("enrollment-stepper-card");
@@ -971,11 +1850,349 @@ const seo = {
     const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
     const spinner = document.getElementById("loading-spinner");
 
-    const stepTitles = [
-        "Paso 1 de 3: Información Personal",
-        "Paso 2 de 3: Formación Académica",
-        "Paso 3 de 3: Documentos",
-    ];
+    function stepTitle(index: number): string {
+        const entry = stepEntries[index - 1];
+        return entry
+            ? `Paso ${index} de ${totalSteps}: ${entry.baseTitle}`
+            : `Paso ${index} de ${totalSteps}`;
+    }
+
+    // ---------------------------------------------------------------
+    // Dynamic multi-degree management
+    //
+    // Each degree in Step 2 has a matching documents block in Step 3
+    // identified by the same index. The indices are *stable*: when a
+    // user removes a degree in the middle of the list, the remaining
+    // ones keep their original indices so we never have to rewrite
+    // field names or lose already-uploaded files. This means the
+    // index is not the same as the visual position; a small helper
+    // recomputes the position (`#1`, `#2`, ...) on every render.
+    // ---------------------------------------------------------------
+    type DegreeGrado = "Licenciatura" | "Especialidad" | "Maestría" | "Doctorado";
+    type InitialDegree = { grado: DegreeGrado; locked?: boolean };
+
+    const programNivelDataset = (form?.dataset.programNivel ?? "").trim();
+    const DEGREE_ORDER: Record<DegreeGrado, number> = {
+        Licenciatura: 1,
+        Especialidad: 2,
+        Maestría: 2,
+        Doctorado: 3,
+    };
+
+    function parseInitialDegrees(): InitialDegree[] {
+        try {
+            const raw = form?.dataset.initialDegrees ?? "[]";
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter(
+                    (d): d is InitialDegree =>
+                        !!d &&
+                        typeof d === "object" &&
+                        typeof d.grado === "string" &&
+                        d.grado in DEGREE_ORDER,
+                );
+            }
+        } catch {
+            /* malformed JSON falls back to empty list */
+        }
+        return [];
+    }
+
+    /**
+     * Tracks insertion order so field names stay stable across adds/removes.
+     * Only used to allocate fresh indices; the DOM is the source of truth
+     * for the current list of entries.
+     */
+    let nextDegreeIndex = 0;
+
+    const degreesContainer = document.getElementById("degrees-container");
+    const degreeTemplate = document.getElementById(
+        "degree-entry-template",
+    ) as HTMLTemplateElement | null;
+    const degreeDocumentsContainer = document.getElementById(
+        "degree-documents-container",
+    );
+    const degreeDocumentsTemplate = document.getElementById(
+        "degree-documents-template",
+    ) as HTMLTemplateElement | null;
+    const addDegreeBtn = document.getElementById("add-degree-btn");
+    const degreeRequirementsList = document.getElementById(
+        "degree-requirements-list",
+    );
+
+    type DegreeSnapshot = {
+        index: number;
+        grado: string;
+        carrera: string;
+        institucion: string;
+        cedulaNum: string;
+        locked: boolean;
+    };
+
+    function getDegreesFromDom(): DegreeSnapshot[] {
+        if (!degreesContainer) return [];
+        const entries = Array.from(
+            degreesContainer.querySelectorAll<HTMLElement>(".degree-entry"),
+        );
+        return entries.map((entry) => {
+            const index = Number(entry.dataset.degreeIndex ?? "0");
+            const grado = (
+                entry.querySelector<HTMLSelectElement>(".degree-grado")?.value ?? ""
+            ).trim();
+            const carrera = (
+                entry.querySelector<HTMLInputElement>(".degree-carrera")?.value ?? ""
+            ).trim();
+            const institucion = (
+                entry.querySelector<HTMLInputElement>(".degree-institucion")?.value ?? ""
+            ).trim();
+            const cedulaNum = (
+                entry.querySelector<HTMLInputElement>(".degree-cedula-num")?.value ?? ""
+            ).trim();
+            const locked = entry.dataset.locked === "1";
+            return { index, grado, carrera, institucion, cedulaNum, locked };
+        });
+    }
+
+    function renderRequirementsList() {
+        if (!degreeRequirementsList) return;
+        const messages: string[] = [];
+        if (programNivelDataset === "doctorado") {
+            messages.push("Al menos 1 Licenciatura");
+            messages.push("Al menos 1 Maestría");
+        } else if (
+            programNivelDataset === "maestria" ||
+            programNivelDataset === "especialidad"
+        ) {
+            messages.push("Al menos 1 Licenciatura");
+        }
+        if (messages.length === 0) {
+            const info = document.getElementById("degree-requirements-info");
+            info?.classList.add("hidden");
+            return;
+        }
+        degreeRequirementsList.innerHTML = messages
+            .map((m) => `<li>${m}</li>`)
+            .join("");
+    }
+
+    /**
+     * Renumbers visible positions and toggles the "eliminar" buttons so
+     * locked entries (the program's minimum) can't be removed. Safe to
+     * call after any add/remove.
+     */
+    function updateDegreePositions() {
+        if (!degreesContainer) return;
+        const entries = Array.from(
+            degreesContainer.querySelectorAll<HTMLElement>(".degree-entry"),
+        );
+        entries.forEach((entry, i) => {
+            const numEl = entry.querySelector<HTMLElement>(".degree-entry-number");
+            if (numEl) numEl.textContent = `#${i + 1}`;
+            const removeBtn = entry.querySelector<HTMLButtonElement>(
+                ".remove-degree-btn",
+            );
+            if (removeBtn) {
+                const locked = entry.dataset.locked === "1";
+                removeBtn.disabled = locked;
+                removeBtn.title = locked
+                    ? "Este grado es requerido por el programa"
+                    : "";
+            }
+        });
+    }
+
+    function updateDocumentsPositions() {
+        if (!degreeDocumentsContainer) return;
+        const docs = Array.from(
+            degreeDocumentsContainer.querySelectorAll<HTMLElement>(
+                ".degree-documents",
+            ),
+        );
+        docs.forEach((doc, i) => {
+            const title = doc.querySelector<HTMLElement>(
+                ".degree-documents-title",
+            );
+            const entry = degreesContainer?.querySelector<HTMLElement>(
+                `.degree-entry[data-degree-index="${doc.dataset.degreeIndex}"]`,
+            );
+            const grado = entry
+                ?.querySelector<HTMLSelectElement>(".degree-grado")
+                ?.value?.trim();
+            const carrera = entry
+                ?.querySelector<HTMLInputElement>(".degree-carrera")
+                ?.value?.trim();
+            if (title) {
+                const parts = [`Documentos del grado #${i + 1}`];
+                if (grado) parts.push(grado);
+                if (carrera) parts.push(carrera);
+                title.textContent = parts.join(" · ");
+            }
+        });
+    }
+
+    function instantiateTemplate(
+        tpl: HTMLTemplateElement,
+        index: number,
+        position: number,
+    ): HTMLElement | null {
+        // Templates use `{{INDEX}}`/`{{POSITION}}` placeholders (preserved in
+        // attribute values by the HTML parser) so we can render both slots
+        // without running a full templating library client-side.
+        const html = tpl.innerHTML
+            .replace(/\{\{INDEX\}\}/g, String(index))
+            .replace(/\{\{POSITION\}\}/g, String(position));
+        const wrap = document.createElement("div");
+        wrap.innerHTML = html.trim();
+        return wrap.firstElementChild as HTMLElement | null;
+    }
+
+    function addDegreeEntry(opts: { grado?: string; locked?: boolean } = {}) {
+        if (!degreesContainer || !degreeTemplate) return;
+        const index = nextDegreeIndex++;
+        const position =
+            degreesContainer.querySelectorAll(".degree-entry").length + 1;
+        const node = instantiateTemplate(degreeTemplate, index, position);
+        if (!node) return;
+        if (opts.locked) node.dataset.locked = "1";
+        if (opts.grado) {
+            const select = node.querySelector<HTMLSelectElement>(".degree-grado");
+            if (select) select.value = opts.grado;
+        }
+        degreesContainer.appendChild(node);
+
+        if (degreeDocumentsContainer && degreeDocumentsTemplate) {
+            const docNode = instantiateTemplate(
+                degreeDocumentsTemplate,
+                index,
+                position,
+            );
+            if (docNode) degreeDocumentsContainer.appendChild(docNode);
+        }
+
+        updateDegreePositions();
+        updateDocumentsPositions();
+    }
+
+    function removeDegreeEntry(index: number) {
+        if (!degreesContainer) return;
+        const entry = degreesContainer.querySelector<HTMLElement>(
+            `.degree-entry[data-degree-index="${index}"]`,
+        );
+        if (!entry || entry.dataset.locked === "1") return;
+        entry.remove();
+        const docEntry = degreeDocumentsContainer?.querySelector<HTMLElement>(
+            `.degree-documents[data-degree-index="${index}"]`,
+        );
+        docEntry?.remove();
+        updateDegreePositions();
+        updateDocumentsPositions();
+    }
+
+    function initDegreesFromDataset() {
+        renderRequirementsList();
+        const initial = parseInitialDegrees();
+        if (initial.length === 0) {
+            // Niveles without prerequisites (e.g. a hypothetical future
+            // application-flow diplomado) still need at least one entry.
+            addDegreeEntry({ locked: false });
+            return;
+        }
+        initial.forEach((d) => addDegreeEntry({ grado: d.grado, locked: d.locked }));
+    }
+
+    degreesContainer?.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
+            ".remove-degree-btn",
+        );
+        if (!btn) return;
+        const idx = Number(btn.dataset.index ?? "");
+        if (!Number.isFinite(idx)) return;
+        removeDegreeEntry(idx);
+    });
+
+    // Keep the documents-step titles in sync with the degree labels so the
+    // user immediately sees which file belongs to which grado/carrera.
+    degreesContainer?.addEventListener("input", () => {
+        updateDocumentsPositions();
+    });
+    degreesContainer?.addEventListener("change", () => {
+        updateDocumentsPositions();
+    });
+
+    addDegreeBtn?.addEventListener("click", () => {
+        addDegreeEntry({ locked: false });
+    });
+
+    if (requiresDegreeSteps) {
+        initDegreesFromDataset();
+    }
+
+    /**
+     * Minimum-degree check enforced before leaving Step 2 and on submit.
+     * Mirrors the server-side rule in `validateMinimumDegrees`.
+     */
+    function validateMinimumDegrees(): string | null {
+        const degrees = getDegreesFromDom();
+        const licenciaturas = degrees.filter(
+            (d) => d.grado === "Licenciatura",
+        ).length;
+        const maestrias = degrees.filter((d) => d.grado === "Maestría").length;
+        if (
+            programNivelDataset === "maestria" ||
+            programNivelDataset === "especialidad"
+        ) {
+            if (licenciaturas === 0) {
+                return "Este programa requiere al menos una Licenciatura.";
+            }
+        }
+        if (programNivelDataset === "doctorado") {
+            if (licenciaturas === 0 || maestrias === 0) {
+                return "El Doctorado requiere al menos una Licenciatura y una Maestría.";
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Chronological-order check: degrees should be added in non-decreasing
+     * rank (Licenciatura -> Especialidad/Maestría -> Doctorado). Two degrees
+     * at the same tier (two Licenciaturas, or Maestría+Especialidad) are
+     * allowed in any order.
+     */
+    function validateChronologicalOrder(): string | null {
+        const degrees = getDegreesFromDom();
+        for (let i = 1; i < degrees.length; i++) {
+            const prev = DEGREE_ORDER[degrees[i - 1].grado as DegreeGrado];
+            const curr = DEGREE_ORDER[degrees[i].grado as DegreeGrado];
+            if (prev === undefined || curr === undefined) continue;
+            if (curr < prev) {
+                return "Los grados deben estar en orden cronológico (Licenciatura → Especialidad/Maestría → Doctorado).";
+            }
+        }
+        return null;
+    }
+
+    /** Cédula SEP: 7 u 8 dígitos para la fila de grado «Doctorado». */
+    function validateDoctoradoCedulas(): string | null {
+        if (programNivelDataset !== "doctorado") return null;
+        const entries =
+            degreesContainer?.querySelectorAll<HTMLElement>(".degree-entry") ??
+            [];
+        for (const entry of entries) {
+            const grado =
+                entry.querySelector<HTMLSelectElement>(".degree-grado")?.value ??
+                "";
+            if (grado !== "Doctorado") continue;
+            const ced = (
+                entry.querySelector<HTMLInputElement>(".degree-cedula-num")
+                    ?.value ?? ""
+            ).trim();
+            if (!/^\d{7,8}$/.test(ced)) {
+                return "La cédula profesional del grado Doctorado debe ser numérica de 7 u 8 dígitos.";
+            }
+        }
+        return null;
+    }
 
     type PostPayload = {
         applicationId: string;
@@ -984,12 +2201,29 @@ const seo = {
         participantPhone: string;
         modality: string;
         programSlug: string;
+        selectedModule: string;
+        selectedDate: string;
     };
 
     let lastPostPayload: PostPayload | null = null;
     let lastCheckoutPriceId: string | null = null;
 
     type StripePriceIds = { presencial?: string; online?: string };
+
+    type VariantOption = {
+        id: string;
+        label: string;
+        description?: string;
+        stripePriceIds?: StripePriceIds;
+    };
+    type ParsedVariantOptions = {
+        moduleSelection?: { label: string; required?: boolean; options: VariantOption[] };
+        dateSelection?: {
+            label: string;
+            required?: boolean;
+            options: { id: string; label: string; description?: string }[];
+        };
+    };
 
     function parseStripePriceIdsFromForm(): StripePriceIds {
         try {
@@ -1004,33 +2238,77 @@ const seo = {
         return {};
     }
 
+    function parseVariantOptionsFromForm(): ParsedVariantOptions | null {
+        try {
+            const raw = form?.dataset.variantOptions ?? "";
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                return parsed as ParsedVariantOptions;
+            }
+        } catch {
+            /* invalid JSON */
+        }
+        return null;
+    }
+
+    /**
+     * Picks the right Stripe price for a variant-driven program based on the
+     * selected module and the modality chosen in step 1. Returns `null` when
+     * no usable price is available so the caller can fall back to wire transfer.
+     */
+    function resolveVariantPriceId(
+        variants: ParsedVariantOptions | null,
+        moduleId: string,
+        modality: string,
+    ): string | null {
+        if (!variants?.moduleSelection || !moduleId) return null;
+        const opt = variants.moduleSelection.options.find((o) => o.id === moduleId);
+        const candidate =
+            modality === "Presencial"
+                ? opt?.stripePriceIds?.presencial
+                : opt?.stripePriceIds?.online;
+        return candidate && priceIdIsValid(candidate) ? candidate : null;
+    }
+
+    function getCurrentSelectedModule(): string {
+        const sel = document.getElementById(
+            "variant-module-select",
+        ) as HTMLSelectElement | null;
+        return (sel?.value ?? "").trim();
+    }
+    function getCurrentSelectedDate(): string {
+        const sel = document.getElementById(
+            "variant-date-select",
+        ) as HTMLSelectElement | null;
+        return (sel?.value ?? "").trim();
+    }
+    function getCurrentSelectedModuleLabel(): string {
+        const sel = document.getElementById(
+            "variant-module-select",
+        ) as HTMLSelectElement | null;
+        if (!sel) return "";
+        return sel.options[sel.selectedIndex]?.dataset.label ?? "";
+    }
+    function getCurrentSelectedDateLabel(): string {
+        const sel = document.getElementById(
+            "variant-date-select",
+        ) as HTMLSelectElement | null;
+        if (!sel) return "";
+        return sel.options[sel.selectedIndex]?.dataset.label ?? "";
+    }
+
     function priceIdIsValid(priceId: string): boolean {
         return (
             typeof priceId === "string" &&
-            /^price_[a-zA-Z0-9]+$/.test(priceId) &&
-            !/PLACEHOLDER|REPLACE/i.test(priceId)
+            /^price_[a-zA-Z0-9]+$/.test(priceId)
         );
     }
 
     function generateWireReferencePost(): string {
-        let bank: { referencePrefix?: string } = {};
-        try {
-            bank = JSON.parse(postSubmitPanel?.dataset.bankInfo || "{}");
-        } catch {
-            /* ignore */
-        }
-        const prefix = bank.referencePrefix || "CEPRIJA";
-        const program = String(lastPostPayload?.programSlug || "programa")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "");
-        const stamp = new Date();
-        const y = String(stamp.getFullYear());
-        const m = String(stamp.getMonth() + 1).padStart(2, "0");
-        const d = String(stamp.getDate()).padStart(2, "0");
-        const t = Math.floor(stamp.getTime() / 1000) % 46656;
-        const suffix = t.toString(36).toUpperCase().padStart(3, "0");
-        return `${prefix}-${program}-${y}${m}${d}${suffix}`;
+        const id = String(lastPostPayload?.applicationId ?? "").trim();
+        if (id) return wireReferenceFromSessionId(id);
+        return "CEPRIJA-PENDING";
     }
 
     function applyInvoiceWireFields() {
@@ -1078,54 +2356,149 @@ const seo = {
     }
 
     function updateUI() {
-        steps.forEach((s) => {
-            const section = document.getElementById(`step-${s}`);
+        stepEntries.forEach((entry, idx) => {
+            const section = document.getElementById(entry.id);
             if (section) {
-                section.classList.toggle("hidden", s !== currentStep);
+                section.classList.toggle("hidden", idx + 1 !== currentStep);
             }
         });
 
-        if (stepLabel) stepLabel.textContent = stepTitles[currentStep - 1];
-        if (stepNumber) stepNumber.textContent = `${Math.round((currentStep / 3) * 100)}% completado`;
-        if (progressBar) progressBar.style.width = `${(currentStep / 3) * 100}%`;
+        const percent = (currentStep / totalSteps) * 100;
+        if (stepLabel) stepLabel.textContent = stepTitle(currentStep);
+        if (stepNumber)
+            stepNumber.textContent = `${Math.round(percent)}% completado`;
+        if (progressBar) progressBar.style.width = `${percent}%`;
     }
 
-    document.getElementById("next-step-1")?.addEventListener("click", () => {
-        const section = document.getElementById("step-1");
+    function goToStep(targetIdx: number) {
+        const clamped = Math.max(1, Math.min(totalSteps, targetIdx));
+        currentStep = clamped;
+        updateUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function attemptAdvance(fromIdx: number) {
+        const entry = stepEntries[fromIdx - 1];
+        const section = entry ? document.getElementById(entry.id) : null;
         if (!section) return;
-        const result = validateRequiredFieldsInContainer(section);
+        // Validate required fields + format rules (phone, CURP, CP, email, etc.)
+        // so users see inline feedback before moving on, rather than hitting
+        // a silent server-side rejection at submit time.
+        const result = validateStepSection(section);
         if (!result.ok) {
-            reportStepValidationFailure(stepTitles[0], result);
+            reportStepValidationFailure(stepTitle(fromIdx), result);
             return;
         }
-        currentStep = 2;
-        updateUI();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        // Step-2 (academic background) has extra rules beyond "all fields filled":
+        // the chronological order and the per-nivel minimum set must hold before
+        // the user can see the documents step (otherwise they could upload files
+        // for an invalid set of degrees).
+        if (entry?.id === "step-2") {
+            const chronoErr = validateChronologicalOrder();
+            if (chronoErr) {
+                alert(chronoErr);
+                return;
+            }
+            const minErr = validateMinimumDegrees();
+            if (minErr) {
+                alert(minErr);
+                return;
+            }
+            const cedErr = validateDoctoradoCedulas();
+            if (cedErr) {
+                alert(cedErr);
+                return;
+            }
+        }
+        goToStep(fromIdx + 1);
+    }
+
+    /**
+     * The variant step (when present) is index 1, so the personal/academic/document
+     * steps shift by +1. We resolve indices via `stepEntries` so the same handlers
+     * work whether the variant step is rendered or not.
+     */
+    function indexOfStep(id: string): number {
+        return stepEntries.findIndex((e) => e.id === id) + 1;
+    }
+
+    document.getElementById("next-step-variant")?.addEventListener("click", () => {
+        const idx = indexOfStep("step-variant");
+        if (idx > 0) attemptAdvance(idx);
     });
 
+    document.getElementById("next-step-1")?.addEventListener("click", () => {
+        const idx = indexOfStep("step-1");
+        if (idx > 0) attemptAdvance(idx);
+    });
+
+    // Bind navigation for each of the 4 extended-profile sub-steps using a
+    // shared handler so we avoid copy-pasting four near-identical blocks.
+    const PROFILE_STEP_IDS = [
+        "step-profile-personal",
+        "step-profile-address",
+        "step-profile-emergency",
+        "step-profile-health",
+    ] as const;
+
+    for (const sid of PROFILE_STEP_IDS) {
+        document
+            .getElementById(`next-${sid}`)
+            ?.addEventListener("click", () => {
+                const idx = indexOfStep(sid);
+                if (idx > 0) attemptAdvance(idx);
+            });
+        document
+            .getElementById(`prev-${sid}`)
+            ?.addEventListener("click", () => {
+                const idx = indexOfStep(sid);
+                if (idx > 0) goToStep(idx - 1);
+            });
+    }
+
+    // Health step: show/hide the detail textarea based on the matching Sí/No
+    // radio. Required follows visibility so the form-level required check
+    // doesn't block when the user selected "No".
+    document
+        .querySelectorAll<HTMLInputElement>(".health-toggle")
+        .forEach((radio) => {
+            radio.addEventListener("change", () => {
+                const target = radio.dataset.target;
+                if (!target) return;
+                const ta = document.querySelector<HTMLTextAreaElement>(
+                    `textarea[name="${target}"]`,
+                );
+                if (!ta) return;
+                const show = radio.value === "Sí" && radio.checked;
+                ta.classList.toggle("hidden", !show);
+                ta.required = show;
+                if (!show) ta.value = "";
+            });
+        });
+
+    // CURP must be uppercase. CSS text-transform only affects display, so
+    // mutate the value too to keep client/server validation consistent.
+    document
+        .querySelectorAll<HTMLInputElement>('input[name="curp"]')
+        .forEach((el) => {
+            el.addEventListener("input", () => {
+                el.value = el.value.toUpperCase();
+            });
+        });
+
     document.getElementById("prev-step-2")?.addEventListener("click", () => {
-        currentStep = 1;
-        updateUI();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const idx = indexOfStep("step-2");
+        if (idx > 0) goToStep(idx - 1);
     });
 
     document.getElementById("next-step-2")?.addEventListener("click", () => {
-        const section = document.getElementById("step-2");
-        if (!section) return;
-        const result = validateRequiredFieldsInContainer(section);
-        if (!result.ok) {
-            reportStepValidationFailure(stepTitles[1], result);
-            return;
-        }
-        currentStep = 3;
-        updateUI();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const idx = indexOfStep("step-2");
+        if (idx > 0) attemptAdvance(idx);
     });
 
     document.getElementById("prev-step-3")?.addEventListener("click", () => {
-        currentStep = 2;
-        updateUI();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const idx = indexOfStep("step-3");
+        if (idx > 0) goToStep(idx - 1);
     });
 
     function applyPostStripeInvoiceFields() {
@@ -1163,7 +2536,7 @@ const seo = {
     postSubmitWireForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (postSubmitWireForm) {
-            const wireCheck = validateRequiredFieldsInContainer(postSubmitWireForm);
+            const wireCheck = validateStepSection(postSubmitWireForm);
             if (!wireCheck.ok) {
                 reportStepValidationFailure("Comprobante de transferencia", wireCheck);
                 return;
@@ -1201,13 +2574,28 @@ const seo = {
     function showPostSubmitPaymentOptions(payload: PostPayload) {
         lastPostPayload = payload;
 
-        const stripeIds = parseStripePriceIdsFromForm();
-        const priceId =
-            payload.modality === "Presencial"
-                ? stripeIds.presencial
-                : stripeIds.online;
-        const priceOk = typeof priceId === "string" && priceIdIsValid(priceId);
-        lastCheckoutPriceId = priceOk ? priceId : null;
+        // Variant-driven programs override the program-level stripePriceIds with
+        // the price tied to the chosen module (still keyed by modality). For
+        // standard programs we keep the previous behaviour.
+        const variants = parseVariantOptionsFromForm();
+        let priceId: string | undefined;
+        if (variants?.moduleSelection && payload.selectedModule) {
+            priceId =
+                resolveVariantPriceId(
+                    variants,
+                    payload.selectedModule,
+                    payload.modality,
+                ) ?? undefined;
+        } else {
+            const stripeIds = parseStripePriceIdsFromForm();
+            priceId =
+                payload.modality === "Presencial"
+                    ? stripeIds.presencial
+                    : stripeIds.online;
+        }
+        const priceOk =
+            typeof priceId === "string" && priceId.length > 0 && priceIdIsValid(priceId);
+        lastCheckoutPriceId = priceOk ? (priceId as string) : null;
 
         if (postSubmitApplicationId) {
             postSubmitApplicationId.textContent = payload.applicationId
@@ -1380,6 +2768,12 @@ const seo = {
                             ...(lastPostPayload.applicationId
                                 ? { applicationId: lastPostPayload.applicationId }
                                 : {}),
+                            ...(lastPostPayload.selectedModule
+                                ? { selectedModule: lastPostPayload.selectedModule }
+                                : {}),
+                            ...(lastPostPayload.selectedDate
+                                ? { selectedDate: lastPostPayload.selectedDate }
+                                : {}),
                         }),
                     });
                     const data = await res.json();
@@ -1412,16 +2806,54 @@ const seo = {
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        for (let s = 1; s <= 3; s++) {
-            const section = document.getElementById(`step-${s}`);
+        for (let i = 1; i <= totalSteps; i++) {
+            const entry = stepEntries[i - 1];
+            const section = entry ? document.getElementById(entry.id) : null;
             if (!section) continue;
-            const result = validateRequiredFieldsInContainer(section);
+            // Ensure the step is visible before validating. Otherwise the
+            // `.hidden` class on non-current steps bubbles up through
+            // `isHiddenInFormTree` and the validator silently skips every
+            // required field in that step, which let bad data reach the
+            // server.
+            currentStep = i;
+            updateUI();
+            // validateStepSection = required fields + format checks. Without
+            // the format pass, a bad CURP/phone/CP would slip past the client
+            // and the server would reject silently (the user reports
+            // "nothing happens" when clicking Enviar Solicitud).
+            const result = validateStepSection(section);
             if (!result.ok) {
-                currentStep = s;
-                updateUI();
-                reportStepValidationFailure(stepTitles[s - 1], result);
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                reportStepValidationFailure(stepTitle(i), result);
+                // No `scrollTo(0)` aquí: anula el `scrollIntoView` de
+                // `reportStepValidationFailure` y parece que «Enviar» no hace nada.
+                alert(formatStepValidationMessage(stepTitle(i), result.missingLabels));
                 return;
+            }
+            if (entry?.id === "step-2") {
+                const chronoErr = validateChronologicalOrder();
+                if (chronoErr) {
+                    currentStep = i;
+                    updateUI();
+                    alert(chronoErr);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    return;
+                }
+                const minErr = validateMinimumDegrees();
+                if (minErr) {
+                    currentStep = i;
+                    updateUI();
+                    alert(minErr);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    return;
+                }
+                const cedErr = validateDoctoradoCedulas();
+                if (cedErr) {
+                    currentStep = i;
+                    updateUI();
+                    alert(cedErr);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    return;
+                }
             }
         }
 
@@ -1447,17 +2879,40 @@ const seo = {
         const programSlug = String(form.dataset.programSlug ?? "").trim();
         const participantName = `${nombre} ${apellidos}`.trim();
 
+        // Variant fields (selectedModule / selectedDate) are only present when
+        // the program defines variantOptions. They go in the multipart payload
+        // automatically (the dropdowns live inside `<form>`); we capture the
+        // labels here so we can show them in the post-submit panel.
+        const selectedModule = String(formData.get("selectedModule") ?? "").trim();
+        const selectedDate = String(formData.get("selectedDate") ?? "").trim();
+        const selectedModuleLabel = getCurrentSelectedModuleLabel();
+        const selectedDateLabel = getCurrentSelectedDateLabel();
+        if (selectedModuleLabel) {
+            formData.set("selectedModuleLabel", selectedModuleLabel);
+        }
+        if (selectedDateLabel) {
+            formData.set("selectedDateLabel", selectedDateLabel);
+        }
+
         try {
             const response = await fetch("/api/enrollment", {
                 method: "POST",
                 body: formData,
             });
 
-            const result = await response.json();
+            const result = (await response.json().catch(() => null)) as
+                | { applicationId?: string; message?: string; error?: string }
+                | null;
+            const serverMsg =
+                (result && typeof result.message === "string" && result.message) ||
+                (result && typeof result.error === "string" && result.error) ||
+                "";
 
             if (response.ok) {
                 const applicationId =
-                    typeof result.applicationId === "string" ? result.applicationId : "";
+                    result && typeof result.applicationId === "string"
+                        ? result.applicationId
+                        : "";
                 form.reset();
                 currentStep = 1;
                 updateUI();
@@ -1468,16 +2923,25 @@ const seo = {
                     participantPhone: telefono,
                     modality,
                     programSlug,
+                    selectedModule,
+                    selectedDate,
                 });
             } else {
-                throw new Error(result.message || result.error || "Error al enviar la solicitud");
+                throw new Error(
+                    serverMsg ||
+                        `No se pudo enviar la solicitud (${response.status}). Intenta de nuevo.`,
+                );
             }
         } catch (error) {
             if (statusDiv) {
-                statusDiv.textContent =
-                    "Hubo un error al enviar tu solicitud. Por favor verifica los archivos e intenta nuevamente, o contáctanos directamente.";
+                const detail =
+                    error instanceof Error && error.message
+                        ? error.message
+                        : "Hubo un error al enviar tu solicitud.";
+                statusDiv.textContent = `${detail} Verifica los archivos (PDF o imagen) o contáctanos.`;
                 statusDiv.classList.remove("hidden");
                 statusDiv.classList.add("bg-red-100", "text-red-800", "border", "border-red-200");
+                statusDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
             console.error("Error submitting enrollment:", error);
         } finally {
@@ -1487,4 +2951,38 @@ const seo = {
             }
         }
     });
+
+    updateUI();
+</script>
+
+<!-- Flatpickr: rendered AFTER the main module script so the date-picker input
+     already exists in the DOM by the time we initialize it. `altInput` keeps a
+     user-friendly DD/MM/YYYY visible input while the hidden original input
+     holds the backend-friendly ISO (YYYY-MM-DD) value that the API expects
+     (see birth-date parsing in /api/enrollment.ts). -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script is:inline src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<script is:inline>
+    (function initDatePickers() {
+        if (typeof flatpickr !== "function") return;
+        document.querySelectorAll(".date-picker").forEach(function (el) {
+            var minDate = el.getAttribute("data-min-date") || "1900-01-01";
+            var maxDate = el.getAttribute("data-max-date") || undefined;
+            flatpickr(el, {
+                locale: "es",
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d/m/Y",
+                allowInput: true,
+                disableMobile: true,
+                minDate: minDate,
+                maxDate: maxDate,
+                onReady: function (_dates, _str, instance) {
+                    if (instance.altInput) {
+                        instance.altInput.removeAttribute("required");
+                    }
+                },
+            });
+        });
+    })();
 </script>

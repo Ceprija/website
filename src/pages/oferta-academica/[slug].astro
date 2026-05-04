@@ -5,8 +5,8 @@ import ContactForm from "@components/forms/ContactForm.astro";
 import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.astro";
 import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsideCard.astro";
 import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
-import { programHasStripeCheckout } from "@lib/stripeAllowedPrices";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
+import { getVariantOptions } from "@lib/programVariants";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -49,6 +49,12 @@ const continuousEducationPrices =
 const programAddress =
     typeof data.address === "string" ? data.address : undefined;
 const programRequiresVerification = Boolean(data.requiresVerification);
+const registroAcademico =
+    typeof data.registroAcademico === "string"
+        ? data.registroAcademico.trim()
+        : "";
+const variantOptions = getVariantOptions(program);
+const variantModuleOptions = variantOptions?.moduleSelection?.options ?? [];
 
 const seo = {
     title: `${String(data.title)} | CEPRIJA`,
@@ -104,6 +110,31 @@ const seo = {
                                     <span>RVOE: </span>
                                     <span class="italic font-bold">
                                         {program.data.rvoe}
+                                    </span>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                </div>
+                            )
+                        }
+
+                        {
+                            registroAcademico && (
+                                <div class="flex items-center gap-2">
+                                    <span>Registro: </span>
+                                    <span class="italic font-bold">
+                                        {registroAcademico}
                                     </span>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -407,6 +438,13 @@ const seo = {
                                             ${program.data.price}
                                         </p>
                                     )}
+                                    {variantModuleOptions.length > 0 && (
+                                        <p class="mt-6 text-sm text-gray-600 leading-relaxed">
+                                            Selecciona el módulo o paquete y la
+                                            fecha de inicio durante el proceso
+                                            de inscripción.
+                                        </p>
+                                    )}
                                 </div>
                             )
                         }
@@ -508,13 +546,12 @@ const seo = {
             </div>
         </section>
 
-        <!-- Inscripción / admisión: card completa bajo la información (mejor responsive que columna lateral) -->
-        <section
-            class="pb-20 border-t border-gray-200 bg-gray-50/80"
-            data-animate="fade-up"
-            data-delay="600"
-        >
-            <div class="container mx-auto px-6 max-w-3xl">
+        <!-- Inscripción / admisión: sin data-animate aquí — el transform del fade-up
+             hace que position:fixed de descendientes se ancle al section y el pie
+             del formulario desaparezca. `enrollmentFlow: inline` en el .md sigue
+             gobernado por getEnrollmentFlow(). -->
+        <section class="py-16 pb-20 border-t border-gray-200 bg-gray-50/80">
+            <div class="container mx-auto px-6 max-w-4xl lg:max-w-5xl">
                 {
                     enrollmentFlow === "application" ? (
                         <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
@@ -536,13 +573,7 @@ const seo = {
                                     <svg class="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span class="text-gray-700">Historial Académico (Kardex)</span>
-                                </div>
-                                <div class="flex items-start gap-2">
-                                    <svg class="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span class="text-gray-700">Título Profesional y Cédula</span>
+                                    <span class="text-gray-700">Título Profesional y Cédula por cada grado académico</span>
                                 </div>
                             </div>
 
@@ -557,25 +588,16 @@ const seo = {
                                 Proceso en línea • Respuesta en 48-72 horas
                             </p>
                         </ProgramEnrollmentAsideCard>
-                    ) : programHasStripeCheckout(stripePriceIdsForCheckout) ? (
-                        <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
-                            <ContinuousEducationForm
-                                programTitle={String(data.title)}
-                                programId={programSlug}
-                                stripePriceIds={stripePriceIdsForCheckout}
-                                prices={continuousEducationPrices}
-                                address={programAddress}
-                                requiresVerification={programRequiresVerification}
-                                embedInAsideCard={true}
-                            />
-                        </ProgramEnrollmentAsideCard>
                     ) : (
-                        <ProgramEnrollmentAsideCard sticky={false} class="shadow-xl">
-                            <ContactForm
-                                programTitle={String(data.title)}
-                                embedInAsideCard={true}
-                            />
-                        </ProgramEnrollmentAsideCard>
+                        <ContinuousEducationForm
+                            programTitle={String(data.title)}
+                            programId={programSlug}
+                            stripePriceIds={stripePriceIdsForCheckout}
+                            prices={continuousEducationPrices}
+                            address={programAddress}
+                            requiresVerification={programRequiresVerification}
+                            embedInAsideCard={false}
+                        />
                     )
                 }
             </div>
