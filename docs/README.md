@@ -5,6 +5,7 @@ Internal reference for how the public site routes users into programs, enrollmen
 | Document | Contents |
 |----------|----------|
 | [Enrollment: flows and entry points](./enrollment/flows-and-entrypoints.md) | URLs, `enrollmentFlow` rules, inline vs application wizard, APIs, **diagram index** (A–K), decision trees, state machines, sequence diagrams, Stripe return |
+| [Stripe configuration reference](./stripe-configuration.md) | Webhook setup, event subscriptions, installment cap (subscription schedule + `cancel_at_period_end` fallback), Dahlia API notes, local Test Clock recipe, prod cutover, log-driven troubleshooting |
 | [Marketing → sitio: checklist de programa](./marketing-program-handoff-checklist.md) | Coherencia módulos/fechas/temario, duplicados en planes de estudio, precios vs Stripe/cupones, imágenes, legal; **confirmación de cohorte**; **admisión y documentos**; **tabla inventario** de todos los `programas/*.md` (brechas, `featured`, admisión) |
 | [Checklist para marketing (lenguaje sencillo)](./marketing-program-handoff-checklist-para-mkt.md) | Misma guía en redacción no técnica; PDF opcional (ver abajo) |
 
