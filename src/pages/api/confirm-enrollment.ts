@@ -20,6 +20,7 @@ import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import { getStripePriceIds, getProgramStatus } from "@lib/programPayments";
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -142,7 +143,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.slug === programSlugMeta);
-    if (!program || program.data.disabled) {
+    if (!program || getProgramStatus(program) === "disabled") {
       apiLog("warn", route, "unknown_program", {
         requestId,
         stripeSessionId,
@@ -200,18 +201,10 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const rawStripeIds = program.data.stripePriceIds;
-    const stripeIds =
-      rawStripeIds &&
-      typeof rawStripeIds === "object" &&
-      "presencial" in rawStripeIds &&
-      "online" in rawStripeIds &&
-      typeof (rawStripeIds as { presencial: unknown }).presencial === "string" &&
-      typeof (rawStripeIds as { online: unknown }).online === "string"
-        ? (rawStripeIds as { presencial: string; online: string })
-        : null;
+    // Use helper function to get stripe price IDs (supports both new paymentOptions and legacy format)
+    const stripeIds = getStripePriceIds(program);
 
-    if (!stripeIds) {
+    if (!stripeIds || (!stripeIds.presencial && !stripeIds.online)) {
       apiLog("warn", route, "program_no_prices", {
         requestId,
         stripeSessionId,

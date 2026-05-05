@@ -9,6 +9,13 @@ import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import { getVariantOptions } from "@lib/programVariants";
 import { programMetaDescriptionSuffix } from "../../data/config/seo.js";
 import { filterPublishedPrograms } from "@lib/programPublished";
+import { 
+    getPaymentOptions, 
+    getStripePriceIds, 
+    getDisplayPrices,
+    getProgramStatus,
+    formatPrice 
+} from "@lib/programPayments";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -21,6 +28,7 @@ export async function getStaticPaths() {
 
 const { program } = Astro.props;
 
+const programStatus = getProgramStatus(program);
 const enrollmentFlow = getEnrollmentFlow(program);
 const programSlug = getProgramPathSlug(program);
 
@@ -41,18 +49,10 @@ const includesItems: string[] = Array.isArray(data.includes)
 const prerequisitesItems: string[] = Array.isArray(data.prerequisites)
     ? (data.prerequisites as string[])
     : [];
-const stripePriceIdsForCheckout =
-    data.stripePriceIds &&
-    typeof data.stripePriceIds === "object" &&
-    !Array.isArray(data.stripePriceIds)
-        ? (data.stripePriceIds as { online?: string; presencial?: string })
-        : undefined;
-const continuousEducationPrices =
-    typeof data.price === "object" &&
-    data.price !== null &&
-    !Array.isArray(data.price)
-        ? (data.price as { Presencial?: string; Online?: string })
-        : { Presencial: "", Online: "" };
+// Extract payment data using new helper functions (with backward compatibility)
+const paymentOptions = getPaymentOptions(program);
+const stripePriceIdsForCheckout = getStripePriceIds(program);
+const continuousEducationPrices = getDisplayPrices(program);
 const programAddress =
     typeof data.address === "string" ? data.address : undefined;
 const programRequiresVerification = Boolean(data.requiresVerification);
@@ -527,7 +527,7 @@ const heroObjectPosition =
                     }
 
                     {
-                        program.data.price && (
+                        (paymentOptions.length > 0 || program.data.price) && (
                             <div
                                 class="bg-white rounded-2xl shadow-sm p-8"
                                 data-animate="fade-up"
@@ -550,7 +550,20 @@ const heroObjectPosition =
                                     </svg>
                                     Inversión
                                 </h2>
-                                {typeof program.data.price === "object" ? (
+                                {paymentOptions.length > 0 ? (
+                                    <div class="space-y-4">
+                                        {paymentOptions.map((option) => (
+                                            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                                                <span class="text-gray-600 font-medium">
+                                                    {option.label}:
+                                                </span>
+                                                <span class="text-primary font-bold text-lg">
+                                                    {formatPrice(option.price)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : typeof program.data.price === "object" ? (
                                     <div class="space-y-4">
                                         {Object.entries(program.data.price).map(
                                             ([key, value]) => (
@@ -685,7 +698,38 @@ const heroObjectPosition =
         <section class="py-16 pb-20 border-t border-gray-200 bg-gray-50/80">
             <div class="container mx-auto px-6 max-w-4xl lg:max-w-5xl">
                 {
-                    enrollmentFlow === "application" ? (
+                    programStatus === "waitlist" ? (
+                        <div class="max-w-4xl mx-auto">
+                            <div class="bg-white rounded-3xl shadow-xl p-8 md:p-12">
+                                <div class="text-center mb-8">
+                                    <div class="inline-block p-4 bg-amber-50 rounded-2xl mb-4">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-12 w-12 text-amber-500"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-primary mb-4 font-serif">
+                                        Próximamente Disponible
+                                    </h3>
+                                    <p class="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">
+                                        Este programa no está actualmente en calendario.
+                                        Déjanos tus datos y te contactaremos cuando abramos inscripciones.
+                                    </p>
+                                </div>
+                                <ContactForm programTitle={String(data.title)} />
+                            </div>
+                        </div>
+                    ) : enrollmentFlow === "application" ? (
                         <ProgramEnrollmentAsideCard
                             sticky={false}
                             class="shadow-xl"
@@ -755,6 +799,7 @@ const heroObjectPosition =
                             programId={programSlug}
                             stripePriceIds={stripePriceIdsForCheckout}
                             prices={continuousEducationPrices}
+                            paymentOptions={paymentOptions}
                             address={programAddress}
                             requiresVerification={programRequiresVerification}
                             embedInAsideCard={false}

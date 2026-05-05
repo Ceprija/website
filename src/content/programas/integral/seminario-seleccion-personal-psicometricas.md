@@ -6,19 +6,33 @@ excerpt: "Selección de personal y pruebas psicométricas: baterías por nivel, 
 image: "/images/programs/seminario-pruebas-psicometricas.webp"
 escuela: "integral"
 nivel: "curso"
+status: "active"
 horario: "Viernes 18:00–21:00 h (6:00–9:00 p.m.); sábado 10:00–13:00 h (10:00 a.m.–1:00 p.m.)"
 startDate: "22 de mayo de 2026"
 duracion: "10 sesiones (30 h)"
 modalidad: "Presencial y en línea"
-price:
-  "Paquete (precio de lista)": "$4,430 MXN"
-  "Módulo 1 — Pruebas psicométricas (18 h)": "$2,450 MXN"
-  "Módulo 2 — Selección de personal (12 h)": "$1,980 MXN"
+paymentOptions:
+  - id: "paquete"
+    label: "Paquete (precio de lista)"
+    price: 4430
+    stripePriceId: "price_REPLACE_seminario_paquete"
+    type: "hibrido"
+  - id: "modulo_1"
+    label: "Módulo 1 — Pruebas psicométricas (18 h)"
+    price: 2450
+    stripePriceId: "price_REPLACE_seminario_mod1"
+    type: "hibrido"
+  - id: "modulo_2"
+    label: "Módulo 2 — Selección de personal (12 h)"
+    price: 1980
+    stripePriceId: "price_REPLACE_seminario_mod2"
+    type: "hibrido"
 featured: true
 date: "2026-05-22"
 address: ""
 requiresVerification: false
 instructor: "Lic. Aida Isabel Girscher La Verne"
+enrollmentFlow: "inline"
 curriculumTitle: "Temario del seminario"
 curriculum:
   - period: "Módulo 1 — Pruebas psicométricas"

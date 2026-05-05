@@ -6,19 +6,14 @@ excerpt: "Criminalística y ciencias forenses en litigio penal: cadena de custod
 image: "/images/programs/especialidad-criminalistica.webp"
 escuela: "juridica"
 nivel: "especialidad"
+status: "waitlist"
 rvoe: "ESP142024141"
 horario: ""
 startDate: ""
 duracion: "3 cuatrimestres"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgEspCriminalPres"
-  online: "price_1CfgEspCriminalOnln"
 address: ""
 requiresVerification: false
 instructor: ""

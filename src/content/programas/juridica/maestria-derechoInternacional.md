@@ -6,19 +6,14 @@ excerpt: "Derechos humanos y litigio estratégico: estándares interamericanos, 
 image: "/images/programs/maestria-derecho-internacional.webp"
 escuela: "juridica"
 nivel: "maestria"
+status: "waitlist"
 rvoe: "ESM142024140"
 horario: ""
 startDate: ""
 duracion: "6 cuatrimestres"
 modalidad: "Híbrida / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgMaeInternacPres"
-  online: "price_1CfgMaeInternacOnln"
 address: ""
 requiresVerification: false
 instructor: ""

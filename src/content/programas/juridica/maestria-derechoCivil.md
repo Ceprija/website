@@ -6,26 +6,41 @@ excerpt: "Oralidad civil y familiar: audiencias, prueba, familia y sucesiones co
 image: "/images/programs/maestria-derecho-civil.webp"
 escuela: "juridica"
 nivel: "maestria"
+status: "active"
 rvoe: "ESM142024143"
 horario: "Miércoles 17:00 a 20:00 h · Viernes 9:00 a 14:00 h"
 startDate: ""
 duracion: "6 cuatrimestres"
 modalidad: "Presencial / En línea"
-price:
-  Inscripción: "$6,000 MXN"
-  Reinscripción: "$3,000 MXN"
-  Mensualidad (en línea): "$3,500 MXN"
-  Mensualidad (presencial/híbrida): "$3,900 MXN"
+paymentOptions:
+  - id: "inscripcion"
+    label: "Inscripción"
+    price: 6000
+    stripePriceId: "price_REPLACE_mae_civil_inscripcion"
+    type: "hibrido"
+  - id: "reinscripcion"
+    label: "Reinscripción"
+    price: 3000
+    stripePriceId: "price_REPLACE_mae_civil_reinscripcion"
+    type: "hibrido"
+  - id: "mensualidad_online"
+    label: "Mensualidad (en línea)"
+    price: 3500
+    stripePriceId: "price_1CfgMaeCivilOnln"
+    type: "online"
+  - id: "mensualidad_presencial"
+    label: "Mensualidad (presencial/híbrida)"
+    price: 3900
+    stripePriceId: "price_1CfgMaeCivilPres"
+    type: "presencial"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgMaeCivilPres"
-  online: "price_1CfgMaeCivilOnln"
 address: ""
 requiresVerification: true
 instructor: ""
 schedule: ""
 meetingLink: ""
+enrollmentFlow: "application"
 curriculumTitle: "Plan de estudios — Programa de Posgrado"
 curriculum:
   - period: "01 Cuatrimestre"

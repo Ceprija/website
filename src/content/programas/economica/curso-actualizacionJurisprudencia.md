@@ -6,23 +6,30 @@ excerpt: "Actualización jurisprudencial fiscal para litigio y asesoría: criter
 image: "/images/programs/actualizacion-jurisprudencial-en-materia-fiscal.webp"
 escuela: "economica"
 nivel: "curso"
+status: "active"
 horario: ""
 startDate: "19 de marzo de 2026"
 duracion: "1 sesión (3.5 h)"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
+paymentOptions:
+  - id: "presencial"
+    label: "Presencial"
+    price: 0
+    stripePriceId: "price_1CfgActJurFiscalPres"
+    type: "presencial"
+  - id: "online"
+    label: "Online"
+    price: 0
+    stripePriceId: "price_1CfgActJurFiscalOnln"
+    type: "online"
 featured: true
 date: "2026-03-19"
-stripePriceIds:
-  presencial: "price_1CfgActJurFiscalPres"
-  online: "price_1CfgActJurFiscalOnln"
 address: ""
 requiresVerification: false
 instructor: ""
 schedule: ""
 meetingLink: ""
+enrollmentFlow: "inline"
 curriculumTitle: "Temario"
 curriculum:
   - period: "Sesión"

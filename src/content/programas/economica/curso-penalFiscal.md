@@ -6,23 +6,30 @@ excerpt: "Penal fiscal y procedimiento: delitos, investigación, litigio y crite
 image: "/images/programs/curso-penal-fiscal.webp"
 escuela: "economica"
 nivel: "curso"
+status: "active"
 horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
+paymentOptions:
+  - id: "presencial"
+    label: "Presencial"
+    price: 0
+    stripePriceId: "price_1CfgCurPenalFisPres"
+    type: "presencial"
+  - id: "online"
+    label: "Online"
+    price: 0
+    stripePriceId: "price_1CfgCurPenalFisOnln"
+    type: "online"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgCurPenalFisPres"
-  online: "price_1CfgCurPenalFisOnln"
 address: ""
 requiresVerification: false
 instructor: ""
 schedule: ""
 meetingLink: ""
+enrollmentFlow: "inline"
 includes:
   - "Material de apoyo"
   - "Constancia de participación (según política institucional)"

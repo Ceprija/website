@@ -2,11 +2,16 @@ import type { CollectionEntry } from "astro:content";
 
 /**
  * Determines which enrollment flow a program should use.
- * Returns "application" for complex programs (maestria, doctorado, especialidad) requiring
- * CV, transcripts, and degree certificates.
- * Returns "inline" for simple programs (curso, diplomado) with basic registration.
- * 
- * Programs can explicitly override the default behavior via the enrollmentFlow frontmatter field.
+ *
+ * - **inline** (`ContinuousEducationForm` en la ficha del programa): cursos, diplomados y
+ *   cualquier programa cuyo registro sea “directo”. Varios planes de pago (`paymentOptions`)
+ *   se eligen en ese formulario; no hace falta `/enrollment/[slug]` salvo que quieras el
+ *   flujo largo de solicitud.
+ * - **application** (`/enrollment/[slug]`): maestría, doctorado, especialidad por defecto,
+ *   o override explícito (p. ej. taller con `variantOptions` para módulo/fecha y Stripe).
+ *
+ * No mezclar “solo para varios precios”: un diplomado con inscripción + total + cuotas debe
+ * seguir en **inline** salvo que integres esos precios al flujo de aplicación por separado.
  */
 export function getEnrollmentFlow(
   program: CollectionEntry<"programas">

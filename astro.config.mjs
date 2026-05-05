@@ -81,6 +81,8 @@ export default defineConfig({
       },
     }),
   ],
+  // Keep pages prerendered for SEO, but serve API routes dynamically.
+  // This requires deploying the Node adapter output (not a purely static host).
   output: 'static',
   build: {
     inlineStylesheets: 'auto',

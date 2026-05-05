@@ -6,24 +6,25 @@ excerpt: "Sellos digitales ante el SAT: cancelación, regularización y rutas pr
 image: "/images/programs/cancelacion-sellos-digitales.webp"
 escuela: "economica"
 nivel: "curso"
+status: "active"
 horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
+paymentOptions:
+  - id: "hibrido"
+    label: "Presencial / Online"
+    price: 0
+    stripePriceId: "price_1TOWxrIMr3rp9BogtXryKwRM"
+    type: "hibrido"
 featured: true
 date: ""
-# Stripe Checkout: IDs de precio (price_...), no de producto (prod_...).
-stripePriceIds:
-  presencial: "price_1TOWxrIMr3rp9BogtXryKwRM"
-  online: "price_1TOWxrIMr3rp9BogtXryKwRM"
 address: ""
 requiresVerification: false
 instructor: ""
 schedule: ""
 meetingLink: ""
+enrollmentFlow: "inline"
 includes:
   - "Material de apoyo"
   - "Constancia de participación (según política institucional)"

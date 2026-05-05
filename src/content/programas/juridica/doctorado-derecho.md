@@ -6,19 +6,14 @@ excerpt: "Doctorado en derecho procesal y sistemas contemporáneos: investigaci�
 image: "/images/programs/doctorado-derecho-procesal.webp"
 escuela: "juridica"
 nivel: "doctorado"
+status: "waitlist"
 rvoe: "ESD142024139"
 horario: ""
 startDate: ""
 duracion: "4 semestres"
 modalidad: "Híbrida / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgDoctoradoPres"
-  online: "price_1CfgDoctoradoOnln"
 address: ""
 requiresVerification: false
 instructor: ""

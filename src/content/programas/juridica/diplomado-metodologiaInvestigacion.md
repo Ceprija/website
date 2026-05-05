@@ -6,14 +6,12 @@ excerpt: "Investigación jurídica: planteamiento, métodos cualitativos y cuant
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"
+status: "waitlist"
 registroAcademico: "ESDIP-2024-122"
 horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Por definir"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: false
 date: ""
 address: ""

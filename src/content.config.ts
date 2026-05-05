@@ -40,7 +40,16 @@ const programas = defineCollection({
     image: z.string(),
     /** Encuadre para `object-fit: cover` en tarjeta y hero (p. ej. `52% 40%`). Opcional. */
     imagePosition: optionalYamlString(),
-    /** Si es `true`, el programa no se lista en oferta académica ni genera ficha pública ni inscripción. */
+    
+    /**
+     * Program status: controls visibility and enrollment behavior.
+     * - "active": Program is available for enrollment with payment options
+     * - "waitlist": Program is visible but not currently available; shows "Request Info" form
+     * - "disabled": Program is hidden from catalog
+     */
+    status: z.enum(["active", "waitlist", "disabled"]).default("active"),
+    
+    /** @deprecated Use `status: "disabled"` instead. Kept for backward compatibility. */
     disabled: z.boolean().optional(),
     escuela: z.enum(["juridica", "economica", "integral"]),
     nivel: z.enum(PROGRAMA_NIVELES_TUPLE),
@@ -52,6 +61,26 @@ const programas = defineCollection({
     startDate: z.string(),
     duracion: z.string(),
     modalidad: z.string(),
+    
+    /**
+     * Structured payment options for Stripe integration.
+     * Each option represents a payment choice (e.g., "Presencial", "En línea", "Paquete").
+     * Required when status === "active".
+     */
+    paymentOptions: z.array(z.object({
+      /** Unique identifier for this payment option */
+      id: z.string(),
+      /** Display label shown to users (e.g., "Modalidad Presencial") */
+      label: z.string(),
+      /** Price in MXN (as number, will be formatted for display) */
+      price: z.number(),
+      /** Stripe Price ID (e.g., "price_abc123") */
+      stripePriceId: z.string(),
+      /** Modality type: presencial, online, or hibrido (hybrid/both) */
+      type: z.enum(["presencial", "online", "hibrido"])
+    })).optional(),
+    
+    /** @deprecated Use `paymentOptions` array instead. Kept for backward compatibility. */
     price: z.union([z.number(), z.record(z.string())]).optional(),
     featured: z.boolean().optional(),
     date: optionalYamlString(),
@@ -75,6 +104,7 @@ const programas = defineCollection({
       online: z.string().optional(),
       presencial: z.string().optional()
     }).optional(),
+    /** @deprecated Use `paymentOptions[].stripePriceId` instead. Kept for backward compatibility. */
     stripePriceIds: z.object({
       online: z.string().optional(),
       presencial: z.string().optional()
@@ -122,6 +152,16 @@ const programas = defineCollection({
     // "inline" = simple registration on program page (curso, diplomado default)
     // "application" = multi-step application with documents (maestria, doctorado, especialidad default)
     enrollmentFlow: z.enum(["inline", "application"]).optional()
+  }).refine((data) => {
+    // Conditional validation: active programs must have payment options and enrollment flow
+    if (data.status === "active") {
+      const hasPaymentOptions = data.paymentOptions && data.paymentOptions.length > 0;
+      const hasEnrollmentFlow = !!data.enrollmentFlow;
+      return hasPaymentOptions && hasEnrollmentFlow;
+    }
+    return true;
+  }, {
+    message: "Active programs must have at least one paymentOption and an enrollmentFlow defined"
   })
 });
 

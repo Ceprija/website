@@ -6,19 +6,14 @@ excerpt: "Litigación oral penal avanzada: teoría del caso, audiencias, prueba 
 image: "/images/programs/maestria-derecho-penal.webp"
 escuela: "juridica"
 nivel: "maestria"
+status: "waitlist"
 rvoe: "ESM142024142"
 horario: ""
 startDate: ""
 duracion: "6 cuatrimestres"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgMaePenalPres"
-  online: "price_1CfgMaePenalOnln"
 address: ""
 requiresVerification: false
 instructor: ""

@@ -6,19 +6,14 @@ excerpt: "Litigación mercantil oral: contratos, títulos de crédito, audiencia
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"
+status: "waitlist"
 registroAcademico: "ESDIP-2024-086"
 horario: ""
 startDate: ""
 duracion: "6 meses (192 h)"
 modalidad: "Mixta"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: true
 date: "2026-04-20"
-stripePriceIds:
-  presencial: "price_1CfgDipMercantilPres"
-  online: "price_1CfgDipMercantilOnln"
 address: ""
 requiresVerification: false
 instructor: ""

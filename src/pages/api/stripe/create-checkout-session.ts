@@ -103,6 +103,63 @@ export const POST: APIRoute = async ({ request }) => {
   const stripe = new Stripe(secret);
 
   try {
+    // Primero obtenemos información del Price para determinar si es recurrente
+    const priceObj = await stripe.prices.retrieve(priceId);
+    const isRecurring = priceObj.type === "recurring";
+    
+    // Preparamos metadata común
+    const commonMetadata = {
+      programSlug: truncateMeta(programSlug),
+      participantName: truncateMeta(participantName),
+      participantPhone: truncateMeta(participantPhone),
+      modality: truncateMeta(modality),
+      requiresInvoice: truncateMeta(requiresInvoice, 8),
+      ...(invoiceEmail
+        ? { invoiceEmail: truncateMeta(invoiceEmail, 254) }
+        : {}),
+      ...(applicationId
+        ? { applicationId: truncateMeta(applicationId, 80) }
+        : {}),
+      ...(selectedModule
+        ? { selectedModule: truncateMeta(selectedModule, 120) }
+        : {}),
+      ...(selectedDate
+        ? { selectedDate: truncateMeta(selectedDate, 120) }
+        : {}),
+    };
+
+    // Si es recurrente, creamos una suscripción con límite de 4 pagos
+    if (isRecurring) {
+      const subscriptionMeta = {
+        ...commonMetadata,
+        payment_cycle_limit: "4",
+        enrollment_type: "deferred_payment_plan",
+      };
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        customer_email: customerEmail || undefined,
+        client_reference_id: truncateMeta(programSlug, 200),
+        // Misma metadata en sesión y suscripción: en Dashboard la ves en la sesión;
+        // algunas cuentas/API no reflejan subscription_data.metadata hasta el webhook.
+        subscription_data: {
+          metadata: subscriptionMeta,
+        },
+        metadata: subscriptionMeta,
+      });
+
+      apiLog("info", route, "subscription_checkout_created", {
+        requestId,
+        programSlug,
+        sessionId: session.id,
+        paymentCycleLimit: 4,
+      });
+      return jsonResponse({ url: session.url }, 200, requestId);
+    }
+
+    // Pago único (modo original)
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -110,25 +167,7 @@ export const POST: APIRoute = async ({ request }) => {
       cancel_url: cancelUrl,
       customer_email: customerEmail || undefined,
       client_reference_id: truncateMeta(programSlug, 200),
-      metadata: {
-        programSlug: truncateMeta(programSlug),
-        participantName: truncateMeta(participantName),
-        participantPhone: truncateMeta(participantPhone),
-        modality: truncateMeta(modality),
-        requiresInvoice: truncateMeta(requiresInvoice, 8),
-        ...(invoiceEmail
-          ? { invoiceEmail: truncateMeta(invoiceEmail, 254) }
-          : {}),
-        ...(applicationId
-          ? { applicationId: truncateMeta(applicationId, 80) }
-          : {}),
-        ...(selectedModule
-          ? { selectedModule: truncateMeta(selectedModule, 120) }
-          : {}),
-        ...(selectedDate
-          ? { selectedDate: truncateMeta(selectedDate, 120) }
-          : {}),
-      },
+      metadata: commonMetadata,
       payment_intent_data: {
         metadata: {
           programSlug: truncateMeta(programSlug),

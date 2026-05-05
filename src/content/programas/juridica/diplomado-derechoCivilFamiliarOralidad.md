@@ -6,20 +6,34 @@ excerpt: "Oralidad civil y familiar con CNPCyF: audiencias, pruebas, familia, su
 image: "/images/programs/diplomado-derecho-civil-y-familiar.webp"
 escuela: "juridica"
 nivel: "diplomado"
+status: "active"
 registroAcademico: "ESDIP-2024-123"
 horario: "Viernes 17:00–20:00 h · Sábado 9:00–14:00 h"
 startDate: "20 de marzo de 2026"
 duracion: "14 módulos"
 modalidad: "Híbrida"
-price:
-  "Inscripción": "$1,500 MXN"
-  "Costo total del diplomado": "$20,000 MXN"
-  "Cuatro pagos diferidos": "$5,000 MXN c/u"
+paymentOptions:
+  - id: "inscripcion"
+    label: "Inscripción"
+    price: 1500
+    stripePriceId: "price_1TTaX1KVaWLbvt9DGPdhK4Dh"
+    type: "hibrido"
+  - id: "total"
+    label: "Costo total del diplomado"
+    price: 21500
+    stripePriceId: "price_1TTaYTKVaWLbvt9Dk3JrHOjP"
+    type: "hibrido"
+  - id: "diferido"
+    label: "Cuatro pagos diferidos"
+    price: 5000
+    stripePriceId: "price_1TTcJOIMr3rp9BogpixoOSPp"
+    type: "hibrido"
 featured: true
 date: "2026-03-20"
 address: ""
 requiresVerification: false
 instructor: ""
+enrollmentFlow: "inline"
 curriculumTitle: "Temario por módulo"
 curriculum:
   - period: "Módulo 1 — Introducción al CNPCyF"

@@ -7,6 +7,7 @@ import { escapeHtml } from "@lib/htmlEscape";
 import { validateUploadBuffer } from "@lib/uploads/fileValidation";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
 import { CONTACT_EMAIL, KEY_API_BREVO, SMTP_FROM } from "astro:env/server";
+import { getProgramStatus } from "@lib/programPayments";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -46,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Get program details from content collection
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.data.title === programTitle);
-    if (program?.data.disabled) {
+    if (program && getProgramStatus(program) === "disabled") {
       return new Response(
         JSON.stringify({
           message: "Programa no disponible",
@@ -67,7 +68,7 @@ export const POST: APIRoute = async ({ request }) => {
       throw new Error("Falta KEY_API_BREVO en .env");
     }
 
-    const senderEmail = SMTP_FROM || CONTACT_EMAIL;
+    const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
     const safeName = escapeHtml(name);
     const safeEmail = escapeHtml(email);

@@ -6,23 +6,30 @@ excerpt: "Educación financiera y cultura patrimonial: planificación, protecci�
 image: "/images/programs/mi-futuro-mi-patrimonio.webp"
 escuela: "economica"
 nivel: "curso"
+status: "active"
 horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Presencial / En línea"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
+paymentOptions:
+  - id: "presencial"
+    label: "Presencial"
+    price: 0
+    stripePriceId: "price_1CfgCurPatrimPres"
+    type: "presencial"
+  - id: "online"
+    label: "Online"
+    price: 0
+    stripePriceId: "price_1CfgCurPatrimOnln"
+    type: "online"
 featured: true
 date: ""
-stripePriceIds:
-  presencial: "price_1CfgCurPatrimPres"
-  online: "price_1CfgCurPatrimOnln"
 address: ""
 requiresVerification: false
 instructor: ""
 schedule: ""
 meetingLink: ""
+enrollmentFlow: "inline"
 includes:
   - "Material de apoyo digital"
   - "Constancia de participación (según política institucional)"

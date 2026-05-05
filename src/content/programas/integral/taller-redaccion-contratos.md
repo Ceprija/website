@@ -7,13 +7,22 @@ image: "/images/programs/taller-redaccion-de-contratos.webp"
 imagePosition: "center 20%"
 escuela: "integral"
 nivel: "taller"
+status: "active"
 horario: "18:00 a 21:00 h"
 startDate: "14 de mayo de 2026"
 duracion: "3 módulos (36 h)"
 modalidad: "Presencial y en línea"
-price:
-  "Módulo individual": "$2,500 MXN"
-  "Paquete (3 módulos)": "$6,750 MXN"
+paymentOptions:
+  - id: "modulo_individual"
+    label: "Módulo individual"
+    price: 2500
+    stripePriceId: "price_REPLACE_taller_modulo"
+    type: "hibrido"
+  - id: "paquete"
+    label: "Paquete (3 módulos)"
+    price: 6750
+    stripePriceId: "price_REPLACE_taller_paquete"
+    type: "hibrido"
 featured: true
 date: "2026-05-14"
 address: ""

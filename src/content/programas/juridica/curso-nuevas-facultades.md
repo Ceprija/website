@@ -6,17 +6,23 @@ excerpt: "Reformas en seguridad e inteligencia: alcance normativo de SSPC, Guard
 image: "/images/programs/curso-nuevas-facultades.webp"
 escuela: "juridica"
 nivel: "curso"
+status: "active"
 horario: "18:00 a 21:00 h"
 startDate: "7 de mayo de 2026"
 duracion: "4 sesiones (12 h)"
 modalidad: "En línea (para toda la República Mexicana)"
-price:
-  "En línea": "$1,500 MXN"
+paymentOptions:
+  - id: "online"
+    label: "En línea"
+    price: 1500
+    stripePriceId: "price_REPLACE_nuevas_facultades_online"
+    type: "online"
 featured: true
 date: "2026-05-07"
 address: ""
 requiresVerification: false
 instructor: "Maestro Benjamín Orozco Manjarrez (exfiscal)"
+enrollmentFlow: "inline"
 curriculumTitle: "Temario del curso"
 curriculum:
   - period: "Contenidos"

@@ -6,14 +6,12 @@ excerpt: "Perspectiva de género en el derecho: igualdad sustantiva, violencias,
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"
+status: "waitlist"
 registroAcademico: "ESDIP-2024-088"
 horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Por definir"
-price:
-  Presencial: "Consultar"
-  Online: "Consultar"
 featured: false
 date: ""
 address: ""
