@@ -1,10 +1,10 @@
 ---
 slug: "curso-cancelacion-sellos-digitales"
 title: "Cancelación de Sellos Digitales y su Estrategia para Desbloquearlos"
-description: "Comprende el marco de los sellos digitales ante el SAT, causas de cancelación y estrategias prácticas para su regularización o desbloqueo."
-excerpt: "Sellos digitales: cancelación, regularización y estrategias prácticas ante el SAT."
+description: "Comprensión del marco de sellos digitales ante el SAT: causas de cancelación, supuestos de bloqueo y rutas prácticas para regularizar y recuperar la operación conforme a obligaciones y mecanismos administrativos vigentes."
+excerpt: "Sellos digitales ante el SAT: cancelación, regularización y rutas prácticas para recuperar operación y cumplimiento según obligaciones y procesos vigentes."
 image: "/images/programs/cancelacion-sellos-digitales.webp"
-escuela: "integral"
+escuela: "economica"
 nivel: "curso"
 horario: ""
 startDate: ""

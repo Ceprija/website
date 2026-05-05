@@ -1,17 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { programs } from "../../data/programs-integral.js";
-import Accreditations from "@components/sections/Accreditations.astro";
 import Button from "@components/ui/Button.astro";
-import { hrefForLegacyProgram } from "@lib/legacyProgramDetailSlug";
-
-const activePrograms = programs.filter((p) => p.active);
+import SchoolAreaProgramList from "@components/program/SchoolAreaProgramList.astro";
+import SchoolAreaCover from "@components/program/SchoolAreaCover.astro";
 ---
 
 <Layout pageId="integral">
     <main class="bg-gray-50 min-h-screen py-12">
         <div class="container mx-auto px-6">
-            <!-- Header Section -->
             <div class="text-center mb-16" data-animate="fade-up">
                 <span
                     class="text-secondary font-bold tracking-wider uppercase text-sm"
@@ -23,152 +19,23 @@ const activePrograms = programs.filter((p) => p.active);
                     Formación Integral
                 </h1>
                 <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Cursos, talleres y diplomados para complementar tu perfil
+                    Cursos, talleres y seminarios para complementar tu perfil
                     profesional y humano.
                 </p>
             </div>
 
-            <!-- Grid Layout -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {
-                    activePrograms.length > 0 ? (
-                        activePrograms.map((program, index) => (
-                            <article
-                                class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full"
-                                data-animate="fade-up"
-                                data-delay={index * 100}
-                            >
-                                {/* Card Image Area */}
-                                <div
-                                    class={`h-48 ${program.image || "bg-green-100"} relative overflow-hidden`}
-                                >
-                                    <div class="absolute inset-0 bg-black opacity-10 group-hover:opacity-0 transition-opacity" />
-                                    <div class="absolute top-4 left-4">
-                                        <span class="bg-white/90 backdrop-blur-sm text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
-                                            {program.level}
-                                        </span>
-                                    </div>
-                                </div>
+            <SchoolAreaProgramList
+                escuela="integral"
+                emptyHint="No hay programas con escuela “integral” en el CMS. Revisa el frontmatter `escuela: integral` en `src/content/programas/`. En condiciones normales esta área solo publica el seminario de psicometría y el taller de redacción de contratos."
+            />
 
-                                {/* Card Content */}
-                                <div class="p-8 flex flex-col flex-grow">
-                                    <h3 class="text-2xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif">
-                                        <a
-                                            href={hrefForLegacyProgram(program.id)}
-                                        >
-                                            {program.title}
-                                        </a>
-                                    </h3>
-                                    <p class="text-gray-600 mb-4 flex-grow leading-relaxed">
-                                        {program.description}
-                                    </p>
-
-                                    <div class="space-y-2 mb-6 text-sm text-gray-500">
-                                        <div class="flex items-center gap-2">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                class="h-4 w-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                            </svg>
-                                            <span>{program.duration}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                class="h-4 w-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                                />
-                                            </svg>
-                                            <span>{program.modality}</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
-                                        <a
-                                            href={hrefForLegacyProgram(program.id)}
-                                            class="text-primary font-bold hover:text-secondary transition-colors flex items-center gap-2"
-                                        >
-                                            Más Información
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                class="h-4 w-4 transform group-hover:translate-x-1 transition-transform"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                                                />
-                                            </svg>
-                                        </a>
-                                    </div>
-                                </div>
-                            </article>
-                        ))
-                    ) : (
-                        <div class="col-span-full text-center py-20 bg-white rounded-xl shadow-sm">
-                            <div class="mb-6 mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-8 w-8 text-gray-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                                    />
-                                </svg>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">
-                                Próximamente
-                            </h3>
-                            <p class="text-gray-600 max-w-md mx-auto">
-                                Estamos diseñando nuevos cursos y talleres de
-                                formación integral. <br />
-                                Mantente al tanto de nuestras redes sociales.
-                            </p>
-                            <div class="mt-8">
-                                <Button href="/contacto" variant="primary">
-                                    Solicitar Información
-                                </Button>
-                            </div>
-                        </div>
-                    )
-                }
-            </div>
-
-            <!-- CTA Section -->
             <div class="mt-20 text-center">
                 <p class="text-gray-600 mb-6">
-                    ¿Te interesa algún taller en específico?
+                    ¿Te interesa algún curso o taller en específico?
                 </p>
                 <Button
                     href="/contacto"
-                    id="submit-btn"
+                    id="submit-btn-integral"
                     variant="primary"
                     class="inline-block bg-primary text-white font-bold py-3 px-8 hover:bg-blue-900 transition-colors shadow-lg hover:shadow-xl"
                 >

@@ -142,7 +142,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.slug === programSlugMeta);
-    if (!program) {
+    if (!program || program.data.disabled) {
       apiLog("warn", route, "unknown_program", {
         requestId,
         stripeSessionId,

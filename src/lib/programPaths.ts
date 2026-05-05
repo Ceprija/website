@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import type { CollectionEntry } from "astro:content";
@@ -55,18 +55,41 @@ function extractSlugFromFrontmatter(source: string): string | null {
  * Resolve the URL slug each `.md` would produce, mirroring Astro's legacy
  * collections rule: frontmatter `slug` overrides the file-derived slug.
  */
+/** Lista `.md` en la carpeta de programas y subcarpetas (rutas relativas con `/`). */
+function listProgramMarkdownRelativePaths(): string[] {
+  const out: string[] = [];
+
+  function walk(absDir: string, relPrefix: string): void {
+    for (const name of readdirSync(absDir)) {
+      const abs = join(absDir, name);
+      const rel = relPrefix ? `${relPrefix}/${name}` : name;
+      if (statSync(abs).isDirectory()) {
+        walk(abs, rel);
+      } else if (name.endsWith(".md")) {
+        out.push(rel);
+      }
+    }
+  }
+
+  walk(PROGRAMAS_DIR, "");
+  return out;
+}
+
 function resolveSlugForFile(fileName: string): string {
   const filePath = join(PROGRAMAS_DIR, fileName);
   const source = readFileSync(filePath, "utf8");
   const fromFrontmatter = extractSlugFromFrontmatter(source);
   if (fromFrontmatter) return fromFrontmatter;
-  return fileName.replace(/\.md$/, "");
+  const base = fileName.includes("/")
+    ? fileName.slice(fileName.lastIndexOf("/") + 1)
+    : fileName;
+  return base.replace(/\.md$/, "");
 }
 
 /**
  * Fails the build if two programs share the same `slug`.
  *
- * Reads `src/content/programas/*.md` directly because Astro's legacy content
+ * Reads all `*.md` files under `src/content/programas/` (recursively) because Astro's legacy content
  * collections deduplicate entries silently when slugs collide (only the first
  * one survives in `getCollection`), which would let conflicts go unnoticed.
  *
@@ -79,7 +102,7 @@ export function validateUniqueSlugs(
 ): void {
   let files: string[];
   try {
-    files = readdirSync(PROGRAMAS_DIR).filter((name) => name.endsWith(".md"));
+    files = listProgramMarkdownRelativePaths();
   } catch (error) {
     throw new Error(
       `No pude leer ${PROGRAMAS_DIR} para validar slugs únicos: ${

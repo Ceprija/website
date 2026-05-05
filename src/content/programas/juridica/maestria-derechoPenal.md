@@ -2,7 +2,7 @@
 slug: "maestria-en-derecho-penal-y-litigacion-oral-avanzada"
 title: "Maestría en Derecho Penal y Litigación Oral Avanzada"
 description: "Especialización en el sistema acusatorio y técnicas avanzadas de litigación oral penal, con enfoque práctico en audiencias y estrategia procesal."
-excerpt: "Sistema acusatorio y litigación oral penal avanzada: estrategia, audiencias y práctica forense."
+excerpt: "Litigación oral penal avanzada: teoría del caso, audiencias, prueba y estrategia para fiscalías, defensa y órganos jurisdiccionales en el sistema acusatorio."
 image: "/images/programs/maestria-derecho-penal.webp"
 escuela: "juridica"
 nivel: "maestria"

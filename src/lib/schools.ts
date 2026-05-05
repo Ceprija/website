@@ -1,8 +1,8 @@
 import { getCollection } from 'astro:content';
+import { filterPublishedPrograms } from "@lib/programPublished";
 
 export async function getAllPrograms() {
-  const escuelas = await getCollection('programas');
-  return escuelas;
+  return filterPublishedPrograms(await getCollection("programas"));
 }
 
 export async function getSchoolBySlug(slug: string) {

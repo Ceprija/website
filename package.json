@@ -7,7 +7,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "sync": "astro sync"
+    "sync": "astro sync",
+    "docs:pdf-mkt": "md-to-pdf docs/marketing-program-handoff-checklist-para-mkt.md --document-title \"Checklist programas — Marketing CEPRIJA\" --pdf-options '{\"format\":\"A4\",\"printBackground\":true,\"margin\":{\"top\":\"18mm\",\"bottom\":\"18mm\",\"left\":\"14mm\",\"right\":\"14mm\"}}'"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@types/busboy": "^1.5.4",
     "@types/nodemailer": "^7.0.4",
-    "baseline-browser-mapping": "^2.10.27"
+    "baseline-browser-mapping": "^2.10.27",
+    "md-to-pdf": "^5.2.4"
   }
 }

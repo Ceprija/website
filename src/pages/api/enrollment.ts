@@ -23,6 +23,7 @@ import {
 } from "@lib/validation/enrollmentText";
 import type { ProgramaNivel } from "@lib/programNiveles";
 import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
+import { programIsPublished } from "@lib/programPublished";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
 import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
@@ -235,6 +236,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.slug === programSlug || p.data.title === programTitle);
+    if (program && !programIsPublished(program)) {
+      return enrollmentRespond(
+        { error: "Programa no disponible", code: "program_unavailable" },
+        404,
+        requestId,
+        programSlug,
+      );
+    }
     const nivel = program?.data.nivel as ProgramaNivel | undefined;
     /** Talleres modulares (p. ej. con variantOptions) solo requieren CV, sin grados. */
     const skipAcademicDegrees = nivel === "taller";

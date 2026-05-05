@@ -7,18 +7,28 @@
 export const prerender = false;
 
 import { getCollection } from "astro:content";
+import { programIsPublished } from "@lib/programPublished";
 
 const id = Astro.url.searchParams.get("id")?.trim() ?? "";
 const programa = Astro.url.searchParams.get("programa")?.trim() ?? "";
 
+const programs =
+    id || programa ? await getCollection("programas") : [];
+
 if (id) {
-    return Astro.redirect(`/oferta-academica/${encodeURIComponent(id)}`, 301);
+    const byId = programs.find((p) => p.slug === id);
+    if (byId && programIsPublished(byId)) {
+        return Astro.redirect(
+            `/oferta-academica/${encodeURIComponent(byId.slug)}`,
+            301,
+        );
+    }
+    return Astro.redirect("/oferta-academica", 301);
 }
 
 if (programa) {
-    const programs = await getCollection("programas");
     const bySlug = programs.find((p) => p.slug === programa);
-    if (bySlug) {
+    if (bySlug && programIsPublished(bySlug)) {
         return Astro.redirect(`/oferta-academica/${encodeURIComponent(bySlug.slug)}`, 301);
     }
     const normalize = (s: string) =>
@@ -30,7 +40,7 @@ if (programa) {
             .trim();
     const q = normalize(programa);
     const byTitle = programs.find((p) => normalize(p.data.title) === q);
-    if (byTitle) {
+    if (byTitle && programIsPublished(byTitle)) {
         return Astro.redirect(`/oferta-academica/${encodeURIComponent(byTitle.slug)}`, 301);
     }
 }

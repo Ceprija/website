@@ -1,8 +1,8 @@
 ---
 slug: "diplomado-en-metodologia-de-la-investigacion"
 title: "Diplomado en Metodología de la Investigación"
-description: "Actualizar con el temario y objetivos del programa. Este archivo es un borrador para que completes descripción, imagen, precios y Stripe."
-excerpt: "Diplomado en metodología de la investigación. Contenido por definir."
+description: "Herramientas de diseño metodológico y redacción académica aplicadas al derecho: preguntas de investigación, métodos, fuentes y presentación de resultados conforme a estándares de posgrado. Convocatoria y calendario por confirmar."
+excerpt: "Investigación jurídica: planteamiento, métodos cualitativos y cuantitativos, fuentes y redacción académica para tesis, artículos y proyectos de posgrado."
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"

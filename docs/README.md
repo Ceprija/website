@@ -5,6 +5,24 @@ Internal reference for how the public site routes users into programs, enrollmen
 | Document | Contents |
 |----------|----------|
 | [Enrollment: flows and entry points](./enrollment/flows-and-entrypoints.md) | URLs, `enrollmentFlow` rules, inline vs application wizard, APIs, **diagram index** (A–K), decision trees, state machines, sequence diagrams, Stripe return |
+| [Marketing → sitio: checklist de programa](./marketing-program-handoff-checklist.md) | Coherencia módulos/fechas/temario, duplicados en planes de estudio, precios vs Stripe/cupones, imágenes, legal; **confirmación de cohorte**; **admisión y documentos**; **tabla inventario** de todos los `programas/*.md` (brechas, `featured`, admisión) |
+| [Checklist para marketing (lenguaje sencillo)](./marketing-program-handoff-checklist-para-mkt.md) | Misma guía en redacción no técnica; PDF opcional (ver abajo) |
+
+### Generar PDF del checklist para marketing
+
+Desde la raíz del repo `ceprija_site` (después de `npm install`):
+
+```bash
+npm run docs:pdf-mkt
+```
+
+Salida: `docs/marketing-program-handoff-checklist-para-mkt.pdf` (al lado del `.md`). La **primera vez** puede tardar varios minutos porque `md-to-pdf` descarga Chromium para “imprimir” a PDF; las siguientes suelen ser rápidas. Sin PDF: abrir el `.md` en el editor y **Imprimir → Guardar como PDF**, o pasar el contenido a Word/Google Docs.
+
+Equivalente directo (si ya tienes dependencias instaladas):
+
+```bash
+npx md-to-pdf docs/marketing-program-handoff-checklist-para-mkt.md --document-title "Checklist programas — Marketing CEPRIJA"
+```
 
 ## Where things live in code
 

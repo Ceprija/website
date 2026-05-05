@@ -36,7 +36,7 @@ El enrutamiento en Astro se basa en archivos (File-based routing):
 *   **Oferta Académica**:
     *   Índice: `src/pages/oferta-academica.astro`
     *   Sub-áreas: `src/pages/oferta-academica/formacion-juridica.astro`, etc.
-    *   **Detalle de Programa (Dinámico)**: `src/pages/oferta-academica/[slug].astro`. Este archivo genera una página única para cada programa definido en `src/data/programs*.js`.
+    *   **Detalle de Programa (Dinámico)**: `src/pages/oferta-academica/[slug].astro`. Una página por programa definido en la colección `src/content/programas/` (Markdown).
 *   **Docentes**:
     *   Índice: `src/pages/docentes/index.astro`
     *   **Perfil (Dinámico)**: `src/pages/docentes/[id].astro`.
@@ -123,27 +123,22 @@ Simplemente agrega el atributo `data-animate` a cualquier etiqueta HTML.
 
 ## 6. Gestión de Contenido (Data)
 
-Para facilitar los cambios sin riesgo de "romper" el sitio, gran parte del contenido está separado en la carpeta `src/data/`.
+La **fuente de verdad de las fichas de programa** es la colección **`src/content/programas/`** (Markdown + frontmatter). Ahí se define también **`escuela`** (`juridica`, `economica`, `integral`), que alimenta el listado en inicio y las páginas **Formación Jurídica**, **Económico-Administrativa** e **Integral** (mismo criterio en todos lados).
 
-### Editar Programas Académicos
-*   Archivos: `src/data/programs-juridica.js`, `src/data/programs-administrativa.js`, etc.
-*   Formato: Son listas de objetos. Puedes cambiar títulos, descripciones, precios y planes de estudio aquí.
-    ```javascript
-    {
-        id: "maestria-derecho-penal",
-        title: "Maestría en Derecho Penal", // Cambiar título
-        level: "Maestría",
-        // ...
-    }
-    ```
+### Editar Programas Académicos (fichas y oferta)
+*   Carpeta: `src/content/programas/` — cada ficha es un `.md` dentro de **`juridica/`**, **`economica/`** o **`integral/`** (según `escuela:`). El build incluye subcarpetas y `validateUniqueSlugs` valida slugs únicos en todo el árbol.
+*   Campos clave: `title`, `description`, `excerpt`, `escuela`, `nivel`, `price`, `slug`, etc. (ver `src/content.config.ts`).
+
+### Datos legacy en `src/data/` respecto a programas
+*   Los listados por área **ya no** usan `programs-juridica.js`, `programs-diplomados-juridica.js` ni `programs-administrativa.js` (eliminados o sustituidos por el CMS). Docentes u otros JSON siguen en `src/data/` donde aplique.
 
 ### Editar Docentes
-*   Archivo: `src/data/faculty.js`
+*   Archivo: `src/data/legacy/faculty.js` (datos estáticos usados en la sección de docentes).
 *   Aquí puedes agregar nuevos docentes, cambiar sus fotos o actualizar sus biografías.
 
-### Editar Blog
-*   Archivo: `src/data/posts.js`
-*   Agrega nuevos artículos al array para que aparezcan automáticamente en el blog.
+### Editar Blog / Revista
+*   Carpeta: `src/content/revista/` (archivos Markdown con frontmatter). La revista ya no usa un JS estático.
+*   Agrega un nuevo `.md` con `slug`, `title`, `date`, etc.; aparecerá en `/revista` según la colección de contenido.
 
 ---
 

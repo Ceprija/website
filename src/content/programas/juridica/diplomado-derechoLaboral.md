@@ -1,8 +1,8 @@
 ---
 slug: "diplomado-en-derecho-laboral"
 title: "Diplomado en Derecho Laboral"
-description: "Actualizar con el temario y objetivos del programa. Este archivo es un borrador para que completes descripción, imagen, precios y Stripe."
-excerpt: "Diplomado en derecho laboral. Contenido por definir."
+description: "Profundización en derecho laboral individual y colectivo para fortalecer litigio, asesoría y gestión contractual en el ámbito laboral. Temario, modalidad y calendario se publicarán conforme a la convocatoria institucional."
+excerpt: "Derecho laboral individual y colectivo: contratos, terminaciones y litigio ante autoridades y tribunales del trabajo con criterios jurisprudenciales vigentes."
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"

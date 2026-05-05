@@ -9,8 +9,9 @@ import {
   linkProgramItem,
 } from "@lib/landingSectionStyles";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { filterPublishedPrograms } from "@lib/programPublished";
 
-const programas = await getCollection("programas");
+const programas = filterPublishedPrograms(await getCollection("programas"));
 
 const nivelesLabel: Record<string, string> = {
   doctorado: "Doctorados",

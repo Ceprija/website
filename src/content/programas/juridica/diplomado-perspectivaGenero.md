@@ -1,8 +1,8 @@
 ---
 slug: "diplomado-en-perspectiva-de-genero"
 title: "Diplomado en Perspectiva de Género"
-description: "Actualizar con el temario y objetivos del programa. Este archivo es un borrador para que completes descripción, imagen, precios y Stripe."
-excerpt: "Diplomado en perspectiva de género. Contenido por definir."
+description: "Estudio de la perspectiva de género en el ordenamiento y el litigio: igualdad sustantiva, violencias, estándares jurisprudenciales y herramientas prácticas para el ejercicio profesional. Detalle curricular y calendario según convocatoria."
+excerpt: "Perspectiva de género en el derecho: igualdad sustantiva, violencias, estándares y litigio con enfoque integral para el ejercicio profesional actualizado."
 image: "/images/programs/diplomado-mercantil.webp"
 escuela: "juridica"
 nivel: "diplomado"

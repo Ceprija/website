@@ -2,11 +2,12 @@
 import Layout from "../layouts/Layout.astro";
 import InscriptionForm from "../components/forms/InscriptionForm.astro";
 import { getCollection } from "astro:content";
+import { filterPublishedPrograms } from "@lib/programPublished";
 
 const program = Astro.url.searchParams.get("programa") || "";
 
 // Get juridic programs from content collection instead of legacy data
-const allPrograms = await getCollection("programas");
+const allPrograms = filterPublishedPrograms(await getCollection("programas"));
 const juridicPrograms = allPrograms
     .filter(p => ["maestria", "doctorado", "especialidad"].includes(p.data.nivel))
     .map(p => p.data.title)

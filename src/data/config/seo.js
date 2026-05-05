@@ -49,3 +49,10 @@ export const seoConfig = {
         }
     }
 };
+
+/**
+ * Se añade solo a la meta description de fichas de programa (`oferta-academica/[slug]`).
+ * Refuerza marca y SEO local sin repetir en el párrafo hero del Markdown.
+ */
+export const programMetaDescriptionSuffix =
+    " · CEPRIJA · Guadalajara, Jalisco, México";

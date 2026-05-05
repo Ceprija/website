@@ -1,14 +1,14 @@
 ---
 slug: "curso-actualizacion-jurisprudencial-en-materia-fiscal"
 title: "Actualización Jurisprudencial en Materia Fiscal"
-description: "Domina las jurisprudencias fiscales más recientes y su impacto estratégico en el sector."
-excerpt: "Domina las jurisprudencias fiscales más recientes y su impacto estratégico en el sector."
+description: "Actualización en criterios jurisprudenciales y administrativos en materia fiscal para fortalecer litigio, defensa del contribuyente y asesoría corporativa ante cambios normativos y criterios del Tribunal Federal de Justicia Administrativa y órganos aplicadores."
+excerpt: "Actualización jurisprudencial fiscal para litigio y asesoría: criterios recientes y efectos prácticos en controversias, cumplimiento y estrategia ante el SAT."
 image: "/images/programs/actualizacion-jurisprudencial-en-materia-fiscal.webp"
-escuela: "integral"
+escuela: "economica"
 nivel: "curso"
 horario: ""
 startDate: "19 de marzo de 2026"
-duracion: "3 horas 30 minutos"
+duracion: "1 sesión (3.5 h)"
 modalidad: "Presencial / En línea"
 price:
   Presencial: "Consultar"

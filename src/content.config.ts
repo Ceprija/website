@@ -38,6 +38,10 @@ const programas = defineCollection({
     description: z.string(),
     excerpt: z.string(),
     image: z.string(),
+    /** Encuadre para `object-fit: cover` en tarjeta y hero (p. ej. `52% 40%`). Opcional. */
+    imagePosition: optionalYamlString(),
+    /** Si es `true`, el programa no se lista en oferta académica ni genera ficha pública ni inscripción. */
+    disabled: z.boolean().optional(),
     escuela: z.enum(["juridica", "economica", "integral"]),
     nivel: z.enum(PROGRAMA_NIVELES_TUPLE),
     /** RVOE (programas de titulación). Omitir o dejar vacío si solo aplica `registroAcademico`. */
@@ -55,7 +59,11 @@ const programas = defineCollection({
     // Extended fields for rich program data
     curriculum: z.array(z.object({
       period: z.string(),
-      subjects: z.array(z.string())
+      subjects: z.array(z.string()),
+      /** Texto libre del módulo / periodo (aparece dentro del acordeón). */
+      description: optionalYamlString(),
+      /** Nombres de docentes por módulo (opcional). */
+      professors: z.array(z.string()).optional(),
     })).optional(),
     curriculumTitle: optionalYamlString(),
     profile: optionalYamlString(),

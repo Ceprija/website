@@ -46,7 +46,16 @@ export const POST: APIRoute = async ({ request }) => {
     // Get program details from content collection
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.data.title === programTitle);
-    
+    if (program?.data.disabled) {
+      return new Response(
+        JSON.stringify({
+          message: "Programa no disponible",
+          code: "program_unavailable",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
     const instructor = String(program?.data.instructor || "Claustro Docente CEPRIJA");
     const startDate = String(program?.data.startDate || "Por confirmar");
     const schedule = String(program?.data.schedule || "Por confirmar");

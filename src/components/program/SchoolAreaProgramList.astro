@@ -1,0 +1,164 @@
+---
+import { getCollection } from "astro:content";
+import Button from "@components/ui/Button.astro";
+import ProgramOfferCard from "@components/program/ProgramOfferCard.astro";
+import type { ProgramaNivel } from "@lib/programNiveles";
+import { filterPublishedPrograms } from "@lib/programPublished";
+
+interface SectionGroup {
+    title: string;
+    niveles: ProgramaNivel[];
+}
+
+interface Props {
+    escuela: "integral" | "economica" | "juridica";
+    emptyHint: string;
+    emptyTitle?: string;
+    /** Si se define, divide la cuadrícula en secciones (p. ej. Formación Jurídica: continua vs postgrado). */
+    sectionGroups?: SectionGroup[];
+}
+
+const { escuela, emptyHint, emptyTitle = "Próximamente", sectionGroups } =
+    Astro.props as Props;
+
+const allPrograms = filterPublishedPrograms(await getCollection("programas"));
+const programs = allPrograms
+    .filter((p) => p.data.escuela === escuela)
+    .sort((a, b) =>
+        a.data.title.localeCompare(b.data.title, "es", { sensitivity: "base" }),
+    );
+
+const useGroups =
+    Array.isArray(sectionGroups) && sectionGroups.length > 0 && programs.length > 0;
+---
+
+{
+    programs.length === 0 ? (
+        <div class="col-span-full text-center py-20 bg-white rounded-xl shadow-sm">
+            <div class="mb-6 mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-8 w-8 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                    />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">{emptyTitle}</h3>
+            <p class="text-gray-600 max-w-md mx-auto">{emptyHint}</p>
+            <div class="mt-8">
+                <Button href="/contacto" variant="primary">
+                    Solicitar información
+                </Button>
+            </div>
+        </div>
+    ) : useGroups && sectionGroups ? (
+        <>
+            {sectionGroups.map((group) => {
+                const groupPrograms = programs.filter((p) =>
+                    group.niveles.includes(p.data.nivel as ProgramaNivel),
+                );
+                if (groupPrograms.length === 0) return null;
+                return (
+                    <div class="mt-10">
+                        <h2 class="text-3xl font-bold text-primary mb-6 font-serif">
+                            {group.title}
+                        </h2>
+                        <div
+                            class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                            data-program-card-grid
+                        >
+                            {groupPrograms.map((program, index) => (
+                                <ProgramOfferCard program={program} index={index} />
+                            ))}
+                        </div>
+                    </div>
+                );
+            })}
+        </>
+    ) : (
+        <div
+            class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+            data-program-card-grid
+        >
+            {programs.map((program, index) => (
+                <ProgramOfferCard program={program} index={index} />
+            ))}
+        </div>
+    )
+}
+
+<script>
+    function alignProgramCardBlocks() {
+        const grids = document.querySelectorAll<HTMLElement>(
+            "[data-program-card-grid]",
+        );
+
+        grids.forEach((grid) => {
+            grid
+                .querySelectorAll<HTMLElement>("[data-program-card-title]")
+                .forEach((el) => {
+                    el.style.minHeight = "";
+                });
+            grid
+                .querySelectorAll<HTMLElement>("[data-program-card-excerpt]")
+                .forEach((el) => {
+                    el.style.minHeight = "";
+                });
+        });
+
+        grids.forEach((grid) => {
+            const titles = grid.querySelectorAll<HTMLElement>(
+                "[data-program-card-title]",
+            );
+            let maxTitle = 0;
+            titles.forEach((t) => {
+                maxTitle = Math.max(maxTitle, t.getBoundingClientRect().height);
+            });
+            if (maxTitle > 0) {
+                titles.forEach((t) => {
+                    t.style.minHeight = `${Math.ceil(maxTitle)}px`;
+                });
+            }
+        });
+
+        requestAnimationFrame(() => {
+            grids.forEach((grid) => {
+                const excerpts = grid.querySelectorAll<HTMLElement>(
+                    "[data-program-card-excerpt]",
+                );
+                let maxEx = 0;
+                excerpts.forEach((e) => {
+                    maxEx = Math.max(maxEx, e.getBoundingClientRect().height);
+                });
+                if (maxEx > 0) {
+                    excerpts.forEach((e) => {
+                        e.style.minHeight = `${Math.ceil(maxEx)}px`;
+                    });
+                }
+            });
+        });
+    }
+
+    alignProgramCardBlocks();
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(alignProgramCardBlocks);
+    }
+
+    let resizeTimer: number | undefined;
+    window.addEventListener("resize", () => {
+        if (resizeTimer !== undefined) {
+            window.clearTimeout(resizeTimer);
+        }
+        resizeTimer = window.setTimeout(alignProgramCardBlocks, 100);
+    });
+</script>

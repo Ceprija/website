@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Accreditations from "@components/sections/Accreditations.astro";
 ---
 
 <Layout pageId="academicOffer">
@@ -31,9 +32,9 @@ import Layout from "../layouts/Layout.astro";
           >
           </div>
           <img
-            src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800"
+            src="/images/branding/site/portada-formacion-juridica.webp"
             alt="Formación Jurídica"
-            class="w-full h-96 object-cover transform group-hover:scale-110 transition-transform duration-700"
+            class="w-full h-96 object-cover object-center transform group-hover:scale-110 transition-transform duration-700"
           />
           <div class="absolute bottom-0 left-0 p-8 z-20 w-full">
             <h3
@@ -62,9 +63,9 @@ import Layout from "../layouts/Layout.astro";
           >
           </div>
           <img
-            src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800"
+            src="/images/branding/site/portada-formacion-economica.webp"
             alt="Formación Económico-Administrativa"
-            class="w-full h-96 object-cover transform group-hover:scale-110 transition-transform duration-700"
+            class="w-full h-96 object-cover object-center transform group-hover:scale-110 transition-transform duration-700"
           />
           <div class="absolute bottom-0 left-0 p-8 z-20 w-full">
             <h3
@@ -92,9 +93,9 @@ import Layout from "../layouts/Layout.astro";
           >
           </div>
           <img
-            src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800"
+            src="/images/branding/site/portada-formacion-integral.webp"
             alt="Formación Integral"
-            class="w-full h-96 object-cover transform group-hover:scale-110 transition-transform duration-700"
+            class="w-full h-96 object-cover object-center transform group-hover:scale-110 transition-transform duration-700"
           />
           <div class="absolute bottom-0 left-0 p-8 z-20 w-full">
             <h3
@@ -111,6 +112,19 @@ import Layout from "../layouts/Layout.astro";
           </div>
         </a>
       </div>
+
+      <div
+        class="text-center mt-20 mb-6"
+        data-animate="fade-up"
+        data-delay="400"
+      >
+        <span
+          class="text-secondary font-bold tracking-wider uppercase text-lg md:text-xl"
+        >
+          Validez Oficial
+        </span>
+      </div>
+      <Accreditations />
     </div>
   </main>
 </Layout>

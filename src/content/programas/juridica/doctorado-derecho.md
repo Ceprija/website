@@ -1,8 +1,8 @@
 ---
 slug: "doctorado-en-derecho-procesal-y-sistemas-contemporaneos"
-title: "Doctorado en Derecho Procesal y Sistemas contemporáneos"
-description: "Estudia el proceso a fondo y lidera su evolución. Formación doctoral técnica, comparada e innovadora para transformar el sistema jurídico."
-excerpt: "Doctorado en derecho procesal y sistemas contemporáneos: investigación, comparación e innovación."
+title: "Doctorado en Derecho Procesal y Sistemas Contemporáneos"
+description: "Formación doctoral para dominar el proceso como objeto de estudio riguroso y para intervenir en su evolución con rigor comparado, técnico e innovador frente a sistemas de justicia contemporáneos."
+excerpt: "Doctorado en derecho procesal y sistemas contemporáneos: investigación aplicada, método comparado e innovación sobre la función procesal y la justicia."
 image: "/images/programs/doctorado-derecho-procesal.webp"
 escuela: "juridica"
 nivel: "doctorado"

@@ -2,7 +2,7 @@
 slug: "especialidad-en-criminalistica-y-ciencias-forenses"
 title: "Especialidad en Criminalística y Ciencias Forenses"
 description: "Integra la prueba científica al juicio penal. Especialidad práctica para fortalecer la argumentación con base en evidencia forense."
-excerpt: "Criminalística y ciencias forenses aplicadas al litigio penal y la valoración de la prueba."
+excerpt: "Criminalística y ciencias forenses en litigio penal: cadena de custodia, pericial y valoración de la prueba científica en el juicio oral y la audiencia."
 image: "/images/programs/especialidad-criminalistica.webp"
 escuela: "juridica"
 nivel: "especialidad"
