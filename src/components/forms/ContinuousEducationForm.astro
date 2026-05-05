@@ -1,7 +1,8 @@
 ---
-import Button from "@components/ui/Button.astro";
 import { ecConsentLabels } from "@data/forms/educacion-continua-options";
 import bankInfo from "@data/bank-info.json";
+import type { PaymentOption } from "@lib/programPayments";
+import { formatPrice } from "@lib/programPayments";
 
 interface Props {
     programTitle?: string;
@@ -14,6 +15,8 @@ interface Props {
         Presencial?: string;
         Online?: string;
     };
+    /** Varias opciones de pago (inscripción, paquete, cuotas): el usuario elige antes de Stripe. */
+    paymentOptions?: PaymentOption[];
     address?: string;
     requiresVerification?: boolean;
     /** Cuando el formulario va dentro de ProgramEnrollmentAsideCard (evita doble “card”). */
@@ -25,10 +28,14 @@ const {
     programId = "",
     stripePriceIds,
     prices,
+    paymentOptions: paymentOptionsProp,
     address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
     requiresVerification = false,
     embedInAsideCard = false,
 } = Astro.props;
+
+const paymentOptions = paymentOptionsProp ?? [];
+const showPaymentPlanChoice = paymentOptions.length > 1;
 
 const outerClass = embedInAsideCard ? "w-full" : "max-w-4xl mx-auto overflow-visible";
 const formSurfaceClass = embedInAsideCard
@@ -72,6 +79,7 @@ const formFooterClass = embedInAsideCard
         id="ce-inscription-form"
         data-stripe-price-ids={JSON.stringify(stripePriceIds || null)}
         data-prices={JSON.stringify(prices || null)}
+        data-payment-options={JSON.stringify(paymentOptions)}
         data-address={address}
         data-bank-info={JSON.stringify(bankInfo)}
         data-requires-verification={requiresVerification ? "1" : "0"}
@@ -169,7 +177,7 @@ const formFooterClass = embedInAsideCard
                     />
                 </div>
 
-                <div class="col-span-1 md:col-span-2">
+                <div class="col-span-1 md:col-span-2" id="modality-section">
                     {/*
                       Modalidad: value Presencial | En línea — alineado con
                       src/lib/validation/enrollment.ts (normalizeWireModality).
@@ -275,6 +283,47 @@ const formFooterClass = embedInAsideCard
                     registro para garantizar su lugar.
                 </p>
             </div>
+
+            {
+                showPaymentPlanChoice && (
+                    <div class="mb-8" id="payment-plan-section">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            Opción de inversión *
+                        </label>
+                        <div class="grid grid-cols-1 gap-4">
+                            {paymentOptions.map((opt, idx) => (
+                                <label class="flex items-start gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50 group">
+                                    <input
+                                        type="radio"
+                                        name="paymentPlan"
+                                        value={opt.id}
+                                        required
+                                        checked={idx === 0}
+                                        class="w-5 h-5 text-primary focus:ring-primary shrink-0 mt-0.5"
+                                    />
+                                    <div class="flex flex-col gap-0.5 min-w-0">
+                                        <span class="font-bold text-gray-900">
+                                            {opt.label}
+                                        </span>
+                                        <span class="text-sm text-gray-600">
+                                            {formatPrice(opt.price)}
+                                        </span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                        {paymentOptions.some((o) => o.id === "diferido") && (
+                            <p class="mt-4 text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 leading-relaxed">
+                                <strong>Plan en cuotas:</strong> no incluye la
+                                inscripción. Debes cubrirla por separado
+                                eligiendo la opción «Inscripción» en este mismo
+                                formulario (u otra indicación de control
+                                escolar).
+                            </p>
+                        )}
+                    </div>
+                )
+            }
 
             <!-- Método de pago -->
             <div class="mb-8">
@@ -806,19 +855,132 @@ const formFooterClass = embedInAsideCard
     const stripePanel = form?.querySelector("#stripe-panel");
     const wirePanel = form?.querySelector("#wire-panel");
 
+    // Modality UI: some programs encode modality as `paymentOptions` (e.g. "Presencial" vs "Online")
+    // with distinct Stripe price IDs. In that case, we must not ask for modality twice.
+    const modalitySection = form?.querySelector("#modality-section") as HTMLElement | null;
+    const modalityRadios =
+        form?.querySelectorAll<HTMLInputElement>('input[name="modality"]') ?? [];
+    const paymentPlanSection = form?.querySelector(
+        "#payment-plan-section",
+    ) as HTMLElement | null;
+    const paymentPlanRadios = Array.from(
+        form?.querySelectorAll<HTMLInputElement>('input[name="paymentPlan"]') ?? [],
+    );
+
+    function paymentOptionsLookLikeModalityChoices(opts: PaymentOptionRow[]): boolean {
+        if (opts.length < 1) return false;
+        const ids = new Set(opts.map((o) => String(o.id).toLowerCase()));
+        const labels = new Set(opts.map((o) => String(o.label).toLowerCase()));
+        const allowed = new Set(["presencial", "online", "en línea", "en linea"]);
+        // If every option is clearly a modality choice, treat it as such.
+        return [...ids].every((id) => allowed.has(id)) || [...labels].every((l) => allowed.has(l));
+    }
+
+    function setModalityValue(value: "Presencial" | "En línea") {
+        modalityRadios.forEach((r) => {
+            r.checked = r.value === value;
+        });
+    }
+
+    function ensureModalityIsSingleSourceOfTruth() {
+        const opts = readPaymentOptionsFromForm();
+        const prices = (() => {
+            try {
+                const raw = form?.dataset.prices ?? "{}";
+                const parsed = JSON.parse(raw === "null" ? "{}" : raw);
+                return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+            } catch {
+                return {};
+            }
+        })();
+
+        // Case A: paymentOptions are actually modality choices → keep modality radios in step 1
+        // and hide the redundant paymentPlan chooser in step 2. We still map modality → paymentPlan
+        // internally to resolve the correct Stripe price id.
+        if (paymentOptionsLookLikeModalityChoices(opts)) {
+            modalitySection?.classList.remove("hidden");
+            modalityRadios.forEach((r) => (r.required = true));
+
+            paymentPlanSection?.classList.add("hidden");
+            paymentPlanRadios.forEach((r) => (r.required = false));
+
+            const selectedModality = (
+                form?.querySelector('input[name="modality"]:checked') as HTMLInputElement | null
+            )?.value;
+            const normalized = String(selectedModality ?? "Presencial").toLowerCase();
+            const want = normalized.includes("línea") || normalized.includes("linea")
+                ? "online"
+                : "presencial";
+            const plan = paymentPlanRadios.find(
+                (radio: HTMLInputElement) => String(radio.value).toLowerCase() === want,
+            );
+            if (plan) plan.checked = true;
+            return;
+        }
+
+        // Case B: only one modality exists (either `prices` or `stripePriceIds` has one side) → hide choice.
+        const hasOnline =
+            typeof (prices as any).Online === "string" ||
+            typeof (prices as any)["En línea"] === "string" ||
+            typeof (readStripePriceIdsFromForm().online) === "string";
+        const hasPresencial =
+            typeof (prices as any).Presencial === "string" ||
+            typeof (readStripePriceIdsFromForm().presencial) === "string";
+
+        if (hasOnline !== hasPresencial) {
+            modalitySection?.classList.add("hidden");
+            modalityRadios.forEach((r) => (r.required = false));
+            setModalityValue(hasOnline ? "En línea" : "Presencial");
+            paymentPlanSection?.classList.remove("hidden");
+            paymentPlanRadios.forEach((r) => (r.required = true));
+            return;
+        }
+
+        // Default: two modalities exist and they are not encoded as paymentOptions → show choice.
+        modalitySection?.classList.remove("hidden");
+        modalityRadios.forEach((r) => (r.required = true));
+        paymentPlanSection?.classList.remove("hidden");
+        paymentPlanRadios.forEach((r) => (r.required = true));
+    }
+
     let currentStep = 1;
-    const totalSteps = 3;
-    const stepNames = [
-        "Datos del Participante",
-        "Método de Pago",
-        "Finalizar Inscripción",
-    ];
+
+    function selectedPaymentMethod(): "stripe" | "wire" {
+        const value = (
+            form?.querySelector(
+                'input[name="paymentMethodChoice"]:checked',
+            ) as HTMLInputElement | null
+        )?.value;
+        return value === "wire" ? "wire" : "stripe";
+    }
+
+    function activeStepNames(): string[] {
+        // Stripe flow completes on `/pago-exitoso` after redirect, so we only
+        // show 2 steps in the UI. Wire transfer requires the final step (proof).
+        return selectedPaymentMethod() === "wire"
+            ? ["Datos del Participante", "Método de Pago", "Finalizar Inscripción"]
+            : ["Datos del Participante", "Pago en línea (Stripe)"];
+    }
+
+    function activeTotalSteps(): number {
+        return activeStepNames().length;
+    }
 
     function updateStep() {
+        // If the user switched payment method, clamp the current step.
+        const totalSteps = activeTotalSteps();
+        if (currentStep > totalSteps) currentStep = totalSteps;
+
         sections.forEach((s, i) => {
+            // Step 3 is only reachable/visible for wire transfers.
+            if (i === 2 && selectedPaymentMethod() !== "wire") {
+                s.classList.add("hidden");
+                return;
+            }
             s.classList.toggle("hidden", i + 1 !== currentStep);
         });
 
+        const stepNames = activeStepNames();
         const percent = (currentStep / totalSteps) * 100;
         if (progress) progress.style.width = `${percent}%`;
         if (stepLabel)
@@ -827,13 +989,30 @@ const formFooterClass = embedInAsideCard
             stepNumberLabel.textContent = `${Math.round(percent)}% completado`;
 
         if (prevBtn) prevBtn.classList.toggle("hidden", currentStep === 1);
-        if (nextBtn)
-            nextBtn.classList.toggle("hidden", currentStep === totalSteps);
-        if (submitBtn)
-            submitBtn.classList.toggle("hidden", currentStep !== totalSteps);
+        if (nextBtn) {
+            // Stripe is a redirect flow: on the payment step (step 2) the user should
+            // click the dedicated Stripe button, not “Siguiente”.
+            const hideNextForStripePaymentStep =
+                selectedPaymentMethod() === "stripe" && currentStep === 2;
+            nextBtn.classList.toggle(
+                "hidden",
+                currentStep === totalSteps || hideNextForStripePaymentStep,
+            );
+        }
+        if (submitBtn) {
+            // Stripe is a redirect flow: users should never submit from inside the
+            // wizard; they must complete payment on Stripe and return via /pago-exitoso.
+            const hideSubmitForStripe = selectedPaymentMethod() === "stripe";
+            submitBtn.classList.toggle(
+                "hidden",
+                hideSubmitForStripe || currentStep !== totalSteps,
+            );
+        }
     }
 
     nextBtn?.addEventListener("click", () => {
+        const totalSteps = activeTotalSteps();
+        const stepNames = activeStepNames();
         const section = sections[currentStep - 1];
         if (!section || !form) return;
         // Check formats (phone, email) in addition to required-ness so users
@@ -844,6 +1023,21 @@ const formFooterClass = embedInAsideCard
             const title = `Paso ${currentStep} de ${totalSteps}: ${stepNames[currentStep - 1]}`;
             reportStepValidationFailure(title, result);
             return;
+        }
+        // Step 2 is the payment step. For Stripe, users must use the dedicated
+        // Stripe Checkout button (redirect) and cannot proceed to the next step
+        // without paying.
+        if (currentStep === 2) {
+            if (selectedPaymentMethod() === "stripe") {
+                alert(
+                    "Para pago en línea (Stripe), usa el botón «Continuar al Pago Seguro» en este paso. No puedes continuar sin completar el pago en Stripe.",
+                );
+                stripeCheckoutBtn?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+                return;
+            }
         }
         if (currentStep < totalSteps) {
             currentStep++;
@@ -893,6 +1087,69 @@ const formFooterClass = embedInAsideCard
         return {};
     }
 
+    type PaymentOptionRow = {
+        id: string;
+        label: string;
+        price: number;
+        stripePriceId: string;
+        type: string;
+    };
+
+    function readPaymentOptionsFromForm(): PaymentOptionRow[] {
+        try {
+            const raw = form?.dataset.paymentOptions ?? "[]";
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed as PaymentOptionRow[];
+        } catch {
+            /* invalid JSON */
+        }
+        return [];
+    }
+
+    function resolveStripePriceId(): string | null {
+        const opts = readPaymentOptionsFromForm();
+        if (opts.length > 1) {
+            // If paymentOptions are actually modality choices (presencial/online),
+            // derive the selection from modality instead of asking twice.
+            if (paymentOptionsLookLikeModalityChoices(opts)) {
+                const modality = (
+                    form?.querySelector(
+                        'input[name="modality"]:checked',
+                    ) as HTMLInputElement | null
+                )?.value;
+                const want =
+                    String(modality ?? "Presencial")
+                        .toLowerCase()
+                        .includes("línea") ||
+                    String(modality ?? "Presencial")
+                        .toLowerCase()
+                        .includes("linea")
+                        ? "online"
+                        : "presencial";
+                return opts.find((o) => String(o.id).toLowerCase() === want)?.stripePriceId ?? null;
+            }
+
+            const selected = (
+                form?.querySelector(
+                    'input[name="paymentPlan"]:checked',
+                ) as HTMLInputElement | null
+            )?.value;
+            if (!selected) return null;
+            return opts.find((o) => o.id === selected)?.stripePriceId ?? null;
+        }
+        if (opts.length === 1) return opts[0].stripePriceId;
+        const modality = (
+            form?.querySelector(
+                'input[name="modality"]:checked',
+            ) as HTMLInputElement | null
+        )?.value;
+        if (!modality) return null;
+        const stripePriceIds = readStripePriceIdsFromForm();
+        return modality === "Presencial"
+            ? stripePriceIds.presencial ?? null
+            : stripePriceIds.online ?? null;
+    }
+
     stripeCheckoutBtn?.addEventListener("click", async () => {
         if (!stripeCheckoutBtn || !form) return;
         const method =
@@ -916,14 +1173,19 @@ const formFooterClass = embedInAsideCard
             return;
         }
 
-        const stripePriceIds = readStripePriceIdsFromForm();
-        const priceId =
-            modality === "Presencial"
-                ? stripePriceIds.presencial
-                : stripePriceIds.online;
+        const priceId = resolveStripePriceId();
 
         if (!priceId) {
-            alert("Precio no configurado para esta modalidad. Por favor contacta al administrador.");
+            const opts = readPaymentOptionsFromForm();
+            if (opts.length > 1) {
+                alert(
+                    "Selecciona una opción de inversión (inscripción, pago completo o plan en cuotas).",
+                );
+            } else {
+                alert(
+                    "Precio no configurado para esta modalidad. Por favor contacta al administrador.",
+                );
+            }
             return;
         }
 
@@ -936,6 +1198,9 @@ const formFooterClass = embedInAsideCard
             );
             return;
         }
+
+        const stepNames = activeStepNames();
+        const totalSteps = activeTotalSteps();
 
         // Pasos 1 y 2 deben estar completos antes de Stripe (el botón vive en el paso 2)
         for (let s = 0; s <= 1; s++) {
@@ -1044,6 +1309,20 @@ const formFooterClass = embedInAsideCard
         }
     });
 
+    // When modality is encoded as paymentOptions (e.g. presencial vs online),
+    // keep the hidden `modality` radios in sync with that selection.
+    form?.querySelectorAll<HTMLInputElement>('input[name="paymentPlan"]').forEach((r) =>
+        r.addEventListener("change", () => {
+            ensureModalityIsSingleSourceOfTruth();
+        }),
+    );
+
+    modalityRadios.forEach((r) =>
+        r.addEventListener("change", () => {
+            ensureModalityIsSingleSourceOfTruth();
+        }),
+    );
+
     function generateWireReference() {
         const sid = enrollmentSessionIdEl?.value?.trim();
         if (sid) return wireReferenceFromSessionId(sid);
@@ -1077,9 +1356,15 @@ const formFooterClass = embedInAsideCard
     }
 
     paymentMethodRadios.forEach((r) =>
-        r.addEventListener("change", applyPaymentMethodUI),
+        r.addEventListener("change", () => {
+            applyPaymentMethodUI();
+            ensureModalityIsSingleSourceOfTruth();
+            updateStep();
+        }),
     );
     applyPaymentMethodUI();
+    ensureModalityIsSingleSourceOfTruth();
+    updateStep();
 
     // Copy-to-clipboard for bank fields
     form?.querySelectorAll("[data-copy]").forEach((btn) => {
@@ -1129,6 +1414,9 @@ const formFooterClass = embedInAsideCard
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!submitBtn || !form) return;
+
+        const stepNames = activeStepNames();
+        const totalSteps = activeTotalSteps();
 
         for (let i = 0; i < totalSteps; i++) {
             const r = validateStepSection(sections[i]);
