@@ -1,25 +1,45 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { faculty } from "../../data/legacy/faculty.js";
+import IconList from "../../components/faculty/IconList.astro";
+import {
+    getFacultyMembers,
+    type FacultyEntry,
+} from "../../lib/faculty";
 
-type FacultyMember = (typeof faculty)[number] & {
-    education?: string[];
-};
-
-export function getStaticPaths() {
-    return faculty.map((member) => ({
-        params: { id: member.id },
+export async function getStaticPaths() {
+    const members = await getFacultyMembers();
+    return members.map((member) => ({
+        params: { id: member.slug },
         props: { member },
     }));
 }
 
-const { member: memberRaw } = Astro.props;
-const member = memberRaw as FacultyMember;
+interface Props {
+    member: FacultyEntry;
+}
+
+const { member } = Astro.props;
+const { Content } = await member.render();
+
+const {
+    name,
+    degree,
+    bio,
+    fullBio,
+    position_laboral,
+    education,
+    experience_institutional,
+    image,
+} = member.data;
+
+// Prefer the markdown body when authors moved the long bio there; fall back to
+// the legacy `fullBio` frontmatter field, then to the short `bio`.
+const hasMarkdownBody = (member.body ?? "").trim().length > 0;
 
 const seo = {
-    title: `${member.name} | Docentes CEPRIJA`,
-    description: member.fullBio || member.bio,
-    image: member.image,
+    title: `${name} | Docentes CEPRIJA`,
+    description: fullBio || bio,
+    image,
 };
 ---
 
@@ -29,31 +49,33 @@ const seo = {
             <div
                 class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden"
             >
-                <div class="md:flex">
+                <div
+                    class="md:grid md:grid-cols-12 md:items-stretch md:gap-0"
+                >
                     <div
-                        class="md:w-1/3 md:border-r border-gray-100"
+                        class="relative h-96 w-full overflow-hidden border-b border-gray-100 md:col-span-4 md:h-full md:min-h-0 md:border-b-0 md:border-r"
                         data-animate="zoom-in"
                         data-delay="100"
                     >
                         <img
-                            src={member.image}
-                            alt={member.name}
-                            class="w-full h-96 md:h-auto md:aspect-[3/4] object-cover object-top"
+                            src={image}
+                            alt={name}
+                            class="h-full w-full object-cover object-top"
                         />
                     </div>
-                    <div class="md:w-2/3 p-8 md:p-12">
+                    <div class="md:col-span-8 p-8 md:p-12">
                         <h1
                             class="text-3xl md:text-4xl font-bold text-primary mb-2 font-serif"
                             data-animate="fade-up"
                         >
-                            {member.name}
+                            {name}
                         </h1>
                         <p
                             class="text-xl text-secondary font-medium mb-6"
                             data-animate="fade-up"
                             data-delay="100"
                         >
-                            {member.degree}
+                            {degree}
                         </p>
 
                         <div
@@ -62,111 +84,53 @@ const seo = {
                             data-delay="200"
                         >
                             <h2
-                                class="text-lg font-bold text-gray-800 mb-3 border-b pb-2"
+                                class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif"
                             >
                                 Biografía
                             </h2>
-                            <p class="text-gray-600 leading-relaxed text-lg">
-                                {member.fullBio || member.bio}
-                            </p>
+                            {
+                                hasMarkdownBody ? (
+                                    <div class="prose prose-lg max-w-none text-gray-600 leading-relaxed">
+                                        <Content />
+                                    </div>
+                                ) : (
+                                    <p class="text-gray-600 leading-relaxed text-lg">
+                                        {fullBio || bio}
+                                    </p>
+                                )
+                            }
                         </div>
+
                         {
-                            member.position_laboral && (
+                            position_laboral && (
                                 <div data-animate="fade-up" data-delay="200">
                                     <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
-                                        Cargo:
+                                        Cargo
                                     </h2>
-                                    <p class="text-gray-600 leading-relaxed text-lg">
-                                        {member.position_laboral}
+                                    <p class="text-gray-600 leading-relaxed text-lg mb-8">
+                                        {position_laboral}
                                     </p>
                                 </div>
                             )
                         }
+
                         {
-                            member.education && (
-                                <div data-animate="fade-up" data-delay="300">
-                                    <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
-                                        Formación Académica
-                                    </h2>
-                                    <ul class="space-y-3">
-                                        {member.education.map((item) => (
-                                            <li class="flex items-start gap-3 text-gray-600">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    class="h-6 w-6 text-secondary flex-shrink-0"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 14l9-5-9-5-9 5 9 5z"
-                                                    />
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
-                                                    />
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 14l9-5-9-5-9 5 9 5z"
-                                                    />
-                                                </svg>
-                                                {item}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+                            education && education.length > 0 && (
+                                <IconList
+                                    title="Formación Académica"
+                                    items={education}
+                                />
                             )
                         }
+
                         {
-                            member.experience_institutional && (
-                                <div data-animate="fade-up" data-delay="300">
-                                    <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
-                                        Docencia en:
-                                    </h2>
-                                    <ul class="space-y-3">
-                                        {member.experience_institutional.map(
-                                            (item) => (
-                                                <li class="flex items-start gap-3 text-gray-600">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        class="h-6 w-6 text-secondary flex-shrink-0"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 14l9-5-9-5-9 5 9 5z"
-                                                        />
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
-                                                        />
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 14l9-5-9-5-9 5 9 5z"
-                                                        />
-                                                    </svg>
-                                                    {item}
-                                                </li>
-                                            ),
-                                        )}
-                                    </ul>
-                                </div>
-                            )
+                            experience_institutional &&
+                                experience_institutional.length > 0 && (
+                                    <IconList
+                                        title="Docencia en"
+                                        items={experience_institutional}
+                                    />
+                                )
                         }
 
                         <div
@@ -184,6 +148,7 @@ const seo = {
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
+                                    aria-hidden="true"
                                 >
                                     <path
                                         stroke-linecap="round"

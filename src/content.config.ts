@@ -165,7 +165,31 @@ const programas = defineCollection({
   })
 });
 
+const docentes = defineCollection({
+  schema: z.object({
+    name: z.string(),
+    degree: z.string(),
+    /** Short bio used on cards / list views. */
+    bio: z.string(),
+    /**
+     * Long-form bio fallback. Prefer writing the long bio as the markdown body
+     * of the entry; this field is kept for entries that haven't been migrated
+     * to body content yet.
+     */
+    fullBio: optionalYamlString(),
+    position_laboral: optionalYamlString(),
+    education: z.array(z.string()).optional(),
+    experience_institutional: z.array(z.string()).optional(),
+    image: z.string(),
+    /** Stable display order across listings (slider, grid, detail). */
+    order: z.number(),
+    /** When true, the member is excluded from public listings. */
+    draft: z.boolean().default(false),
+  }),
+});
+
 export const collections = {
   revista,
-  programas
+  programas,
+  docentes
 };

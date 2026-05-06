@@ -1,0 +1,86 @@
+---
+import type { FacultyEntry } from '../../lib/faculty';
+
+interface Props {
+    member: FacultyEntry;
+    /** Whether this card is rendered inside a Swiper slide (lazy-loads the image). */
+    lazy?: boolean;
+}
+
+const { member, lazy = false } = Astro.props;
+const { name, degree, bio, image } = member.data;
+---
+
+<a href={`/docentes/${member.slug}`} class="block group h-full">
+    <div
+        class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
+    >
+        <div class="aspect-square overflow-hidden relative">
+            <img
+                src={image}
+                alt={name}
+                class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                loading={lazy ? 'lazy' : undefined}
+            />
+            <div
+                class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6"
+            >
+                <span
+                    class="text-white font-medium text-sm flex items-center gap-2"
+                >
+                    Ver perfil completo
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                    </svg>
+                </span>
+            </div>
+        </div>
+        <div class="p-6 flex-grow flex flex-col">
+            <h3
+                class="text-xl font-bold text-primary mb-1 group-hover:text-secondary transition-colors font-serif"
+            >
+                {name}
+            </h3>
+            <p class="text-secondary font-medium text-sm mb-4 font-serif">
+                {degree}
+            </p>
+            <p
+                class="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 font-sans flex-grow"
+            >
+                {bio}
+            </p>
+            <span
+                class="inline-flex items-center text-primary font-bold text-sm group-hover:text-secondary transition-colors mt-auto"
+            >
+                Ver perfil
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
+                </svg>
+            </span>
+        </div>
+    </div>
+</a>
