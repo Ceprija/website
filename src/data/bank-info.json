@@ -1,9 +1,8 @@
 {
-  "bankName": "Banco Nacional de México",
-  "accountHolder": "Centro de Preparación Integral CEPRIJA A.C.",
-  "accountNumber": "1234567890",
-  "clabe": "012345678901234567",
-  "swiftCode": "BNMXMXMM",
+  "bankName": "Banco Santander",
+  "accountHolder": "CEPRIJA A.C.",
+  "accountNumber": "65510808593",
+  "clabe": "014320655108085938",
   "currency": "MXN",
   "referencePrefix": "CEPRIJA"
 }

@@ -24,7 +24,7 @@ const posts = await getLatestPosts(3);
       {
         posts.map((post) => (
           <a
-            href={`/revista/${post.slug}`}
+            href={`/revista/${post.data.slug ?? post.id}`}
             class={cardInteractive}
           >
             {/* Imagen */}

@@ -1,4 +1,5 @@
 import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
 import { PROGRAMA_NIVELES_TUPLE } from './lib/programNiveles';
 
 /**
@@ -17,7 +18,21 @@ function optionalYamlString() {
   }, z.string().optional());
 }
 
+function optionalPublicPdfPath() {
+  return z.preprocess((val) => {
+    if (val === null || val === undefined) return undefined;
+    if (typeof val === "string") {
+      const t = val.trim();
+      return t.length > 0 ? t : undefined;
+    }
+    return val;
+  }, z.string().regex(/^\/(?!\/)(?!.*\.\.)[\w./-]+\.pdf$/i, {
+    message: "brochure must be an absolute public .pdf path",
+  }).optional());
+}
+
 const revista = defineCollection({
+  loader: glob({ pattern: "*.md", base: "./src/content/revista" }),
   schema: z.object({
     slug: z.string().optional(),
     title: z.string(),
@@ -30,6 +45,7 @@ const revista = defineCollection({
 });
 
 const programas = defineCollection({
+  loader: glob({ pattern: "**/*.md", base: "./src/content/programas" }),
   schema: z.object({
     // NOTE: the URL segment comes from Astro's entry-level `slug` (frontmatter `slug`
     // in YAML, which overrides the file-derived slug). It is NOT part of `data` and
@@ -81,7 +97,7 @@ const programas = defineCollection({
     })).optional(),
 
     /** @deprecated Use `paymentOptions` array instead. Kept for backward compatibility. */
-    price: z.union([z.number(), z.record(z.string())]).optional(),
+    price: z.union([z.number(), z.record(z.string(), z.string())]).optional(),
     featured: z.boolean().optional(),
     date: optionalYamlString(),
 
@@ -107,6 +123,8 @@ const programas = defineCollection({
     })).optional(),
     /** Public folder path; all image files inside it render in the program gallery. */
     galleryFolder: optionalYamlString(),
+    /** Public PDF path for the downloadable program brochure, e.g. `/brochures/programa.pdf`. */
+    brochure: optionalPublicPdfPath(),
     paymentLinks: z.object({
       online: z.string().optional(),
       presencial: z.string().optional()
@@ -181,6 +199,7 @@ const programas = defineCollection({
 });
 
 const docentes = defineCollection({
+  loader: glob({ pattern: "*.md", base: "./src/content/docentes" }),
   schema: z.object({
     name: z.string(),
     degree: z.string(),

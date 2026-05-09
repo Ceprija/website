@@ -509,13 +509,16 @@ export const POST: APIRoute = async ({ request }) => {
           return textResponse("Test clock busy, retrying...", 500, requestId);
         }
 
-        // Any other failure: log and 200 so Stripe doesn't enter a retry loop.
+        // Any other failure in installment enforcement should stay retryable.
+        // If we mark the event processed here, Stripe will never retry the side
+        // effect and the subscription can drift from the agreed payment count.
         apiLog("error", route, "invoice_paid_internal_error", {
           requestId,
           eventId: event.id,
           type: event.type,
           error: errorMessage,
         });
+        return textResponse("Invoice handling failed, retrying...", 500, requestId);
       }
       break;
     }

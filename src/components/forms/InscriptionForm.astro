@@ -98,6 +98,14 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
         class="p-8 md:p-12 space-y-8"
         enctype="multipart/form-data"
     >
+        <input
+            type="text"
+            name="website"
+            autocomplete="off"
+            tabindex="-1"
+            class="sr-only"
+            aria-hidden="true"
+        />
         <input type="hidden" name="origen" value="Web Inicia Inscripción" />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
@@ -1000,6 +1008,24 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     } from "@lib/client/multiStepFormValidation";
 
     const form = document.getElementById("inscription-form") as HTMLFormElement;
+
+    function showInlineAlert(message: string) {
+        let region = document.getElementById("inscription-inline-alert");
+        if (!region) {
+            region = document.createElement("div");
+            region.id = "inscription-inline-alert";
+            region.setAttribute("role", "alert");
+            region.setAttribute("aria-live", "assertive");
+            region.setAttribute("tabindex", "-1");
+            region.className =
+                "fixed left-4 right-4 top-24 z-[60] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 shadow-lg md:left-auto md:w-[28rem]";
+            document.body.appendChild(region);
+        }
+        region.textContent = message;
+        region.focus({ preventScroll: true });
+    }
+
+    const alert = showInlineAlert;
 
     // Validaciones: Convertir a MAYÚSCULAS
     document

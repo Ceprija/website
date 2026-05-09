@@ -29,6 +29,7 @@ paymentOptions:
     stripePriceId: "price_1TTarXKVaWLbvt9DqBhp8Gap"
     type: "hibrido"
 galleryFolder: "/images/programs/diplomadoDerechoCivil/gallery"
+brochure: "/brochures/diplomadoDerechoCivil.pdf"
 featured: true
 date: "2026-03-20"
 address: ""

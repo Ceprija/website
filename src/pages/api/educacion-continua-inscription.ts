@@ -18,11 +18,17 @@ import {
   CONTACT_EMAIL,
   EMAIL_EDUCACION_CONTINUA,
   EMAIL_SOPORTE_WEB,
-  KEY_API_BREVO,
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -131,9 +137,22 @@ function replacePlaceholders(template: string, data: Record<string, string>) {
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
   const route = "POST /api/educacion-continua-inscription";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "educacion-continua-inscription",
+    limit: 8,
+    windowMs: 10 * 60_000,
+    expectedContentType: "multipart",
+  });
+  if (guarded) return guarded;
+
   let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
+    if (hasHoneypotValue(fields)) {
+      return honeypotResponse(route, requestId);
+    }
     programSlug = (fields.programId ?? "").trim();
 
     const fieldErr = validateEducacionContinuaFields(fields);
@@ -207,7 +226,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Get program details from content collection
     const programs = await getCollection("programas");
-    const program = programs.find((p) => p.slug === programId || p.data.title === programTitle);
+    const program = programs.find((p) => getProgramPathSlug(p) === programId || p.data.title === programTitle);
     if (program?.data.disabled) {
       return new Response(
         JSON.stringify({
@@ -247,24 +266,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     const csvContent = header + csvRow;
 
-    const brevoKey = KEY_API_BREVO;
-    if (!brevoKey) {
-      apiLog("error", route, "brevo_not_configured", {
-        requestId,
-        programSlug: programSlug || undefined,
-        code: "brevo_not_configured",
-      });
-      return jsonResponse(
-        {
-          message: "Correo no configurado en el servidor (KEY_API_BREVO)",
-          code: "brevo_not_configured",
-        },
-        503,
-        requestId,
-      );
-    }
-
-    const senderEmail = SMTP_FROM || CONTACT_EMAIL;
+    const senderEmail =
+      (SMTP_FROM ?? CONTACT_EMAIL ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const adminEmail1 =
       (EMAIL_EDUCACION_CONTINUA ?? "").trim() || "educacioncontinua@ceprija.edu.mx";
     const adminEmail2 = EMAIL_SOPORTE_WEB;
@@ -321,10 +324,11 @@ export const POST: APIRoute = async ({ request }) => {
           content: csvBase64,
         });
 
-        await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "api-key": brevoKey },
-          body: JSON.stringify(adminBody),
+        await sendBrevoEmail(adminBody as Parameters<typeof sendBrevoEmail>[0], {
+          route,
+          requestId,
+          kind: "admin",
+          programSlug: programSlug || undefined,
         });
 
         const templateSet =
@@ -351,16 +355,20 @@ export const POST: APIRoute = async ({ request }) => {
         const userHtml = replacePlaceholders(template.body, templateData);
         const userSubject = replacePlaceholders(template.subject, templateData);
 
-        await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "api-key": brevoKey },
-          body: JSON.stringify({
+        await sendBrevoEmail(
+          {
             sender: { email: senderEmail, name: "Equipo CEPRIJA" },
             to: [{ email }],
             subject: userSubject,
             htmlContent: userHtml,
-          }),
-        });
+          },
+          {
+            route,
+            requestId,
+            kind: "participant",
+            programSlug: programSlug || undefined,
+          },
+        );
       } catch (err) {
         apiLog("error", route, "brevo_send_failed", {
           requestId,

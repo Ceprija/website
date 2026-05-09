@@ -5,7 +5,7 @@ description: "Seminario de selección de personal y pruebas psicométricas en CE
 excerpt: "Selección de personal y pruebas psicométricas: baterías por nivel, valoración, entrevista y tecnología aplicada al reclutamiento en organizaciones."
 image: "/images/programs/seminario-pruebas-psicometricas.webp"
 escuela: "economica"
-nivel: "curso"
+nivel: "taller"
 status: "active"
 horario: "Viernes 18:00–21:00 h (6:00–9:00 p.m.); sábado 10:00–13:00 h (10:00 a.m.–1:00 p.m.)"
 startDate: "22 de mayo de 2026"
@@ -28,6 +28,7 @@ paymentOptions:
     stripePriceId: "price_1TUi0gKVaWLbvt9DL55TZV1X"
     type: "hibrido"
 galleryFolder: "/images/programs/seminarioPsicometricos/gallery"
+brochure: "/brochures/seminarioPsicometrico.pdf"
 featured: true
 date: "2026-05-22"
 address: ""

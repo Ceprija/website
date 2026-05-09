@@ -1,15 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { render } from "astro:content";
 import IconList from "../../components/faculty/IconList.astro";
-import {
-    getFacultyMembers,
-    type FacultyEntry,
-} from "../../lib/faculty";
+import { getFacultyMembers, getFacultySlug, type FacultyEntry } from "../../lib/faculty";
 
 export async function getStaticPaths() {
     const members = await getFacultyMembers();
     return members.map((member) => ({
-        params: { id: member.slug },
+        params: { id: getFacultySlug(member) },
         props: { member },
     }));
 }
@@ -19,7 +17,7 @@ interface Props {
 }
 
 const { member } = Astro.props;
-const { Content } = await member.render();
+const { Content } = await render(member);
 
 const {
     name,
@@ -49,9 +47,7 @@ const seo = {
             <div
                 class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden"
             >
-                <div
-                    class="md:grid md:grid-cols-12 md:items-stretch md:gap-0"
-                >
+                <div class="md:grid md:grid-cols-12 md:items-stretch md:gap-0">
                     <div
                         class="relative h-96 w-full overflow-hidden border-b border-gray-100 md:col-span-4 md:h-full md:min-h-0 md:border-b-0 md:border-r"
                         data-animate="zoom-in"
@@ -86,7 +82,7 @@ const seo = {
                             <h2
                                 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif"
                             >
-                                Biografía
+                                Trayectoria
                             </h2>
                             {
                                 hasMarkdownBody ? (

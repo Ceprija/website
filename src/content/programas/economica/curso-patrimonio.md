@@ -11,17 +11,6 @@ horario: ""
 startDate: ""
 duracion: "Por definir"
 modalidad: "Presencial / En línea"
-paymentOptions:
-  - id: "presencial"
-    label: "Presencial"
-    price: 0
-    stripePriceId: "price_1CfgCurPatrimPres"
-    type: "presencial"
-  - id: "online"
-    label: "Online"
-    price: 0
-    stripePriceId: "price_1CfgCurPatrimOnln"
-    type: "online"
 featured: true
 date: ""
 address: ""

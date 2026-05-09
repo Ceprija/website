@@ -6,9 +6,14 @@ export function requiresAcademicDegreeSteps(nivel: ProgramaNivel): boolean {
 }
 
 /**
- * Maestría, Doctorado y Especialidad: capturar domicilio, contacto de emergencia
- * e información de salud básica además de los datos personales.
+ * Maestría, Doctorado, Especialidad y Diplomado: capturar domicilio, contacto
+ * de emergencia e información de salud básica además de los datos personales.
  */
 export function requiresExtendedApplicantProfile(nivel: ProgramaNivel): boolean {
-  return nivel === "maestria" || nivel === "doctorado" || nivel === "especialidad";
+  return (
+    nivel === "maestria" ||
+    nivel === "doctorado" ||
+    nivel === "especialidad" ||
+    nivel === "diplomado"
+  );
 }

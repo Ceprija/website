@@ -8,27 +8,25 @@
     "preview": "astro preview",
     "astro": "astro",
     "sync": "astro sync",
+    "validate:stripe": "node scripts/validate-stripe-config.mjs",
     "docs:pdf-mkt": "md-to-pdf docs/marketing-program-handoff-checklist-para-mkt.md --document-title \"Checklist programas — Marketing CEPRIJA\" --pdf-options '{\"format\":\"A4\",\"printBackground\":true,\"margin\":{\"top\":\"18mm\",\"bottom\":\"18mm\",\"left\":\"14mm\",\"right\":\"14mm\"}}'"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.6",
-    "@astrojs/node": "^9.5.1",
+    "@astrojs/node": "^10.1.0",
     "@astrojs/partytown": "^2.1.5",
     "@astrojs/sitemap": "^3.7.0",
     "@astrojs/tailwind": "^6.0.2",
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fontsource/merriweather": "^5.2.11",
-    "astro": "^5.16.3",
+    "astro": "^6.3.1",
     "busboy": "^1.6.0",
-    "nodemailer": "^7.0.11",
     "stripe": "^22.0.2",
     "tailwindcss": "^3.4.18",
-    "typescript": "^5.9.3",
-    "xlsx": "^0.18.5"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.6",
     "@types/busboy": "^1.5.4",
-    "@types/nodemailer": "^7.0.4",
     "baseline-browser-mapping": "^2.10.27",
     "md-to-pdf": "^5.2.4"
   }

@@ -97,6 +97,14 @@ const formFooterClass = embedInAsideCard
         class:list={[formSurfaceClass]}
     >
         <input
+            type="text"
+            name="website"
+            autocomplete="off"
+            tabindex="-1"
+            class="sr-only"
+            aria-hidden="true"
+        />
+        <input
             type="hidden"
             name="programId"
             id="form-program-id"
@@ -482,23 +490,6 @@ const formFooterClass = embedInAsideCard
                                 Copiar
                             </button>
                         </div>
-                        {
-                            bankInfo.swiftCode && (
-                                <div class="flex items-center justify-between gap-3">
-                                    <p class="truncate">
-                                        <strong>SWIFT:</strong>{" "}
-                                        {bankInfo.swiftCode}
-                                    </p>
-                                    <button
-                                        type="button"
-                                        class="text-primary font-bold hover:underline"
-                                        data-copy={bankInfo.swiftCode}
-                                    >
-                                        Copiar
-                                    </button>
-                                </div>
-                            )
-                        }
                         <div class="pt-3 mt-3 border-t border-gray-200">
                             <p class="text-xs text-gray-600">
                                 <strong>Referencia:</strong>
@@ -867,6 +858,24 @@ const formFooterClass = embedInAsideCard
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
     import { buildWireReferenceFromApplicant } from "@lib/wireReference";
+
+    function showInlineAlert(message: string) {
+        let region = document.getElementById("ce-form-inline-alert");
+        if (!region) {
+            region = document.createElement("div");
+            region.id = "ce-form-inline-alert";
+            region.setAttribute("role", "alert");
+            region.setAttribute("aria-live", "assertive");
+            region.setAttribute("tabindex", "-1");
+            region.className =
+                "fixed left-4 right-4 top-24 z-[60] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 shadow-lg md:left-auto md:w-[28rem]";
+            document.body.appendChild(region);
+        }
+        region.textContent = message;
+        region.focus({ preventScroll: true });
+    }
+
+    const alert = showInlineAlert;
 
     const form = document.getElementById(
         "ce-inscription-form",

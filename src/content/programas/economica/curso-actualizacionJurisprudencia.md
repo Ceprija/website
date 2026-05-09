@@ -8,20 +8,9 @@ escuela: "economica"
 nivel: "curso"
 status: "waitlist"
 horario: ""
-startDate: "19 de marzo de 2026"
+startDate: ""
 duracion: "1 sesión (3.5 h)"
 modalidad: "Presencial / En línea"
-paymentOptions:
-  - id: "presencial"
-    label: "Presencial"
-    price: 0
-    stripePriceId: "price_1CfgActJurFiscalPres"
-    type: "presencial"
-  - id: "online"
-    label: "Online"
-    price: 0
-    stripePriceId: "price_1CfgActJurFiscalOnln"
-    type: "online"
 featured: true
 date: "2026-03-19"
 address: ""

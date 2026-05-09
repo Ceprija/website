@@ -4,9 +4,9 @@
  * validator, and future reporting consistent.
  *
  * Rules (as of May 2026):
- * - `maestria` and `especialidad`: at least 1 Licenciatura
+ * - `diplomado`, `maestria` and `especialidad`: at least 1 Licenciatura
  * - `doctorado`: at least 1 Licenciatura AND at least 1 Maestría
- * - Other niveles (`curso`, `taller`, `diplomado`): no prerequisites; these programs
+ * - Other niveles (`curso`, `taller`): no prerequisites; these programs
  *   don't use the application flow, but we return an empty list as a safe default.
  *
  * Users can always add more degrees on top of the initial list.
@@ -37,7 +37,7 @@ export function getInitialDegreesForNivel(nivel: ProgramaNivel): InitialDegree[]
       { grado: "Maestría", locked: true },
     ];
   }
-  if (nivel === "maestria" || nivel === "especialidad") {
+  if (nivel === "diplomado" || nivel === "maestria" || nivel === "especialidad") {
     return [{ grado: "Licenciatura", locked: true }];
   }
   return [];
@@ -54,7 +54,7 @@ export function validateMinimumDegrees(
   const licenciaturas = degrees.filter((d) => d.grado === "Licenciatura").length;
   const maestrias = degrees.filter((d) => d.grado === "Maestría").length;
 
-  if (nivel === "maestria" || nivel === "especialidad") {
+  if (nivel === "diplomado" || nivel === "maestria" || nivel === "especialidad") {
     if (licenciaturas === 0) {
       return "Este programa requiere al menos una Licenciatura.";
     }

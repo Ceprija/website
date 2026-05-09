@@ -9,6 +9,8 @@ title: "Título del programa"
 description: "SEO + párrafo principal del hero"
 excerpt: "Resumen corto (listados, meta; puede alinearse con description)"
 image: "/images/programs/ejemplo.webp"
+# PDF descargable mostrado en la ficha del programa. El archivo debe estar en `public/`.
+# brochure: "/brochures/nombre-del-programa.pdf"
 
 escuela: "juridica"
 nivel: "curso"
@@ -71,8 +73,8 @@ prerequisites:
 
 # Enrollment flow: determines if program uses inline form or application wizard
 # REQUIRED when status === "active"
-# - "inline": Simple registration on program page (default for curso, diplomado, taller)
-# - "application": Multi-step application with documents (default for maestria, doctorado, especialidad)
+# - "inline": Simple registration on program page (default for curso, taller)
+# - "application": Multi-step application with documents (default for diplomado, maestria, doctorado, especialidad)
 enrollmentFlow: "inline"
 
 # Variantes opcionales (módulos seleccionables y/o cohortes con fecha).

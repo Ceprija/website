@@ -16,7 +16,7 @@ import type { CollectionEntry } from "astro:content";
 export function getProgramPathSlug(
   program: CollectionEntry<"programas">,
 ): string {
-  return program.slug;
+  return program.id;
 }
 
 /**

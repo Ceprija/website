@@ -1,5 +1,5 @@
 ---
-import type { FacultyEntry } from '../../lib/faculty';
+import { getFacultySlug, type FacultyEntry } from '../../lib/faculty';
 
 interface Props {
     member: FacultyEntry;
@@ -11,7 +11,7 @@ const { member, lazy = false } = Astro.props;
 const { name, degree, bio, image } = member.data;
 ---
 
-<a href={`/docentes/${member.slug}`} class="block group h-full">
+<a href={`/docentes/${getFacultySlug(member)}`} class="block group h-full">
     <div
         class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
     >

@@ -12,28 +12,8 @@ horario: "Miércoles 17:00 a 20:00 h · Viernes 9:00 a 14:00 h"
 startDate: ""
 duracion: "6 cuatrimestres"
 modalidad: "Híbrida / En línea"
-paymentOptions:
-  - id: "inscripcion"
-    label: "Inscripción"
-    price: 6000
-    stripePriceId: "price_REPLACE_mae_civil_inscripcion"
-    type: "hibrido"
-  - id: "reinscripcion"
-    label: "Reinscripción"
-    price: 3000
-    stripePriceId: "price_REPLACE_mae_civil_reinscripcion"
-    type: "hibrido"
-  - id: "mensualidad_online"
-    label: "Mensualidad (en línea)"
-    price: 3500
-    stripePriceId: "price_1CfgMaeCivilOnln"
-    type: "online"
-  - id: "mensualidad_presencial"
-    label: "Mensualidad (presencial/híbrida)"
-    price: 3900
-    stripePriceId: "price_1CfgMaeCivilPres"
-    type: "presencial"
 galleryFolder: "/images/programs/maestriaCivilFamiliar/gallery"
+brochure: "/brochures/maestriaCivilFamiliar.pdf"
 featured: true
 date: ""
 address: ""

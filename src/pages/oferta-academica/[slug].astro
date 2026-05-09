@@ -9,7 +9,6 @@ import ContinuousEducationForm from "@components/forms/ContinuousEducationForm.a
 import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsideCard.astro";
 import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
-import { getVariantOptions } from "@lib/programVariants";
 import { programMetaDescriptionSuffix } from "../../data/config/seo.js";
 import { filterPublishedPrograms } from "@lib/programPublished";
 import { 
@@ -17,7 +16,6 @@ import {
     getStripePriceIds, 
     getDisplayPrices,
     getProgramStatus,
-    formatPrice 
 } from "@lib/programPayments";
 
 export async function getStaticPaths() {
@@ -130,23 +128,17 @@ const stripePriceIdsForCheckout = getStripePriceIds(program);
 const continuousEducationPrices = getDisplayPrices(program);
 const programAddress =
     typeof data.address === "string" ? data.address : undefined;
+const programBrochure =
+    typeof data.brochure === "string" && data.brochure.trim().length > 0
+        ? data.brochure.trim()
+        : "";
 const programRequiresVerification = Boolean(data.requiresVerification);
 const registroAcademico =
     typeof data.registroAcademico === "string"
         ? data.registroAcademico.trim()
         : "";
-const variantOptions = getVariantOptions(program);
-const variantModuleOptions = variantOptions?.moduleSelection?.options ?? [];
 
-/** Maestría / especialidad / doctorado: solicitud sin precios ni pago en ficha. */
-const applicationOnlyNivel =
-    data.nivel === "maestria" ||
-    data.nivel === "especialidad" ||
-    data.nivel === "doctorado";
-const showInvestmentBlock =
-    !applicationOnlyNivel &&
-    (paymentOptions.length > 0 || !!data.price);
-
+const isDiplomado = data.nivel === "diplomado";
 const descriptionPlain = String(data.description ?? "").trim();
 const seo = {
     title: `${String(data.title)} | CEPRIJA`,
@@ -154,6 +146,7 @@ const seo = {
         descriptionPlain.length > 0
             ? `${descriptionPlain}${programMetaDescriptionSuffix}`
             : descriptionPlain,
+    image: String(data.image || "/images/branding/site/ceprija_02.webp"),
 };
 /** Encuadre del hero con cover; sin `imagePosition` equivale al comportamiento por defecto del navegador (`center center`). */
 const heroObjectPosition =
@@ -744,7 +737,7 @@ const heroObjectPosition =
                     }
 
                     {
-                        showInvestmentBlock && (
+                        programBrochure && (
                             <div
                                 class="bg-white rounded-2xl shadow-sm p-8"
                                 data-animate="fade-up"
@@ -765,48 +758,36 @@ const heroObjectPosition =
                                             d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                         />
                                     </svg>
-                                    Inversión
+                                    Brochure del programa
                                 </h2>
-                                {paymentOptions.length > 0 ? (
-                                    <div class="space-y-4">
-                                        {paymentOptions.map((option) => (
-                                            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                                                <span class="text-gray-600 font-medium">
-                                                    {option.label}:
-                                                </span>
-                                                <span class="text-primary font-bold text-lg">
-                                                    {formatPrice(option.price)}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : typeof program.data.price === "object" ? (
-                                    <div class="space-y-4">
-                                        {Object.entries(program.data.price).map(
-                                            ([key, value]) => (
-                                                <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                                                    <span class="text-gray-600 font-medium capitalize">
-                                                        {key}:
-                                                    </span>
-                                                    <span class="text-primary font-bold text-lg">
-                                                        {value}
-                                                    </span>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p class="text-primary font-bold text-2xl">
-                                        ${program.data.price}
-                                    </p>
-                                )}
-                                {variantModuleOptions.length > 0 && (
-                                    <p class="mt-6 text-sm text-gray-600 leading-relaxed">
-                                        Selecciona el módulo o paquete y la
-                                        fecha de inicio durante el proceso de
-                                        inscripción.
-                                    </p>
-                                )}
+                                <p class="text-gray-700 leading-relaxed mb-6">
+                                    Descarga el brochure para consultar la
+                                    información completa del programa,
+                                    incluyendo temario, inversión y detalles de
+                                    inscripción.
+                                </p>
+                                <button
+                                    type="button"
+                                    data-brochure-open
+                                    data-brochure-url={programBrochure}
+                                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white shadow-lg transition-colors hover:bg-blue-900"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"
+                                        />
+                                    </svg>
+                                    Descargar brochure
+                                </button>
                             </div>
                         )
                     }
@@ -954,11 +935,14 @@ const heroObjectPosition =
                             class="shadow-xl"
                         >
                             <h3 class="text-2xl font-bold text-primary mb-2 font-serif">
-                                Proceso de Admisión
+                                {isDiplomado
+                                    ? "Registro al Diplomado"
+                                    : "Proceso de Admisión"}
                             </h3>
                             <p class="text-gray-600 mb-6 text-sm">
-                                Este programa requiere un proceso formal de
-                                admisión con documentación académica.
+                                {isDiplomado
+                                    ? "Completa tu registro con documentación académica y después elige tu forma de pago."
+                                    : "Este programa requiere un proceso formal de admisión con documentación académica."}
                             </p>
 
                             <div class="space-y-3 mb-6 text-sm">
@@ -1005,11 +989,15 @@ const heroObjectPosition =
                                 href={`/enrollment/${programSlug}`}
                                 class="block w-full bg-secondary hover:bg-secondary/90 text-white font-bold py-4 px-6 rounded-xl text-center transition-all shadow-lg hover:shadow-xl"
                             >
-                                Iniciar Solicitud
+                                {isDiplomado
+                                    ? "Iniciar Registro"
+                                    : "Iniciar Solicitud"}
                             </a>
 
                             <p class="text-xs text-gray-500 mt-4 text-center">
-                                Proceso en línea • Respuesta en 48-72 horas
+                                {isDiplomado
+                                    ? "Registro en línea • Pago al finalizar"
+                                    : "Proceso en línea • Respuesta en 48-72 horas"}
                             </p>
                         </ProgramEnrollmentAsideCard>
                     ) : (
@@ -1028,9 +1016,287 @@ const heroObjectPosition =
                 }
             </div>
         </section>
+        {
+            programBrochure && (
+                <div
+                    id="brochure-modal"
+                    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 py-8"
+                    aria-hidden="true"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="brochure-modal-title"
+                    aria-describedby="brochure-modal-description"
+                >
+                    <div class="relative w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+                        <button
+                            type="button"
+                            id="brochure-modal-close"
+                            class="absolute right-4 top-4 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            aria-label="Cerrar"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+
+                        <h2 id="brochure-modal-title" class="mb-2 pr-8 text-2xl font-bold text-primary font-serif">
+                            Descarga el brochure
+                        </h2>
+                        <p id="brochure-modal-description" class="mb-6 text-sm text-gray-600">
+                            Déjanos tus datos para enviarte seguimiento
+                            personalizado. Al enviar el formulario se iniciará
+                            la descarga del PDF.
+                        </p>
+
+                        <form
+                            id="brochure-lead-form"
+                            class="space-y-4"
+                            data-program-title={String(data.title)}
+                            data-program-slug={programSlug}
+                            data-brochure={programBrochure}
+                        >
+                            <input
+                                type="text"
+                                name="website"
+                                autocomplete="off"
+                                tabindex="-1"
+                                class="sr-only"
+                                aria-hidden="true"
+                            />
+                            <div>
+                                <label
+                                    class="mb-2 block text-sm font-semibold text-gray-700"
+                                    for="brochure-name"
+                                >
+                                    Nombre completo *
+                                </label>
+                                <input
+                                    id="brochure-name"
+                                    name="name"
+                                    type="text"
+                                    required
+                                    class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+                                    placeholder="Tu nombre"
+                                />
+                            </div>
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label
+                                        class="mb-2 block text-sm font-semibold text-gray-700"
+                                        for="brochure-email"
+                                    >
+                                        Correo electrónico *
+                                    </label>
+                                    <input
+                                        id="brochure-email"
+                                        name="email"
+                                        type="email"
+                                        required
+                                        class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+                                        placeholder="tu@email.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label
+                                        class="mb-2 block text-sm font-semibold text-gray-700"
+                                        for="brochure-phone"
+                                    >
+                                        Teléfono *
+                                    </label>
+                                    <input
+                                        id="brochure-phone"
+                                        name="phone"
+                                        type="tel"
+                                        required
+                                        class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+                                        placeholder="33 0000 0000"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="mb-2 block text-sm font-semibold text-gray-700"
+                                    for="brochure-message"
+                                >
+                                    Mensaje
+                                </label>
+                                <textarea
+                                    id="brochure-message"
+                                    name="message"
+                                    rows="3"
+                                    class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+                                    placeholder="Cuéntanos si tienes alguna duda"
+                                ></textarea>
+                            </div>
+                            <p
+                                id="brochure-form-status"
+                                class="hidden rounded-xl px-4 py-3 text-sm"
+                                role="status"
+                            >
+                            </p>
+                            <button
+                                type="submit"
+                                id="brochure-submit"
+                                class="w-full rounded-xl bg-secondary px-6 py-3 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                Enviar y descargar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )
+        }
     </main>
 
     <script>
+        function downloadBrochure(url: string) {
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        const brochureModal = document.getElementById("brochure-modal");
+        const brochureOpenButtons =
+            document.querySelectorAll<HTMLButtonElement>("[data-brochure-open]");
+        const brochureCloseButton = document.getElementById(
+            "brochure-modal-close",
+        );
+        const brochureForm = document.getElementById(
+            "brochure-lead-form",
+        ) as HTMLFormElement | null;
+        const brochureStatus = document.getElementById("brochure-form-status");
+        const brochureSubmit = document.getElementById(
+            "brochure-submit",
+        ) as HTMLButtonElement | null;
+        let brochureLastFocused: HTMLElement | null = null;
+
+        function setBrochureModalOpen(open: boolean) {
+            if (!brochureModal) return;
+            if (open) brochureLastFocused = document.activeElement as HTMLElement | null;
+            brochureModal.classList.toggle("hidden", !open);
+            brochureModal.classList.toggle("flex", open);
+            brochureModal.setAttribute("aria-hidden", String(!open));
+            document.body.classList.toggle("overflow-hidden", open);
+            if (!open) brochureLastFocused?.focus?.();
+        }
+
+        function showBrochureStatus(kind: "error" | "success", message: string) {
+            if (!brochureStatus) return;
+            brochureStatus.textContent = message;
+            brochureStatus.className =
+                kind === "success"
+                    ? "rounded-xl px-4 py-3 text-sm bg-green-50 text-green-800 border border-green-200"
+                    : "rounded-xl px-4 py-3 text-sm bg-red-50 text-red-800 border border-red-200";
+        }
+
+        brochureOpenButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                setBrochureModalOpen(true);
+                window.setTimeout(() => {
+                    document.getElementById("brochure-name")?.focus();
+                }, 0);
+            });
+        });
+
+        brochureCloseButton?.addEventListener("click", () => {
+            setBrochureModalOpen(false);
+        });
+
+        brochureModal?.addEventListener("click", (event) => {
+            if (event.target === brochureModal) setBrochureModalOpen(false);
+        });
+
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") setBrochureModalOpen(false);
+            if (event.key !== "Tab" || !brochureModal || brochureModal.classList.contains("hidden")) return;
+            const focusable = Array.from(
+                brochureModal.querySelectorAll<HTMLElement>(
+                    'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            );
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        brochureForm?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!brochureForm.reportValidity()) return;
+
+            const formData = new FormData(brochureForm);
+            const brochure = brochureForm.dataset.brochure ?? "";
+            if (brochureSubmit) {
+                brochureSubmit.disabled = true;
+                brochureSubmit.textContent = "Enviando...";
+            }
+
+            try {
+                const response = await fetch("/api/brochure-download", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: String(formData.get("name") ?? ""),
+                        email: String(formData.get("email") ?? ""),
+                        phone: String(formData.get("phone") ?? ""),
+                        message: String(formData.get("message") ?? ""),
+                        website: String(formData.get("website") ?? ""),
+                        programTitle: brochureForm.dataset.programTitle ?? "",
+                        programSlug: brochureForm.dataset.programSlug ?? "",
+                        brochure,
+                    }),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(
+                        typeof data.error === "string"
+                            ? data.error
+                            : "No pudimos enviar tus datos. Intenta de nuevo.",
+                    );
+                }
+
+                showBrochureStatus(
+                    "success",
+                    "Gracias. Iniciaremos la descarga del brochure.",
+                );
+                downloadBrochure(String(data.brochure || brochure));
+                brochureForm.reset();
+                window.setTimeout(() => setBrochureModalOpen(false), 900);
+            } catch (error) {
+                showBrochureStatus(
+                    "error",
+                    error instanceof Error
+                        ? error.message
+                        : "No pudimos enviar tus datos. Intenta de nuevo.",
+                );
+            } finally {
+                if (brochureSubmit) {
+                    brochureSubmit.disabled = false;
+                    brochureSubmit.textContent = "Enviar y descargar";
+                }
+            }
+        });
+
         document
             .querySelectorAll<HTMLElement>("[data-program-gallery-carousel]")
             .forEach((carousel) => {

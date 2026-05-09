@@ -2,7 +2,7 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import Busboy from "busboy";
-import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB } from "astro:env/server";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
   MAX_FILES_PER_REQUEST,
@@ -11,6 +11,12 @@ import {
 } from "@lib/uploads/fileValidation";
 import { validateStripeFiscalPreflightFields } from "@lib/validation/enrollment";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
 
 type UploadedFile = {
   fieldname: string;
@@ -118,8 +124,21 @@ async function parseFormData(request: Request) {
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
   const route = "POST /api/stripe/fiscal-preflight";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "fiscal-preflight",
+    limit: 8,
+    windowMs: 10 * 60_000,
+    expectedContentType: "multipart",
+  });
+  if (guarded) return guarded;
+
   try {
     const { fields, files } = await parseFormData(request);
+    if (hasHoneypotValue(fields)) {
+      return honeypotResponse(route, requestId);
+    }
     const programSlugEarly = (fields.programSlug ?? "").trim();
 
     const fieldErr = validateStripeFiscalPreflightFields(fields);
@@ -205,27 +224,10 @@ export const POST: APIRoute = async ({ request }) => {
     const customerEmail = (fields.customerEmail ?? "").trim();
     const applicationId = (fields.applicationId ?? "").trim();
 
-    const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar =
       (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    if (!brevoKey) {
-      apiLog("error", route, "brevo_not_configured", {
-        requestId,
-        programSlug: programSlug || undefined,
-        code: "brevo_not_configured",
-      });
-      return jsonResponse(
-        {
-          error: "Correo no configurado (KEY_API_BREVO)",
-          code: "brevo_not_configured",
-        },
-        503,
-        requestId,
-      );
-    }
 
     const adminHtml = `
       <h2>Facturación — pago con Stripe (pendiente)</h2>
@@ -243,13 +245,8 @@ export const POST: APIRoute = async ({ request }) => {
       <p><em>Tras el pago, revisa metadata de la sesión en Stripe (requiresInvoice, invoiceEmail).</em></p>
     `;
 
-    const adminRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const adminRes = await sendBrevoEmail(
+      {
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: [{ email: controlEscolar }, ...(senderEmail !== controlEscolar ? [{ email: senderEmail }] : [])],
         subject: `Facturación (Stripe) — ${programTitle || programSlug} — ${participantName}`,
@@ -260,16 +257,20 @@ export const POST: APIRoute = async ({ request }) => {
             content: fiscal.buffer.toString("base64"),
           },
         ],
-      }),
-    });
+      },
+      {
+        route,
+        requestId,
+        kind: "admin",
+        programSlug: programSlug || undefined,
+      },
+    );
 
     if (!adminRes.ok) {
-      const brevoBody = await adminRes.text();
       apiLog("error", route, "brevo_send_failed", {
         requestId,
         programSlug: programSlug || undefined,
         brevoStatus: adminRes.status,
-        brevoBody: brevoBody.slice(0, 500),
       });
     } else {
       apiLog("info", route, "preflight_ok", {

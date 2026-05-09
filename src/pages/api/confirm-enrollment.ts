@@ -10,7 +10,6 @@ import { getCollection } from "astro:content";
 import {
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_SOPORTE_WEB,
-  KEY_API_BREVO,
   STRIPE_ALLOWED_PRICE_IDS,
   STRIPE_SECRET_KEY,
 } from "astro:env/server";
@@ -20,27 +19,40 @@ import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import { validateProductionEnv } from "@lib/server/productionEnv";
 import { getStripePriceIds, getProgramStatus } from "@lib/programPayments";
+import { getProgramPathSlug } from "@lib/programPaths";
 import { getVariantOptions } from "@lib/programVariants";
+import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
+import { withStripeRetry } from "@lib/stripeRetry";
+import { guardPublicPost, hasHoneypotValue } from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
 
 type ProgramPriceMatch = {
   matches: boolean;
   modality: "Presencial" | "En línea" | "Por definir";
+  expectedAmountCents?: number;
+};
+
+type ProgramPriceDetails = {
+  modality: ProgramPriceMatch["modality"];
+  expectedAmountCents?: number;
 };
 
 function addPriceId(
-  target: Map<string, ProgramPriceMatch["modality"]>,
+  target: Map<string, ProgramPriceDetails>,
   value: unknown,
   modality: ProgramPriceMatch["modality"],
+  expectedAmountCents?: number,
 ) {
   if (typeof value !== "string") return;
   const priceId = value.trim();
   if (!priceId) return;
-  target.set(priceId, modality);
+  target.set(priceId, { modality, expectedAmountCents });
 }
 
 function collectProgramPriceIds(program: Awaited<ReturnType<typeof getCollection<"programas">>>[number]) {
-  const priceIds = new Map<string, ProgramPriceMatch["modality"]>();
+  const priceIds = new Map<string, ProgramPriceDetails>();
   const stripeIds = getStripePriceIds(program);
 
   addPriceId(priceIds, stripeIds?.presencial, "Presencial");
@@ -50,14 +62,22 @@ function collectProgramPriceIds(program: Awaited<ReturnType<typeof getCollection
   if (Array.isArray(paymentOptions)) {
     for (const option of paymentOptions) {
       if (!option || typeof option !== "object") continue;
-      const row = option as { stripePriceId?: unknown; type?: unknown };
+      const row = option as {
+        stripePriceId?: unknown;
+        type?: unknown;
+        price?: unknown;
+      };
       const modality =
         row.type === "presencial"
           ? "Presencial"
           : row.type === "online"
             ? "En línea"
             : "Por definir";
-      addPriceId(priceIds, row.stripePriceId, modality);
+      const expectedAmountCents =
+        typeof row.price === "number" && Number.isFinite(row.price)
+          ? Math.round(row.price * 100)
+          : undefined;
+      addPriceId(priceIds, row.stripePriceId, modality, expectedAmountCents);
     }
   }
 
@@ -80,12 +100,41 @@ function paymentIntentId(session: Stripe.Checkout.Session): string {
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
   const route = "POST /api/confirm-enrollment";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "confirm-enrollment",
+    limit: 12,
+    windowMs: 10 * 60_000,
+    expectedContentType: "json",
+  });
+  if (guarded) return guarded;
+
   let programSlugLog: string | undefined;
   try {
+    const envCheck = validateProductionEnv();
+    if (!envCheck.ok) {
+      apiLog("error", route, "production_env_not_ready", {
+        requestId,
+        errors: envCheck.errors,
+      });
+      return jsonResponse(
+        {
+          error: "La configuración de pagos no está lista.",
+          code: "payment_environment_not_ready",
+        },
+        503,
+        requestId,
+      );
+    }
+
     const body = (await request.json().catch(() => null)) as Record<
       string,
       unknown
     > | null;
+    if (hasHoneypotValue(body)) {
+      return jsonResponse({ success: true }, 200, requestId);
+    }
     const stripeSessionIdRaw =
       typeof body?.stripeSessionId === "string"
         ? body.stripeSessionId.trim()
@@ -131,7 +180,9 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const stripe = new Stripe(stripeSecret);
-    const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+    const session = await withStripeRetry(() =>
+      stripe.checkout.sessions.retrieve(stripeSessionId),
+    );
 
     if (session.payment_status !== "paid") {
       apiLog("warn", route, "payment_not_confirmed", {
@@ -190,7 +241,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const programs = await getCollection("programas");
-    const program = programs.find((p) => p.slug === programSlugMeta);
+    const program = programs.find((p) => getProgramPathSlug(p) === programSlugMeta);
     if (!program || getProgramStatus(program) === "disabled") {
       apiLog("warn", route, "unknown_program", {
         requestId,
@@ -208,11 +259,11 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const lineItems = await stripe.checkout.sessions.listLineItems(
-      stripeSessionId,
-      { limit: 10 },
+    const lineItems = await withStripeRetry(() =>
+      stripe.checkout.sessions.listLineItems(stripeSessionId, { limit: 10 }),
     );
-    const linePriceId = lineItems.data[0]?.price?.id;
+    const firstLineItem = lineItems.data[0];
+    const linePriceId = firstLineItem?.price?.id;
     if (!linePriceId) {
       apiLog("warn", route, "missing_line_items", {
         requestId,
@@ -268,8 +319,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const matchedModality = programPriceIds.get(linePriceId);
-    if (!matchedModality) {
+    const matchedPrice = programPriceIds.get(linePriceId);
+    if (!matchedPrice) {
       apiLog("warn", route, "price_program_mismatch", {
         requestId,
         stripeSessionId,
@@ -287,8 +338,70 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    const paidCurrency = (session.currency ?? firstLineItem?.currency ?? "").toLowerCase();
+    if (paidCurrency !== "mxn") {
+      apiLog("warn", route, "currency_mismatch", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        currency: paidCurrency || null,
+        code: "currency_mismatch",
+      });
+      return jsonResponse(
+        {
+          error: "La moneda del pago no corresponde a MXN",
+          code: "currency_mismatch",
+        },
+        400,
+        requestId,
+      );
+    }
+
+    if (
+      typeof matchedPrice.expectedAmountCents === "number" &&
+      session.amount_total !== matchedPrice.expectedAmountCents
+    ) {
+      apiLog("warn", route, "amount_mismatch", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        expectedAmountCents: matchedPrice.expectedAmountCents,
+        sessionAmountTotal: session.amount_total,
+        code: "amount_mismatch",
+      });
+      return jsonResponse(
+        {
+          error: "El monto pagado no corresponde al programa seleccionado",
+          code: "amount_mismatch",
+        },
+        400,
+        requestId,
+      );
+    }
+
+    const metadataEmail = session.customer_email?.trim().toLowerCase();
+    if (
+      metadataEmail &&
+      customerEmail.toLowerCase() !== metadataEmail
+    ) {
+      apiLog("warn", route, "customer_email_mismatch", {
+        requestId,
+        stripeSessionId,
+        programSlug: programSlugLog,
+        code: "customer_email_mismatch",
+      });
+      return jsonResponse(
+        {
+          error: "El correo del pago no coincide con la sesión de Checkout",
+          code: "customer_email_mismatch",
+        },
+        400,
+        requestId,
+      );
+    }
+
     const modalityLabel =
-      session.metadata?.modality?.trim() || matchedModality || "Por definir";
+      session.metadata?.modality?.trim() || matchedPrice.modality || "Por definir";
 
     const participantName =
       session.metadata?.participantName?.trim() || "Participante";
@@ -296,7 +409,7 @@ export const POST: APIRoute = async ({ request }) => {
       session.metadata?.participantPhone?.trim() || "No proporcionado";
 
     const programTitle = String(program.data.title ?? "");
-    const programId = program.slug;
+    const programId = getProgramPathSlug(program);
     const requiresVerification = !!program.data.requiresVerification;
 
     const safeName = escapeHtml(participantName);
@@ -304,7 +417,6 @@ export const POST: APIRoute = async ({ request }) => {
     const safeModality = escapeHtml(modalityLabel);
     const safeEmail = escapeHtml(customerEmail);
 
-    const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar =
@@ -385,57 +497,36 @@ export const POST: APIRoute = async ({ request }) => {
 
     let emailWarnings: string[] = [];
 
-    if (!brevoKey) {
-      apiLog("warn", route, "brevo_not_configured", {
+    const userSubject = sanitizeEmailSubjectLine(
+      `Confirmación de Inscripción - ${programTitle}`,
+    );
+    const userEmailResponse = await sendBrevoEmail(
+      {
+        sender: { email: senderEmail, name: "CEPRIJA" },
+        to: [{ email: customerEmail }],
+        subject: userSubject,
+        htmlContent: userEmailBody,
+      },
+      {
+        route,
+        requestId,
+        kind: "participant",
+        programSlug: programSlugLog,
+        stripeSessionId,
+      },
+    );
+
+    if (!userEmailResponse.ok) {
+      apiLog("error", route, "brevo_user_email_failed", {
         requestId,
         programSlug: programSlugLog,
         stripeSessionId,
+        brevoStatus: userEmailResponse.status,
       });
-      emailWarnings.push("email_not_configured");
-    } else {
-      try {
-        const userEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "CEPRIJA" },
-              to: [{ email: customerEmail }],
-              subject: `Confirmación de Inscripción - ${programTitle}`,
-              htmlContent: userEmailBody,
-            }),
-          },
-        );
-
-        if (!userEmailResponse.ok) {
-          const errBody = await userEmailResponse.text();
-          apiLog("error", route, "brevo_user_email_failed", {
-            requestId,
-            programSlug: programSlugLog,
-            stripeSessionId,
-            brevoStatus: userEmailResponse.status,
-            brevoBody: errBody.slice(0, 500),
-          });
-          emailWarnings.push("user_email_failed");
-        }
-      } catch (emailError) {
-        apiLog("error", route, "brevo_user_email_network", {
-          requestId,
-          programSlug: programSlugLog,
-          stripeSessionId,
-          error:
-            emailError instanceof Error ? emailError.message : String(emailError),
-        });
-        emailWarnings.push("user_email_network_error");
-      }
+      emailWarnings.push("user_email_failed");
     }
 
-    if (brevoKey) {
-      const adminEmailBody = `
+    const adminEmailBody = `
                 <h2>Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""}</h2>
                 <h3>Información del Estudiante:</h3>
                 <p><strong>Nombre:</strong> ${safeName}</p>
@@ -457,45 +548,33 @@ export const POST: APIRoute = async ({ request }) => {
                 <p><a href="https://dashboard.stripe.com/payments/${encodeURIComponent(piId)}" target="_blank" rel="noopener noreferrer">Ver en Stripe Dashboard</a></p>
             `;
 
-      try {
-        const adminEmailResponse = await fetch(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            method: "POST",
-            headers: {
-              "api-key": brevoKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { email: senderEmail, name: "Sistema CEPRIJA" },
-              to: adminNotificationRecipients,
-              subject: `✅ Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""} - ${programTitle}`,
-              htmlContent: adminEmailBody,
-            }),
-          },
-        );
+    const adminSubject = sanitizeEmailSubjectLine(
+      `Nueva Inscripción PAGADA${requiresVerification ? " (requiere revisión)" : ""} - ${programTitle}`,
+    );
+    const adminEmailResponse = await sendBrevoEmail(
+      {
+        sender: { email: senderEmail, name: "Sistema CEPRIJA" },
+        to: adminNotificationRecipients,
+        subject: adminSubject,
+        htmlContent: adminEmailBody,
+      },
+      {
+        route,
+        requestId,
+        kind: "admin",
+        programSlug: programSlugLog,
+        stripeSessionId,
+      },
+    );
 
-        if (!adminEmailResponse.ok) {
-          const adminErrText = await adminEmailResponse.text();
-          apiLog("error", route, "brevo_admin_email_failed", {
-            requestId,
-            programSlug: programSlugLog,
-            stripeSessionId,
-            brevoStatus: adminEmailResponse.status,
-            brevoBody: adminErrText.slice(0, 500),
-          });
-          emailWarnings.push("admin_email_failed");
-        }
-      } catch (emailError) {
-        apiLog("error", route, "brevo_admin_email_network", {
-          requestId,
-          programSlug: programSlugLog,
-          stripeSessionId,
-          error:
-            emailError instanceof Error ? emailError.message : String(emailError),
-        });
-        emailWarnings.push("admin_email_network_error");
-      }
+    if (!adminEmailResponse.ok) {
+      apiLog("error", route, "brevo_admin_email_failed", {
+        requestId,
+        programSlug: programSlugLog,
+        stripeSessionId,
+        brevoStatus: adminEmailResponse.status,
+      });
+      emailWarnings.push("admin_email_failed");
     }
 
     apiLog("info", route, "enrollment_confirmed", {

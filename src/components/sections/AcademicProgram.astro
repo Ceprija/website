@@ -14,13 +14,24 @@ import { filterPublishedPrograms } from "@lib/programPublished";
 const programas = filterPublishedPrograms(await getCollection("programas"));
 
 const nivelesLabel: Record<string, string> = {
-  doctorado: "Doctorados",
-  maestria: "Maestrías",
-  especialidad: "Especialidades",
-  curso: "Cursos",
-  diplomado: "Diplomados",
   taller: "Talleres",
+  curso: "Cursos",
+  seminario: "Seminarios",
+  diplomado: "Diplomados",
+  especialidad: "Especialidades",
+  maestria: "Maestrías",
+  doctorado: "Doctorados",
 };
+
+const nivelesOrder = [
+  "taller",
+  "curso",
+  "seminario",
+  "diplomado",
+  "especialidad",
+  "maestria",
+  "doctorado",
+];
 
 const programasPorEscuela = escuelas.map((escuela) => {
   const items = programas.filter((p) => p.data.escuela === escuela.id);
@@ -73,49 +84,56 @@ const programasPorEscuela = escuelas.map((escuela) => {
 
               <div class="min-h-0 flex-1 space-y-2">
                 {Object.keys(escuela.niveles).length > 0 ? (
-                  Object.entries(escuela.niveles).map(([nivel, progList]) => (
-                    <details class="group/acc overflow-hidden rounded-xl border border-gray-100 bg-gray-50/80 transition-colors open:bg-white open:shadow-sm">
-                      <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 text-left outline-none hover:bg-white/90 sm:px-4 [&::-webkit-details-marker]:hidden">
-                        <span class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
-                          <span class="font-semibold text-primary text-sm">
-                            {nivelesLabel[nivel] ?? nivel}
+                  Object.entries(escuela.niveles)
+                    .sort(
+                      ([a], [b]) =>
+                        nivelesOrder.indexOf(a) - nivelesOrder.indexOf(b),
+                    )
+                    .map(([nivel, progList]) => (
+                      <details class="group/acc overflow-hidden rounded-xl border border-gray-100 bg-gray-50/80 transition-colors open:bg-white open:shadow-sm">
+                        <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 text-left outline-none hover:bg-white/90 sm:px-4 [&::-webkit-details-marker]:hidden">
+                          <span class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                            <span class="font-semibold text-primary text-sm">
+                              {nivelesLabel[nivel] ?? nivel}
+                            </span>
+                            <span class="text-xs font-medium text-gray-400">
+                              {progList.length}{" "}
+                              {progList.length === 1 ? "programa" : "programas"}
+                            </span>
                           </span>
-                          <span class="text-xs font-medium text-gray-400">
-                            {progList.length}{" "}
-                            {progList.length === 1 ? "programa" : "programas"}
-                          </span>
-                        </span>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="h-5 w-5 shrink-0 text-secondary transition duration-200 group-open/acc:rotate-180"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </summary>
-                      <div class="space-y-0.5 border-t border-gray-100 bg-white px-2 py-2">
-                        {progList.map((programa) => (
-                          <a
-                            href={`/oferta-academica/${getProgramPathSlug(programa)}`}
-                            class:list={[
-                              linkProgramItem,
-                              "rounded-lg px-3 py-2.5 hover:bg-primary/5",
-                            ]}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 shrink-0 text-secondary transition duration-200 group-open/acc:rotate-180"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
                           >
-                            <span class="line-clamp-2">{programa.data.title}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </details>
-                  ))
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </summary>
+                        <div class="space-y-0.5 border-t border-gray-100 bg-white px-2 py-2">
+                          {progList.map((programa) => (
+                            <a
+                              href={`/oferta-academica/${getProgramPathSlug(programa)}`}
+                              class:list={[
+                                linkProgramItem,
+                                "rounded-lg px-3 py-2.5 hover:bg-primary/5",
+                              ]}
+                            >
+                              <span class="line-clamp-2">
+                                {programa.data.title}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </details>
+                    ))
                 ) : (
                   <p class="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-400">
                     Próximamente programas disponibles

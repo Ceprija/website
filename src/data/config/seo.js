@@ -3,7 +3,7 @@ export const seoConfig = {
     default: {
         title: "CEPRIJA - Centro de Preparación Integral en Materia Jurídica y Administrativa",
         description: "Institución líder en formación jurídica y administrativa de alto nivel. Maestrías, diplomados y cursos especializados en Guadalajara.",
-        image: "/images/og-image.jpg",
+        image: "/images/branding/site/ceprija_02.webp",
         keywords: "derecho, maestría, penal, administrativo, cursos, diplomados, guadalajara, ceprija, educación continua"
     },
     pages: {

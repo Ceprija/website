@@ -13,7 +13,7 @@ import SchoolAreaProgramList from "@components/program/SchoolAreaProgramList.ast
                     >Excelencia Académica</span
                 >
                 <h1
-                    class="text-4xl md:text-5xl font-bold text-primary mt-2 mb-6 font-serif"
+                    class="text-4xl md:text-5xl font-bold text-[#3277B5] mt-2 mb-6 font-serif"
                 >
                     Formación Económico-Administrativa
                 </h1>
@@ -30,11 +30,31 @@ import SchoolAreaProgramList from "@components/program/SchoolAreaProgramList.ast
                 sectionGroups={[
                     {
                         title: "Educación continua",
-                        niveles: ["diplomado", "curso", "taller"],
+                        subsections: [
+                            { title: "Cursos", niveles: ["curso"] },
+                            {
+                                title: "Talleres",
+                                niveles: ["taller"],
+                                excludeTitleIncludes: ["seminario"],
+                            },
+                            {
+                                title: "Seminarios",
+                                niveles: ["taller"],
+                                titleIncludes: ["seminario"],
+                            },
+                            { title: "Diplomados", niveles: ["diplomado"] },
+                        ],
                     },
                     {
                         title: "Posgrados",
-                        niveles: ["maestria", "doctorado", "especialidad"],
+                        subsections: [
+                            {
+                                title: "Especialidades",
+                                niveles: ["especialidad"],
+                            },
+                            { title: "Maestrías", niveles: ["maestria"] },
+                            { title: "Doctorados", niveles: ["doctorado"] },
+                        ],
                     },
                 ]}
             />

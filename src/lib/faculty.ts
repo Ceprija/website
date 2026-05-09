@@ -2,6 +2,10 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export type FacultyEntry = CollectionEntry<'docentes'>;
 
+export function getFacultySlug(member: FacultyEntry): string {
+  return member.id;
+}
+
 /**
  * Returns published faculty members sorted by their explicit `order` field.
  * Drafts are filtered out so they never appear in listings or detail routes.
@@ -17,5 +21,5 @@ export async function getFacultyMemberBySlug(
   slug: string
 ): Promise<FacultyEntry | undefined> {
   const members = await getFacultyMembers();
-  return members.find((m) => m.slug === slug);
+  return members.find((m) => getFacultySlug(m) === slug);
 }

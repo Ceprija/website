@@ -6,12 +6,34 @@ import { parseWireRegistrationMultipart } from "@lib/multipart/parseWireRegistra
 import { escapeHtml } from "@lib/htmlEscape";
 import { validateUploadBuffer } from "@lib/uploads/fileValidation";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
-import { CONTACT_EMAIL, KEY_API_BREVO, SMTP_FROM } from "astro:env/server";
+import { CONTACT_EMAIL, SMTP_FROM } from "astro:env/server";
 import { getProgramStatus } from "@lib/programPayments";
+import { getRequestId } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
 
 export const POST: APIRoute = async ({ request }) => {
+  const requestId = getRequestId(request);
+  const route = "POST /api/register";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "register",
+    limit: 8,
+    windowMs: 10 * 60_000,
+    expectedContentType: "multipart",
+  });
+  if (guarded) return guarded;
+
   try {
     const { fields, paymentProof } = await parseWireRegistrationMultipart(request);
+    if (hasHoneypotValue(fields)) {
+      return honeypotResponse(route, requestId);
+    }
 
     const parsed = parseWireRegisterFields(fields);
     if (!parsed.ok) {
@@ -63,11 +85,6 @@ export const POST: APIRoute = async ({ request }) => {
     const address = String(program?.data.address || "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500");
     const meetingLink = String((program?.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al evento");
 
-    const brevoKey = KEY_API_BREVO;
-    if (!brevoKey) {
-      throw new Error("Falta KEY_API_BREVO en .env");
-    }
-
     const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
     const safeName = escapeHtml(name);
@@ -106,24 +123,16 @@ export const POST: APIRoute = async ({ request }) => {
       ];
     }
 
-    try {
-      const adminRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": brevoKey,
-        },
-        body: JSON.stringify(adminBody),
-      });
-
-      if (!adminRes.ok) {
-        const txt = await adminRes.text();
-        console.error("ERROR Brevo (admin):", adminRes.status, txt);
-      } else {
-        console.log("Admin email sent via Brevo");
-      }
-    } catch (error) {
-      console.error("Error sending admin email:", error);
+    const adminRes = await sendBrevoEmail(
+      adminBody as Parameters<typeof sendBrevoEmail>[0],
+      {
+        route,
+        requestId,
+        kind: "admin",
+      },
+    );
+    if (!adminRes.ok) {
+      console.error("ERROR Brevo (admin):", adminRes.status);
     }
 
     if (type === "registration" && email) {
@@ -194,24 +203,13 @@ export const POST: APIRoute = async ({ request }) => {
         htmlContent: emailBody,
       };
 
-      try {
-        const userRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "api-key": brevoKey,
-          },
-          body: JSON.stringify(userBody),
-        });
-
-        if (!userRes.ok) {
-          const txt = await userRes.text();
-          console.error("ERROR Brevo (user):", userRes.status, txt);
-        } else {
-          console.log("User confirmation email sent via Brevo");
-        }
-      } catch (error) {
-        console.error("Error sending user confirmation email:", error);
+      const userRes = await sendBrevoEmail(userBody, {
+        route,
+        requestId,
+        kind: "participant",
+      });
+      if (!userRes.ok) {
+        console.error("ERROR Brevo (user):", userRes.status);
       }
     }
 
@@ -240,7 +238,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         message: "Error al procesar la solicitud",
-        error: error instanceof Error ? error.message : "Unknown error",
+        code: "registration_failed",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );

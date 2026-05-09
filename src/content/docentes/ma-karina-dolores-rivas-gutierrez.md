@@ -5,7 +5,7 @@ bio: "Jueza especializada en violencia contra las mujeres con 30 años de experi
 position_laboral: "Jueza de Control, Juicio Oral, Ejecución de Penas y Justicia para Adolescentes en Puerto Vallarta."
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Incorporación de Datos, Medios y Prueba en la Maestría en Derecho Penal."
-image: "/images/faculty/karinaRivas/ma-karina-dolores-rivas-gutierrez.avif"
+image: "/images/faculty/karinaRivas/ma-karina-dolores-rivas-gutierrez.png"
 order: 5
 draft: true
 ---

@@ -31,4 +31,5 @@ public/uploads/*
 data/inscripciones/*
 # Stripe idempotency files (written at runtime by processedStripeStore)
 data/stripe-*.json
+data/failed-emails.jsonl
 tmp/*

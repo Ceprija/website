@@ -4,6 +4,7 @@ import { getCollection } from "astro:content";
 import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import { getVariantOptions } from "@lib/programVariants";
+import { getPaymentOptions } from "@lib/programPayments";
 import { getInitialDegreesForNivel } from "@lib/enrollmentDegrees";
 import {
     requiresAcademicDegreeSteps,
@@ -44,6 +45,7 @@ const stripePriceIdsForClient =
         : null;
 
 const variantOptions = getVariantOptions(program);
+const paymentOptions = getPaymentOptions(program);
 const hasVariantStep = variantOptions !== null;
 const variantModuleOptions = variantOptions?.moduleSelection?.options ?? [];
 const variantHasConfiguredPrices = variantModuleOptions.some(
@@ -230,8 +232,17 @@ const seo = {
                 data-variant-options={hasVariantStep
                     ? JSON.stringify(variantOptions)
                     : ""}
+                data-payment-options={JSON.stringify(paymentOptions)}
             >
                 <!-- Hidden fields -->
+                <input
+                    type="text"
+                    name="website"
+                    autocomplete="off"
+                    tabindex="-1"
+                    class="sr-only"
+                    aria-hidden="true"
+                />
                 <input type="hidden" name="programSlug" value={programSlug} />
                 <input
                     type="hidden"
@@ -390,7 +401,8 @@ const seo = {
                                                 value="En línea"
                                                 required
                                                 checked={
-                                                    defaultModality === "En línea"
+                                                    defaultModality ===
+                                                    "En línea"
                                                 }
                                                 class="w-5 h-5 text-primary focus:ring-primary"
                                             />
@@ -1065,13 +1077,10 @@ const seo = {
                                     <ul
                                         id="degree-requirements-list"
                                         class="list-disc ml-5"
-                                    ></ul>
+                                    />
                                 </div>
 
-                                <div
-                                    id="degrees-container"
-                                    class="space-y-6"
-                                ></div>
+                                <div id="degrees-container" class="space-y-6" />
 
                                 <button
                                     type="button"
@@ -1507,6 +1516,43 @@ const seo = {
                             del programa.
                         </p>
 
+                        {
+                            paymentOptions.length > 0 && (
+                                <div
+                                    id="post-payment-plan-section"
+                                    class="mb-6 p-5 bg-white border border-gray-100 rounded-2xl"
+                                >
+                                    <label
+                                        class="block text-sm font-bold text-primary mb-3"
+                                        for="post-payment-plan"
+                                    >
+                                        Opción de inversión
+                                    </label>
+                                    <select
+                                        id="post-payment-plan"
+                                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                    >
+                                        {paymentOptions.map((option) => (
+                                            <option value={option.id}>
+                                                {option.label} -{" "}
+                                                {option.price.toLocaleString(
+                                                    "es-MX",
+                                                    {
+                                                        style: "currency",
+                                                        currency: "MXN",
+                                                    },
+                                                )}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p class="mt-2 text-xs text-gray-500">
+                                        Esta opción se usará para pago en línea
+                                        o transferencia.
+                                    </p>
+                                </div>
+                            )
+                        }
+
                         <div
                             id="post-submit-stripe-block"
                             class="hidden p-8 bg-gradient-to-br from-blue-50 to-white border-2 border-primary/20 rounded-2xl mb-6 space-y-6"
@@ -1620,6 +1666,14 @@ const seo = {
                             id="post-submit-wire-form"
                             class="hidden space-y-6"
                         >
+                            <input
+                                type="text"
+                                name="website"
+                                autocomplete="off"
+                                tabindex="-1"
+                                class="sr-only"
+                                aria-hidden="true"
+                            />
                             <input
                                 type="hidden"
                                 name="name"
@@ -1744,25 +1798,6 @@ const seo = {
                                             >Copiar</button
                                         >
                                     </div>
-                                    {
-                                        bankInfo.swiftCode && (
-                                            <div class="flex items-center justify-between gap-3">
-                                                <p class="truncate">
-                                                    <strong>SWIFT:</strong>{" "}
-                                                    {bankInfo.swiftCode}
-                                                </p>
-                                                <button
-                                                    type="button"
-                                                    class="text-primary font-bold hover:underline shrink-0"
-                                                    data-copy={
-                                                        bankInfo.swiftCode
-                                                    }
-                                                >
-                                                    Copiar
-                                                </button>
-                                            </div>
-                                        )
-                                    }
                                     <p
                                         class="pt-3 mt-3 border-t border-gray-200 text-xs text-gray-600"
                                     >
@@ -1922,6 +1957,24 @@ const seo = {
     } from "@lib/wireReference";
 
     const form = document.getElementById("enrollment-form") as HTMLFormElement;
+
+    function showInlineAlert(message: string) {
+        let region = document.getElementById("enrollment-inline-alert");
+        if (!region) {
+            region = document.createElement("div");
+            region.id = "enrollment-inline-alert";
+            region.setAttribute("role", "alert");
+            region.setAttribute("aria-live", "assertive");
+            region.setAttribute("tabindex", "-1");
+            region.className =
+                "fixed left-4 right-4 top-24 z-[60] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 shadow-lg md:left-auto md:w-[28rem]";
+            document.body.appendChild(region);
+        }
+        region.textContent = message;
+        region.focus({ preventScroll: true });
+    }
+
+    const alert = showInlineAlert;
 
     /**
      * Step orchestration is data-driven so we can prepend an optional Variant
@@ -2372,6 +2425,13 @@ const seo = {
         description?: string;
         stripePriceIds?: StripePriceIds;
     };
+    type PaymentOptionClient = {
+        id: string;
+        label: string;
+        price: number;
+        stripePriceId: string;
+        type: "presencial" | "online" | "hibrido";
+    };
     type ParsedVariantOptions = {
         moduleSelection?: {
             label: string;
@@ -2420,6 +2480,25 @@ const seo = {
         return null;
     }
 
+    function parsePaymentOptionsFromForm(): PaymentOptionClient[] {
+        try {
+            const raw = form?.dataset.paymentOptions ?? "[]";
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter(
+                    (option): option is PaymentOptionClient =>
+                        option &&
+                        typeof option === "object" &&
+                        typeof option.id === "string" &&
+                        typeof option.stripePriceId === "string",
+                );
+            }
+        } catch {
+            /* invalid JSON */
+        }
+        return [];
+    }
+
     /**
      * Picks the right Stripe price for a variant-driven program based on the
      * selected module and the modality chosen in step 1. Returns `null` when
@@ -2439,6 +2518,29 @@ const seo = {
                 ? opt?.stripePriceIds?.presencial
                 : opt?.stripePriceIds?.online;
         return candidate && priceIdIsValid(candidate) ? candidate : null;
+    }
+
+    function resolvePaymentOptionPriceId(modality: string): string | null {
+        const options = parsePaymentOptionsFromForm();
+        if (options.length === 0) return null;
+
+        const selectedPlan = (
+            document.getElementById(
+                "post-payment-plan",
+            ) as HTMLSelectElement | null
+        )?.value;
+        const selected =
+            options.find((option) => option.id === selectedPlan) ?? options[0];
+        if (!selected) return null;
+
+        const modalityMatches =
+            selected.type === "hibrido" ||
+            (selected.type === "presencial" && modality === "Presencial") ||
+            (selected.type === "online" && modality === "En línea");
+
+        return modalityMatches && priceIdIsValid(selected.stripePriceId)
+            ? selected.stripePriceId
+            : null;
     }
 
     function getCurrentSelectedModule(): string {
@@ -2700,6 +2802,12 @@ const seo = {
         if (t.name === "postPaymentMethod") applyPostPaymentMethodUI();
         if (t.name === "requiresInvoice") applyInvoiceWireFields();
         if (t.name === "stripeRequiresInvoice") applyPostStripeInvoiceFields();
+        if (t.id === "post-payment-plan" && lastPostPayload) {
+            lastCheckoutPriceId = resolvePaymentOptionPriceId(
+                lastPostPayload.modality,
+            );
+            applyPostPaymentMethodUI();
+        }
     });
 
     postSubmitPaymentSection?.addEventListener("click", async (e) => {
@@ -2782,11 +2890,14 @@ const seo = {
                     payload.modality,
                 ) ?? undefined;
         } else {
-            const stripeIds = parseStripePriceIdsFromForm();
             priceId =
-                payload.modality === "Presencial"
-                    ? stripeIds.presencial
-                    : stripeIds.online;
+                resolvePaymentOptionPriceId(payload.modality) ??
+                (() => {
+                    const stripeIds = parseStripePriceIdsFromForm();
+                    return payload.modality === "Presencial"
+                        ? stripeIds.presencial
+                        : stripeIds.online;
+                })();
         }
         const priceOk =
             typeof priceId === "string" &&

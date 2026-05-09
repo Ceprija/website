@@ -1,4 +1,9 @@
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+export function getPostSlug(post: CollectionEntry<'revista'>): string {
+  return post.data.slug ?? post.id;
+}
 
 export async function getAllPosts() {
   const posts = await getCollection('revista');
@@ -22,5 +27,5 @@ export async function getLatestPosts(limit = 3) {
 
 export async function getPostBySlug(slug: string) {
   const posts = await getAllPosts();
-  return posts.find(p => p.slug === slug);
+  return posts.find(p => getPostSlug(p) === slug);
 }

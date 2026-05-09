@@ -103,34 +103,66 @@ const seo = {
         }
     }
     
-    if (sessionId) {
-        fetch("/api/confirm-enrollment", {
+    function friendlyMessage(code: string, fallback: string) {
+        const messages: Record<string, string> = {
+            payment_not_confirmed: "Stripe todavía no confirma el pago. Espera unos segundos y recarga esta página.",
+            price_not_allowed: "El precio pagado no está habilitado para esta cuenta. Contacta a soporte para revisar tu inscripción.",
+            price_program_mismatch: "El pago fue recibido, pero no pudimos relacionarlo con el programa. Contacta a soporte con tu ID de transacción.",
+            email_not_configured: "Tu inscripción está confirmada, pero el envío de correo necesita revisión de soporte.",
+            stripe_not_configured: "La configuración de pagos necesita revisión. Contacta a soporte.",
+            payment_environment_not_ready: "La configuración de pagos necesita revisión. Contacta a soporte.",
+        };
+        return messages[code] || fallback || "No se pudo confirmar la inscripción.";
+    }
+
+    async function confirmEnrollment(attempt = 1): Promise<void> {
+        const response = await fetch("/api/confirm-enrollment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stripeSessionId: sessionId }),
-        })
-            .then(async (response) => {
-                const data = await response.json().catch(() => ({}));
+        });
+
+        const data = await response.json().catch(() => ({}));
                 
-                if (response.ok) {
-                    if (data.duplicate) {
-                        showBanner("success", "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.");
-                    } else if (data.emailWarnings && data.emailWarnings.length > 0) {
-                        showBanner("success", "Tu inscripción está confirmada. Nota: hubo un problema al enviar el correo. Contacta a soporte si no lo recibes.");
-                        console.warn("Email warnings:", data.emailWarnings);
-                    } else {
-                        showBanner("success", "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).");
-                    }
-                    console.log("confirm-enrollment:", data);
-                } else {
-                    const msg = data.error || "No se pudo confirmar la inscripción.";
-                    showBanner("error", msg);
-                    console.error("confirm-enrollment failed:", response.status, data);
-                }
-            })
+        if (response.ok) {
+            if (data.duplicate) {
+                showBanner("success", "Tu pago ya estaba registrado. Si no ves el correo, revisa spam o contacta soporte.");
+            } else if (data.emailWarnings && data.emailWarnings.length > 0) {
+                showBanner("success", "Tu inscripción está confirmada. Nota: hubo un problema al enviar el correo. Contacta a soporte si no lo recibes.");
+                console.warn("Email warnings:", data.emailWarnings);
+            } else {
+                showBanner("success", "Listo: deberías recibir el correo de confirmación en unos minutos (revisa spam).");
+            }
+            return;
+        }
+
+        if ((response.status === 429 || response.status >= 500) && attempt < 3) {
+            const delayMs = 800 * 2 ** (attempt - 1);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            return confirmEnrollment(attempt + 1);
+        }
+
+        const requestId = response.headers.get("x-request-id");
+        const msg = friendlyMessage(String(data.code || ""), data.error);
+        showBanner("error", msg);
+        console.error("confirm-enrollment failed:", response.status, data);
+
+        if (response.status >= 500) {
+            const params = new URLSearchParams();
+            if (requestId) params.set("request_id", requestId);
+            window.setTimeout(() => {
+                window.location.href = `/error-pago${params.toString() ? `?${params}` : ""}`;
+            }, 2500);
+        }
+    }
+
+    if (sessionId) {
+        confirmEnrollment()
             .catch((error) => {
                 showBanner("error", "Error de red al confirmar la inscripción. Recarga la página o contacta soporte.");
                 console.error("Error confirming enrollment:", error);
             });
+    } else {
+        showBanner("error", "Falta el ID de transacción. Si Stripe te cobró, contacta soporte.");
     }
 </script>

@@ -68,6 +68,15 @@ const description =
 const image =
 	propImage || propSeo?.image || pageConfig?.image || defaults.image;
 const absoluteImage = new URL(image, Astro.site).toString();
+
+function clampMeta(value: string, max = 160): string {
+	const compact = String(value ?? "").replace(/\s+/g, " ").trim();
+	if (compact.length <= max) return compact;
+	const sliced = compact.slice(0, max - 1).trimEnd();
+	return `${sliced.replace(/[,.:-]\s*$/, "")}…`;
+}
+
+const metaDescription = clampMeta(description);
 ---
 
 <!doctype html>
@@ -79,29 +88,29 @@ const absoluteImage = new URL(image, Astro.site).toString();
 			content="17ldzfe9plshw9doccg4mxgywf0e9o"
 		/>
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="images/branding/logos/favicon.svg" />
+		<link rel="icon" type="image/svg+xml" href="/images/branding/logos/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 
 		<!-- Primary Meta Tags -->
 		<title>{title}</title>
 		<meta name="title" content={title} />
-		<meta name="description" content={description} />
+		<meta name="description" content={metaDescription} />
 
 		<!-- Open Graph / Facebook -->
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content={title} />
-		<meta property="og:description" content={description} />
+		<meta property="og:description" content={metaDescription} />
 		<meta property="og:image" content={absoluteImage} />
 
 		<!-- Twitter -->
 		<meta property="twitter:card" content="summary_large_image" />
 		<meta property="twitter:title" content={title} />
-		<meta property="twitter:description" content={description} />
+		<meta property="twitter:description" content={metaDescription} />
 		<meta property="twitter:image" content={absoluteImage} />
 
 		<SeoHead
 			title={title}
-			description={description}
+			description={metaDescription}
 			image={image}
 			breadcrumbs={breadcrumbs}
 		/>

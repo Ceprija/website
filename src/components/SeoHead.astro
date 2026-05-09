@@ -7,27 +7,21 @@ interface Props {
     breadcrumbs?: { label: string; path: string }[];
 }
 
-const { title, description, image, breadcrumbs = [] } = Astro.props;
+const { title, description, breadcrumbs = [] } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const siteUrl = Astro.site?.toString() || "https://ceprija.edu.mx/";
 const logoUrl = new URL("/images/branding/logos/logo-ceprija-web.svg", siteUrl).toString();
 
-// 1. WebSite Schema (Identity & Search)
+// 1. WebSite Schema (Identity)
 const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "CEPRIJA - Centro de Preparación Integral en Materia Jurídica y Administrativa",
+    name:
+        title ||
+        "CEPRIJA - Centro de Preparación Integral en Materia Jurídica y Administrativa",
     alternateName: "CEPRIJA",
     url: siteUrl,
-    potentialAction: {
-        "@type": "SearchAction",
-        target: {
-            "@type": "EntryPoint",
-            urlTemplate: `${siteUrl}search?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-    },
 };
 
 // 2. Organization Schema (Identity, Local Business info)
@@ -78,14 +72,16 @@ if (breadcrumbs && breadcrumbs.length > 0) {
 <link rel="canonical" href={canonicalURL} />
 
 <!-- JSON-LD Schemas -->
-<script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+<script is:inline type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
 <script
+    is:inline
     type="application/ld+json"
     set:html={JSON.stringify(organizationSchema)}
 />
 {
     breadcrumbSchema && (
         <script
+            is:inline
             type="application/ld+json"
             set:html={JSON.stringify(breadcrumbSchema)}
         />

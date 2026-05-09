@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { getSortedPosts } from "@lib/posts";
+import { getPostSlug, getSortedPosts } from "@lib/posts";
 
 const posts = await getSortedPosts();
 ---
@@ -18,7 +18,7 @@ const posts = await getSortedPosts();
       {
         posts.map((post, index) => (
           <a
-            href={`/revista/${post.slug}`}
+            href={`/revista/${getPostSlug(post)}`}
             class="group block bg-white rounded-xl shadow hover:shadow-lg transition"
           >
             {/* Imagen */}

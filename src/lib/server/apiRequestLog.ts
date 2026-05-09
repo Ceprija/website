@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-export type ApiLogLevel = "info" | "warn" | "error";
+export type ApiLogLevel = "debug" | "info" | "warn" | "error";
 
 /**
  * Stable request id for logs and `X-Request-Id` (propagate if client sends it).
@@ -30,6 +30,7 @@ export function apiLog(
   const line = JSON.stringify(payload);
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
+  else if (level === "debug") console.debug(line);
   else console.log(line);
 }
 

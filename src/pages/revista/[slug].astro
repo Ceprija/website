@@ -1,21 +1,26 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
+import { getPostSlug } from '@lib/posts';
 
 export async function getStaticPaths() {
   const posts = await getCollection('revista');
 
   return posts.map(post => ({
-    params: { slug: post.slug },
+    params: { slug: getPostSlug(post) },
     props: { post }
   }));
 }
 
 const { post } = Astro.props;
-const { Content } = await post.render();
+const { Content } = await render(post);
 ---
 
-<Layout title={post.data.title} description={post.data.excerpt}>
+<Layout
+  title={post.data.title}
+  description={post.data.excerpt}
+  image={post.data.image || "/images/branding/site/ceprija_02.webp"}
+>
 
   <article class="max-w-3xl mx-auto py-16 px-4">
     
@@ -32,6 +37,7 @@ const { Content } = await post.render();
     {post.data.image && (
       <img 
         src={post.data.image} 
+        alt={post.data.title}
         class="w-full rounded-xl mb-8"
       />
     )}

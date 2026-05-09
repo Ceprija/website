@@ -6,6 +6,7 @@ export default {
             colors: {
                 primary: '#002855', // Deep Blue
                 secondary: '#D4AF37', // Gold
+                tertiary: '#A08426', // Bronze
                 accent: '#E5E7EB', // Light Grey
             },
             fontFamily: {

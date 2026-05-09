@@ -5,10 +5,19 @@ import ProgramOfferCard from "@components/program/ProgramOfferCard.astro";
 import type { ProgramaNivel } from "@lib/programNiveles";
 import { filterPublishedPrograms } from "@lib/programPublished";
 import { getProgramStatus } from "@lib/programPayments";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 interface SectionGroup {
     title: string;
+    niveles?: ProgramaNivel[];
+    subsections?: ProgramSubsection[];
+}
+
+interface ProgramSubsection {
+    title: string;
     niveles: ProgramaNivel[];
+    titleIncludes?: string[];
+    excludeTitleIncludes?: string[];
 }
 
 interface Props {
@@ -29,18 +38,56 @@ const {
 const allPrograms = filterPublishedPrograms(await getCollection("programas"));
 const programs = allPrograms
     .filter((p) => p.data.escuela === escuela)
-    .sort((a, b) =>
-        a.data.title.localeCompare(b.data.title, "es", { sensitivity: "base" }),
-    );
-const activePrograms = programs.filter((p) => getProgramStatus(p) === "active");
-const upcomingPrograms = programs.filter(
-    (p) => getProgramStatus(p) !== "active",
-);
+    .sort((a, b) => {
+        const statusA = getProgramStatus(a) === "active" ? 0 : 1;
+        const statusB = getProgramStatus(b) === "active" ? 0 : 1;
+        if (statusA !== statusB) return statusA - statusB;
+        return a.data.title.localeCompare(b.data.title, "es", {
+            sensitivity: "base",
+        });
+    });
 
 const useGroups =
     Array.isArray(sectionGroups) &&
     sectionGroups.length > 0 &&
-    activePrograms.length > 0;
+    programs.length > 0;
+
+function normalizedProgramText(program: (typeof programs)[number]) {
+    return `${program.data.title} ${getProgramPathSlug(program)}`.toLocaleLowerCase("es");
+}
+
+function matchesSubsection(
+    program: (typeof programs)[number],
+    subsection: ProgramSubsection,
+) {
+    const text = normalizedProgramText(program);
+    const includesTitle =
+        !subsection.titleIncludes ||
+        subsection.titleIncludes.some((needle) =>
+            text.includes(needle.toLocaleLowerCase("es")),
+        );
+    const excludesTitle =
+        subsection.excludeTitleIncludes?.some((needle) =>
+            text.includes(needle.toLocaleLowerCase("es")),
+        ) ?? false;
+
+    return (
+        subsection.niveles.includes(program.data.nivel as ProgramaNivel) &&
+        includesTitle &&
+        !excludesTitle
+    );
+}
+
+function programsForGroup(group: SectionGroup) {
+    if (!group.niveles || group.niveles.length === 0) return [];
+    return programs.filter((p) =>
+        group.niveles?.includes(p.data.nivel as ProgramaNivel),
+    );
+}
+
+function programsForSubsection(subsection: ProgramSubsection) {
+    return programs.filter((p) => matchesSubsection(p, subsection));
+}
 ---
 
 {
@@ -76,61 +123,92 @@ const useGroups =
             {useGroups && sectionGroups ? (
                 <>
                     {sectionGroups.map((group) => {
-                        const groupPrograms = activePrograms.filter((p) =>
-                            group.niveles.includes(
-                                p.data.nivel as ProgramaNivel,
-                            ),
-                        );
-                        if (groupPrograms.length === 0) return null;
+                        const subsections = group.subsections ?? [];
+                        const groupPrograms =
+                            subsections.length > 0
+                                ? subsections.flatMap((subsection) =>
+                                      programsForSubsection(subsection),
+                                  )
+                                : programsForGroup(group);
+                        const uniqueGroupProgramCount = new Set(
+                            groupPrograms.map((program) => program.id),
+                        ).size;
+                        if (uniqueGroupProgramCount === 0) return null;
                         return (
                             <div class="mt-10">
                                 <h2 class="text-3xl font-bold text-primary mb-6 font-serif">
                                     {group.title}
                                 </h2>
-                                <div
-                                    class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-                                    data-program-card-grid
-                                >
-                                    {groupPrograms.map((program, index) => (
-                                        <ProgramOfferCard
-                                            program={program}
-                                            index={index}
-                                        />
-                                    ))}
-                                </div>
+                                {subsections.length > 0 ? (
+                                    <div class="space-y-10 border-l-2 border-transparent pl-4 md:pl-6">
+                                        {" "}
+                                        {subsections.map((subsection) => {
+                                            const subsectionPrograms =
+                                                programsForSubsection(
+                                                    subsection,
+                                                );
+                                            if (subsectionPrograms.length === 0)
+                                                return null;
+                                            return (
+                                                <section class="relative">
+                                                    <div class="mb-5 flex items-center gap-3">
+                                                        <span
+                                                            class="hidden"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <h3 class="text-xl md:text-2xl font-bold text-gray-800 font-serif">
+                                                            {subsection.title}
+                                                        </h3>
+                                                    </div>
+                                                    <div
+                                                        class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                                                        data-program-card-grid
+                                                    >
+                                                        {subsectionPrograms.map(
+                                                            (
+                                                                program,
+                                                                index,
+                                                            ) => (
+                                                                <ProgramOfferCard
+                                                                    program={
+                                                                        program
+                                                                    }
+                                                                    index={
+                                                                        index
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </section>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div
+                                        class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                                        data-program-card-grid
+                                    >
+                                        {groupPrograms.map((program, index) => (
+                                            <ProgramOfferCard
+                                                program={program}
+                                                index={index}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
                 </>
-            ) : activePrograms.length > 0 ? (
+            ) : programs.length > 0 ? (
                 <div
                     class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
                     data-program-card-grid
                 >
-                    {activePrograms.map((program, index) => (
+                    {programs.map((program, index) => (
                         <ProgramOfferCard program={program} index={index} />
                     ))}
-                </div>
-            ) : null}
-
-            {upcomingPrograms.length > 0 ? (
-                <div class="mt-16">
-                    <div class="mb-6">
-                        <span class="text-secondary font-bold tracking-wider uppercase text-sm">
-                            Próximamente
-                        </span>
-                        <h2 class="text-3xl font-bold text-primary mt-2 font-serif">
-                            Oferta académica en preparación
-                        </h2>
-                    </div>
-                    <div
-                        class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-                        data-program-card-grid
-                    >
-                        {upcomingPrograms.map((program, index) => (
-                            <ProgramOfferCard program={program} index={index} />
-                        ))}
-                    </div>
                 </div>
             ) : null}
         </>

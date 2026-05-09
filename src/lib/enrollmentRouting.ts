@@ -3,19 +3,20 @@ import type { CollectionEntry } from "astro:content";
 /**
  * Determines which enrollment flow a program should use.
  *
- * - **inline** (`ContinuousEducationForm` en la ficha del programa): cursos, diplomados y
- *   cualquier programa cuyo registro sea “directo”. Varios planes de pago (`paymentOptions`)
- *   se eligen en ese formulario; no hace falta `/enrollment/[slug]` salvo que quieras el
- *   flujo largo de solicitud.
+ * - **inline** (`ContinuousEducationForm` en la ficha del programa): cursos, talleres y
+ *   cualquier programa cuyo registro sea “directo”.
  * - **application** (`/enrollment/[slug]`): maestría, doctorado, especialidad por defecto,
- *   o override explícito (p. ej. taller con `variantOptions` para módulo/fecha y Stripe).
- *
- * No mezclar “solo para varios precios”: un diplomado con inscripción + total + cuotas debe
- * seguir en **inline** salvo que integres esos precios al flujo de aplicación por separado.
+ *   diplomados, o override explícito (p. ej. taller con `variantOptions` para módulo/fecha y Stripe).
  */
 export function getEnrollmentFlow(
   program: CollectionEntry<"programas">
 ): "inline" | "application" {
+  // Diplomados must collect the same extended applicant data as posgrados, then
+  // continue to the existing payment step after the application is submitted.
+  if (program.data.nivel === "diplomado") {
+    return "application";
+  }
+
   // Explicit override takes precedence
   if (program.data.enrollmentFlow) {
     return program.data.enrollmentFlow;

@@ -25,7 +25,8 @@ import { images } from "@lib/assets"
         <div class="relative group">
           <a
             href="/oferta-academica"
-            class="text-gray-700 hover:text-primary font-medium transition-colors flex items-center gap-1"
+            class="text-gray-700 hover:text-primary focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary font-medium transition-colors flex items-center gap-1 rounded"
+            aria-haspopup="true"
           >
             Oferta Académica
             <svg
@@ -44,7 +45,7 @@ import { images } from "@lib/assets"
             </svg>
           </a>
           <div
-            class="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50 border border-gray-100"
+            class="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-300 transform group-hover:translate-y-0 group-focus-within:translate-y-0 translate-y-2 z-50 border border-gray-100"
           >
             <div class="py-2">
               <a
@@ -105,7 +106,10 @@ import { images } from "@lib/assets"
       <!-- Mobile Menu Button -->
       <button
         id="mobile-menu-button"
-        class="lg:hidden text-gray-700 focus:outline-none"
+        class="lg:hidden text-gray-700 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+        aria-controls="mobile-menu"
+        aria-expanded="false"
+        aria-label="Abrir menú"
       >
         <svg
           id="menu-icon"
@@ -218,10 +222,14 @@ import { images } from "@lib/assets"
       mobileMenu?.classList.remove("hidden");
       menuIcon?.classList.add("hidden");
       closeIcon?.classList.remove("hidden");
+      mobileMenuButton.setAttribute("aria-expanded", "true");
+      mobileMenuButton.setAttribute("aria-label", "Cerrar menú");
     } else {
       mobileMenu?.classList.add("hidden");
       menuIcon?.classList.remove("hidden");
       closeIcon?.classList.add("hidden");
+      mobileMenuButton.setAttribute("aria-expanded", "false");
+      mobileMenuButton.setAttribute("aria-label", "Abrir menú");
     }
   });
 
@@ -232,6 +240,8 @@ import { images } from "@lib/assets"
       mobileMenu?.classList.add("hidden");
       menuIcon?.classList.remove("hidden");
       closeIcon?.classList.add("hidden");
+      mobileMenuButton?.setAttribute("aria-expanded", "false");
+      mobileMenuButton?.setAttribute("aria-label", "Abrir menú");
     });
   });
 </script>

@@ -5,7 +5,7 @@ bio: "Magistrado de Circuito con especialidad en Juicio de Amparo y Derecho Cons
 position_laboral: "Magistrado de Circuito en el Primer Tribunal Colegiado del Vigésimo Cuarto Circuito (Nayarit)."
 experience_institutional:
   - "CEPRIJA - Imparte la materia de Paradigmas Constitucionales del Derecho Familiar."
-image: "/images/faculty-placeholder.jpg"
+image: "/images/branding/logos/logo-ceprija-web.svg"
 order: 12
 draft: true
 ---

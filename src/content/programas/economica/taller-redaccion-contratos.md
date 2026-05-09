@@ -24,6 +24,7 @@ paymentOptions:
     stripePriceId: "price_1TUhyKKVaWLbvt9DoJn55wyR"
     type: "online"
 galleryFolder: "/images/programs/tallerContratos/gallery"
+brochure: "/brochures/tallerContratos.pdf"
 date: "2026-05-14"
 address: ""
 requiresVerification: false

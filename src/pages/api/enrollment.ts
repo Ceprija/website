@@ -28,10 +28,16 @@ import { validateFullDossierFields } from "@lib/validation/enrollment";
 import {
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_SOPORTE_WEB,
-  KEY_API_BREVO,
   NOTIFY_CONTROL_ESCOLAR_ENROLLMENT,
 } from "astro:env/server";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
 /** Hard cap to bound memory when parsing indexed form fields. */
@@ -172,9 +178,23 @@ async function parseFormData(request: Request) {
 
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
+  const route = "POST /api/enrollment";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "enrollment",
+    limit: 8,
+    windowMs: 10 * 60_000,
+    expectedContentType: "multipart",
+  });
+  if (guarded) return guarded;
+
   let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
+    if (hasHoneypotValue(fields)) {
+      return honeypotResponse(route, requestId);
+    }
     const applicationId = crypto.randomUUID();
 
     // Required fields
@@ -246,7 +266,7 @@ export const POST: APIRoute = async ({ request }) => {
         .slice(0, 240);
 
     const programs = await getCollection("programas");
-    const program = programs.find((p) => p.slug === programSlug || p.data.title === programTitle);
+    const program = programs.find((p) => getProgramPathSlug(p) === programSlug || p.data.title === programTitle);
     if (program && !programIsPublished(program)) {
       return enrollmentRespond(
         { error: "Programa no disponible", code: "program_unavailable" },
@@ -273,7 +293,7 @@ export const POST: APIRoute = async ({ request }) => {
     const emailS = stripControlChars(email).toLowerCase();
     const telefonoS = stripControlChars(telefono);
 
-    // Extended profile fields (maestría / doctorado / especialidad).
+    // Extended profile fields (diplomado / maestría / doctorado / especialidad).
     // Mirrors the historical 7-step inscription form so admin records are complete.
     const trim = (raw: string | undefined) => stripControlChars((raw ?? "").trim());
     const generoS = trim(fields.genero);
@@ -603,16 +623,8 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar = (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    if (!brevoKey) {
-      return enrollmentRespond({
-          error: "Correo no configurado en el servidor (KEY_API_BREVO)",
-          code: "brevo_not_configured",
-        }, 503, requestId, programSlug);
-    }
 
     const adminRecipients: { email: string }[] = [];
     if (shouldNotifyControlEscolarOnEnrollment()) {
@@ -750,23 +762,28 @@ export const POST: APIRoute = async ({ request }) => {
       content: f.buffer.toString("base64"),
     }));
 
-    const adminRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const adminRes = await sendBrevoEmail(
+      {
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: adminRecipients,
         subject: `Nueva Solicitud de Admisión - ${programTitle} - ${nombreS} ${apellidosS}`,
         htmlContent: adminHtml,
         attachment,
-      }),
-    });
+      },
+      {
+        route: "POST /api/enrollment",
+        requestId,
+        kind: "admin",
+        programSlug,
+      },
+    );
 
     if (!adminRes.ok) {
-      console.error("[enrollment] Brevo admin error:", adminRes.status, await adminRes.text());
+      apiLog("error", "POST /api/enrollment", "brevo_admin_failed", {
+        requestId,
+        programSlug,
+        brevoStatus: adminRes.status,
+      });
     }
 
     const applicationOnlyNivel =
@@ -781,9 +798,9 @@ export const POST: APIRoute = async ({ request }) => {
         `
       : `
           <ol>
-            <li>Nuestro equipo revisará su solicitud y documentos en las próximas <strong>48-72 horas</strong>.</li>
-            <li>Le contactaremos por correo electrónico con el resultado de la evaluación.</li>
-            <li>Si es aceptado, recibirá instrucciones para completar su inscripción y realizar el pago correspondiente.</li>
+            <li>Hemos recibido su registro y documentación académica.</li>
+            <li>Puede completar el pago en línea o por transferencia desde la pantalla de confirmación.</li>
+            <li>Control Escolar revisará su expediente y le dará seguimiento si se requiere alguna aclaración.</li>
           </ol>
         `;
 
@@ -826,22 +843,27 @@ export const POST: APIRoute = async ({ request }) => {
       </div>
     `;
 
-    const userRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const userRes = await sendBrevoEmail(
+      {
         sender: { email: senderEmail, name: "CEPRIJA" },
         to: [{ email }],
         subject: `Solicitud Recibida - ${programTitle}`,
         htmlContent: userHtml,
-      }),
-    });
+      },
+      {
+        route: "POST /api/enrollment",
+        requestId,
+        kind: "participant",
+        programSlug,
+      },
+    );
 
     if (!userRes.ok) {
-      console.error("[enrollment] Brevo user error:", userRes.status, await userRes.text());
+      apiLog("error", "POST /api/enrollment", "brevo_user_failed", {
+        requestId,
+        programSlug,
+        brevoStatus: userRes.status,
+      });
     }
 
     return jsonResponse({

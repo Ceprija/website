@@ -20,12 +20,32 @@ import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsi
           <h2 class="text-2xl font-bold text-gray-800 mb-6 font-serif">
             Estamos para servirte
           </h2>
+
           <p class="text-gray-600 mb-8">
             Si tienes dudas sobre nuestra oferta académica, procesos de
             inscripción o becas, no dudes en escribirnos.
           </p>
 
+          <!-- MAPA -->
+          <div
+            class="rounded-2xl overflow-hidden shadow-xl border border-gray-100 mb-8 h-72 md:h-80"
+            data-animate="zoom-in"
+            data-delay="200"
+          >
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3732.8762584305315!2d-103.36227692394394!3d20.676426799999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8428ae2ae89f5c8f%3A0x2d6a0c8c3b8d6e9b!2sLope%20de%20Vega%20273%2C%20Americana%2C%2044130%20Guadalajara%2C%20Jal.!5e0!3m2!1ses!2smx!4v1702665000000!5m2!1ses!2smx"
+              width="100%"
+              height="100%"
+              style="border:0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              title="Ubicación CEPRIJA"
+              class="grayscale-[0.15]"></iframe>
+          </div>
+
           <div class="space-y-6">
+            <!-- UBICACIÓN -->
             <div class="flex items-start gap-4">
               <div class="bg-blue-50 p-3 rounded-lg text-primary shrink-0">
                 <svg
@@ -48,12 +68,40 @@ import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsi
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
               </div>
-              <div class="min-w-0 pt-0.5">
+
+              <div class="min-w-0 flex-1">
                 <h3 class="font-bold text-gray-800 font-serif">Ubicación</h3>
-                <p class="text-gray-600">
-                  Lope de Vega #273, Colonia Americana 44130, Guadalajara,
+
+                <p class="text-gray-600 mb-4">
+                  Calle Lope de Vega #273, Colonia Americana 44130, Guadalajara,
                   Jalisco
                 </p>
+
+                <div class="flex justify-center">
+                  <a
+                    href="https://maps.app.goo.gl/VJHc7KpPFUUeFBGy9"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white transition-all hover:bg-blue-900 hover:shadow-lg"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                      ></path>
+                    </svg>
+
+                    Abrir en Google Maps
+                  </a>
+                </div>
               </div>
             </div>
 

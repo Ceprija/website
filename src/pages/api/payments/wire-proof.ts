@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB } from "astro:env/server";
 import Busboy from "busboy";
 import crypto from "node:crypto";
 import { escapeHtml } from "@lib/htmlEscape";
@@ -12,6 +12,12 @@ import {
 } from "@lib/uploads/fileValidation";
 import { validateWireProofFields } from "@lib/validation/enrollment";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
 
 type UploadedFile = {
   fieldname: string;
@@ -130,9 +136,22 @@ function toEmailList(...emails: Array<string | undefined | null>): Array<{ email
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
   const route = "POST /api/payments/wire-proof";
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "wire-proof",
+    limit: 8,
+    windowMs: 10 * 60_000,
+    expectedContentType: "multipart",
+  });
+  if (guarded) return guarded;
+
   let programSlug = "";
   try {
     const { fields, files } = await parseFormData(request);
+    if (hasHoneypotValue(fields)) {
+      return honeypotResponse(route, requestId);
+    }
     const enrollmentId = crypto.randomUUID();
 
     const fieldErr = validateWireProofFields(fields);
@@ -257,27 +276,10 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    const brevoKey = (KEY_API_BREVO ?? "").trim();
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar =
       (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    if (!brevoKey) {
-      apiLog("error", route, "brevo_not_configured", {
-        requestId,
-        programSlug: programSlug || undefined,
-        code: "brevo_not_configured",
-      });
-      return jsonResponse(
-        {
-          error: "Correo no configurado en el servidor (KEY_API_BREVO)",
-          code: "brevo_not_configured",
-        },
-        503,
-        requestId,
-      );
-    }
 
     const adminRecipients = toEmailList(controlEscolar, senderEmail);
 
@@ -323,29 +325,28 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const adminRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const adminRes = await sendBrevoEmail(
+      {
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
         to: adminRecipients,
         subject: `⏳ Comprobante Recibido - ${programTitle || programId} - ${name}`,
         htmlContent: adminHtml,
         attachment,
-      }),
-    });
+      },
+      {
+        route,
+        requestId,
+        kind: "admin",
+        programSlug: programSlug || undefined,
+      },
+    );
 
     if (!adminRes.ok) {
-      const adminErrText = await adminRes.text();
       apiLog("error", route, "brevo_admin_failed", {
         requestId,
         programSlug: programSlug || undefined,
         enrollmentId,
         brevoStatus: adminRes.status,
-        brevoBody: adminErrText.slice(0, 500),
       });
     }
 
@@ -358,28 +359,27 @@ export const POST: APIRoute = async ({ request }) => {
       <p>Si necesitamos información adicional, te contactaremos.</p>
     `;
 
-    const userRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const userRes = await sendBrevoEmail(
+      {
         sender: { email: senderEmail, name: "CEPRIJA" },
         to: [{ email }],
         subject: `Comprobante recibido - ${programTitle || programId}`,
         htmlContent: userHtml,
-      }),
-    });
+      },
+      {
+        route,
+        requestId,
+        kind: "participant",
+        programSlug: programSlug || undefined,
+      },
+    );
 
     if (!userRes.ok) {
-      const userErrText = await userRes.text();
       apiLog("error", route, "brevo_user_failed", {
         requestId,
         programSlug: programSlug || undefined,
         enrollmentId,
         brevoStatus: userRes.status,
-        brevoBody: userErrText.slice(0, 500),
       });
     } else {
       apiLog("info", route, "wire_proof_accepted", {

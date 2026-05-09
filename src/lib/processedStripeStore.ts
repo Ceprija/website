@@ -2,21 +2,49 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DATA_DIR = path.join(process.cwd(), "data");
+const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function loadIds(file: string): Set<string> {
+type StoredId = {
+  id: string;
+  processedAt: string;
+};
+
+function loadIds(file: string): Map<string, string> {
   try {
     const raw = fs.readFileSync(file, "utf8");
     const arr = JSON.parse(raw) as unknown;
-    if (!Array.isArray(arr)) return new Set();
-    return new Set(arr.filter((x) => typeof x === "string"));
+    if (!Array.isArray(arr)) return new Map();
+    const now = Date.now();
+    const map = new Map<string, string>();
+
+    for (const item of arr) {
+      if (typeof item === "string") {
+        map.set(item, new Date(now).toISOString());
+        continue;
+      }
+      if (!item || typeof item !== "object") continue;
+      const row = item as Partial<StoredId>;
+      if (typeof row.id !== "string" || typeof row.processedAt !== "string") {
+        continue;
+      }
+      const ts = Date.parse(row.processedAt);
+      if (Number.isFinite(ts) && now - ts <= TTL_MS) {
+        map.set(row.id, row.processedAt);
+      }
+    }
+
+    return map;
   } catch {
-    return new Set();
+    return new Map();
   }
 }
 
-function saveIds(file: string, ids: Set<string>): void {
+function saveIds(file: string, ids: Map<string, string>): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify([...ids].sort()), "utf8");
+  const rows = [...ids.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, processedAt]) => ({ id, processedAt }));
+  fs.writeFileSync(file, JSON.stringify(rows), "utf8");
 }
 
 /** Dedupe enrollment emails when /pago-exitoso retries or user refreshes. */
@@ -33,10 +61,10 @@ export function hasEnrollmentBeenConfirmed(sessionId: string): boolean {
 
 export function markEnrollmentConfirmed(sessionId: string): boolean {
   const file = enrollmentFile();
-  const set = loadIds(file);
-  if (set.has(sessionId)) return false;
-  set.add(sessionId);
-  saveIds(file, set);
+  const ids = loadIds(file);
+  if (ids.has(sessionId)) return false;
+  ids.set(sessionId, new Date().toISOString());
+  saveIds(file, ids);
   return true;
 }
 
@@ -46,7 +74,19 @@ export function hasWebhookEventBeenProcessed(eventId: string): boolean {
 
 export function markWebhookEventProcessed(eventId: string): void {
   const file = webhookEventFile();
-  const set = loadIds(file);
-  set.add(eventId);
-  saveIds(file, set);
+  const ids = loadIds(file);
+  ids.set(eventId, new Date().toISOString());
+  saveIds(file, ids);
+}
+
+export function isProcessedStripeStoreWritable(): boolean {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const probe = path.join(DATA_DIR, ".stripe-store-probe");
+    fs.writeFileSync(probe, new Date().toISOString(), "utf8");
+    fs.unlinkSync(probe);
+    return true;
+  } catch {
+    return false;
+  }
 }

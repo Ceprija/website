@@ -343,11 +343,31 @@ export function flashInvalidFields(targets: HTMLElement[], durationMs = 4500): v
   }, durationMs);
 }
 
+function ensureValidationLiveRegion(): HTMLElement {
+  let region = document.getElementById("step-validation-feedback");
+  if (!region) {
+    region = document.createElement("div");
+    region.id = "step-validation-feedback";
+    region.setAttribute("role", "alert");
+    region.setAttribute("aria-live", "assertive");
+    region.setAttribute("tabindex", "-1");
+    region.className =
+      "fixed left-4 right-4 top-24 z-[60] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 shadow-lg md:left-auto md:w-[28rem]";
+    document.body.appendChild(region);
+  }
+  return region;
+}
+
 /**
- * Resalta campos inválidos y hace scroll al primero. Sin `alert()` del navegador.
- * El título del paso se conserva en la firma por si más adelante se muestra en un banner `aria-live`.
+ * Resalta campos inválidos, anuncia el error y hace scroll al primero.
  */
-export function reportStepValidationFailure(_stepTitle: string, result: StepValidationResult): void {
+export function reportStepValidationFailure(stepTitle: string, result: StepValidationResult): void {
   if (result.ok) return;
   flashInvalidFields(result.highlightTargets);
+  const message = formatStepValidationMessage(stepTitle, result.missingLabels);
+  if (message) {
+    const region = ensureValidationLiveRegion();
+    region.textContent = message;
+    region.focus({ preventScroll: true });
+  }
 }

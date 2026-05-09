@@ -12,10 +12,16 @@ import {
   CONTACT_EMAIL,
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_SOPORTE_WEB,
-  KEY_API_BREVO,
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
+import { getRequestId } from "@lib/server/apiRequestLog";
+import {
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
+import { sendBrevoEmail } from "@lib/email/brevoClient";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -108,8 +114,23 @@ function parseFormData(request: Request): Promise<{
 }
 
 export const POST: APIRoute = async ({ request }) => {
+    const requestId = getRequestId(request);
+    const route = "POST /api/inscription";
+    const guarded = guardPublicPost(request, {
+        route,
+        requestId,
+        rateLimitKey: "inscription",
+        limit: 8,
+        windowMs: 10 * 60_000,
+        expectedContentType: "multipart",
+    });
+    if (guarded) return guarded;
+
     try {
         const { fields, files } = await parseFormData(request);
+        if (hasHoneypotValue(fields)) {
+            return honeypotResponse(route, requestId);
+        }
         const { programTitle } = fields;
 
         const identityErr = validateInscriptionIdentity(fields);
@@ -231,11 +252,10 @@ export const POST: APIRoute = async ({ request }) => {
         }).join(',');
 
         // 2. Send Emails
-        const brevoKey = KEY_API_BREVO;
-        const senderEmail = SMTP_FROM;
-        const controlEscolar = EMAIL_CONTROL_ESCOLAR;
-        const controlAdmin = CONTACT_EMAIL;
-        const soporteWeb = EMAIL_SOPORTE_WEB;
+        const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
+        const controlEscolar = (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
+        const controlAdmin = (CONTACT_EMAIL ?? "").trim() || "contacto@ceprija.edu.mx";
+        const soporteWeb = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
         // Create CSV in memory
         const csvContent = headers.join(',') + '\n' + row + '\n';
@@ -261,15 +281,13 @@ export const POST: APIRoute = async ({ request }) => {
         };
 
         const sendToBrevo = async () => {
-            try {
-                const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'api-key': String(brevoKey) },
-                    body: JSON.stringify(adminBody)
-                });
-                if (!brevoRes.ok) console.error('Brevo Error:', await brevoRes.text());
-            } catch (err) {
-                console.error('Error enviando a Brevo:', err);
+            const brevoRes = await sendBrevoEmail(adminBody, {
+                route,
+                requestId,
+                kind: "admin",
+            });
+            if (!brevoRes.ok) {
+                console.error('Brevo Error:', brevoRes.status);
             }
         };
 

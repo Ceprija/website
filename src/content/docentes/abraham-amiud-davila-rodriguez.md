@@ -3,7 +3,7 @@ name: "Dr. Abraham Amiud Dávila Rodríguez"
 degree: "Doctor en Derechos Humanos"
 bio: "Especialista en Derecho Médico y Sanitario con 30 años de ejercicio profesional."
 position_laboral: "Director General y fundador del despacho Salomon & Warner, firma especializada en Derecho Médico."
-image: "/images/faculty-placeholder.jpg"
+image: "/images/branding/logos/logo-ceprija-web.svg"
 order: 10
 draft: true
 ---

@@ -71,13 +71,13 @@ const slides = [
   </div>
 
   <!-- Arrows -->
-  <button id="prev-slide" class="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <button id="prev-slide" aria-label="Ver diapositiva anterior" class="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
     </svg>
   </button>
-  <button id="next-slide" class="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <button id="next-slide" aria-label="Ver siguiente diapositiva" class="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
   </button>
@@ -92,8 +92,9 @@ const slides = [
   const dots = slider?.querySelectorAll('[data-slide]');
   const prevBtn = document.getElementById('prev-slide');
   const nextBtn = document.getElementById('next-slide');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let currentSlide = 0;
-  let interval: any;
+  let interval: number | undefined;
 
   function showSlide(index: number) {
     if (!slides || !dots) return;
@@ -136,11 +137,14 @@ const slides = [
   }
 
   function startAutoPlay() {
+    if (prefersReducedMotion.matches) return;
+    stopAutoPlay();
     interval = window.setInterval(nextSlide, 8000);
   }
 
   function stopAutoPlay() {
-    clearInterval(interval);
+    if (interval) window.clearInterval(interval);
+    interval = undefined;
   }
 
   // Event Listeners
@@ -162,6 +166,15 @@ const slides = [
       stopAutoPlay();
       startAutoPlay();
     });
+  });
+
+  slider?.addEventListener('mouseenter', stopAutoPlay);
+  slider?.addEventListener('mouseleave', startAutoPlay);
+  slider?.addEventListener('focusin', stopAutoPlay);
+  slider?.addEventListener('focusout', startAutoPlay);
+  prefersReducedMotion.addEventListener('change', () => {
+    if (prefersReducedMotion.matches) stopAutoPlay();
+    else startAutoPlay();
   });
 
   // Start
