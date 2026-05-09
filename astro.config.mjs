@@ -62,6 +62,12 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      /** Set to "false" / "0" / "no" to omit Control Escolar from POST /api/enrollment admin mail only (e.g. staging). Default: notify. */
+      NOTIFY_CONTROL_ESCOLAR_ENROLLMENT: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       URL_BASE_API: envField.string({
         context: 'server',
         access: 'secret',

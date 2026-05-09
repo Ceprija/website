@@ -6,7 +6,7 @@ excerpt: "Penal fiscal y procedimiento: delitos, investigación, litigio y crite
 image: "/images/programs/curso-penal-fiscal.webp"
 escuela: "economica"
 nivel: "curso"
-status: "active"
+status: "waitlist"
 horario: ""
 startDate: ""
 duracion: "Por definir"

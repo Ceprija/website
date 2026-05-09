@@ -4,7 +4,7 @@ degree: "Maestra en Derecho Procesal Penal"
 bio: "Especialista en funciones jurisdiccionales con más de 35 años en el Poder Judicial."
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Formas de Terminación de la Investigación en la Maestría en Derecho Penal."
-image: "/images/faculty/marthaSanchez/martha_temores_sanchez.png"
+image: "/images/faculty/marthaSanchez/martha_temores_sanchez_noBackground.png"
 order: 7
 ---
 

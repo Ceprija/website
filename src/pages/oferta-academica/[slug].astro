@@ -1,4 +1,7 @@
 ---
+import { readdir } from "node:fs/promises";
+import { extname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import ContactForm from "@components/forms/ContactForm.astro";
@@ -39,10 +42,82 @@ type CurriculumPeriod = {
     description?: string;
     professors?: string[];
 };
+type ProgramGalleryItem = {
+    src: string;
+    alt?: string;
+    caption?: string;
+};
+const galleryImageExtensions = new Set([
+    ".avif",
+    ".gif",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".svg",
+    ".webp",
+]);
+const publicDirectory = fileURLToPath(
+    new URL("../../../public", import.meta.url),
+);
+
+function normalizePublicFolderPath(folderPath: unknown): string | null {
+    if (typeof folderPath !== "string") return null;
+    const normalized = folderPath.trim().replace(/^\/+/, "");
+    if (!normalized || normalized.includes("..")) return null;
+    return normalized;
+}
+
+async function getGalleryFolderItems(
+    folderPath: unknown,
+    programTitle: string,
+): Promise<ProgramGalleryItem[]> {
+    const normalizedFolder = normalizePublicFolderPath(folderPath);
+    if (!normalizedFolder) return [];
+
+    const absoluteFolder = join(publicDirectory, normalizedFolder);
+    const relativeFolder = relative(publicDirectory, absoluteFolder);
+    if (
+        relativeFolder.startsWith("..") ||
+        relativeFolder.split(sep).includes("..")
+    ) {
+        return [];
+    }
+
+    try {
+        const entries = await readdir(absoluteFolder, { withFileTypes: true });
+        return entries
+            .filter(
+                (entry) =>
+                    entry.isFile() &&
+                    galleryImageExtensions.has(extname(entry.name).toLowerCase()),
+            )
+            .sort((a, b) =>
+                a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+            )
+            .map((entry, index) => ({
+                src: `/${normalizedFolder}/${entry.name}`.replace(/\/{2,}/g, "/"),
+                alt: `${programTitle} - imagen ${index + 1}`,
+            }));
+    } catch {
+        return [];
+    }
+}
+
 const data = program.data;
 const curriculumItems: CurriculumPeriod[] = Array.isArray(data.curriculum)
     ? (data.curriculum as CurriculumPeriod[])
     : [];
+const explicitGalleryItems: ProgramGalleryItem[] = Array.isArray(data.gallery)
+    ? (data.gallery as ProgramGalleryItem[])
+    : [];
+const folderGalleryItems = await getGalleryFolderItems(
+    data.galleryFolder,
+    String(data.title),
+);
+const galleryItems: ProgramGalleryItem[] = [
+    ...explicitGalleryItems,
+    ...folderGalleryItems,
+];
 const includesItems: string[] = Array.isArray(data.includes)
     ? (data.includes as string[])
     : [];
@@ -62,6 +137,15 @@ const registroAcademico =
         : "";
 const variantOptions = getVariantOptions(program);
 const variantModuleOptions = variantOptions?.moduleSelection?.options ?? [];
+
+/** Maestría / especialidad / doctorado: solicitud sin precios ni pago en ficha. */
+const applicationOnlyNivel =
+    data.nivel === "maestria" ||
+    data.nivel === "especialidad" ||
+    data.nivel === "doctorado";
+const showInvestmentBlock =
+    !applicationOnlyNivel &&
+    (paymentOptions.length > 0 || !!data.price);
 
 const descriptionPlain = String(data.description ?? "").trim();
 const seo = {
@@ -262,11 +346,14 @@ const heroObjectPosition =
             </div>
         </section>
 
-        <!-- Content Section: información del programa a ancho legible -->
-        <section class="py-16">
-            <div class="container mx-auto px-6 max-w-4xl">
-                <div class="space-y-12">
+        {
+            programStatus !== "waitlist" && (
+                <!-- Content Section: información del programa a ancho legible -->
+                <section class="py-16">
+                    <div class="container mx-auto px-6 max-w-4xl">
+                        <div class="space-y-12">
                     <!-- Plan de Estudios -->
+                    {/* 
                     {
                         curriculumItems.length > 0 && (
                             <div
@@ -431,6 +518,136 @@ const heroObjectPosition =
                             </div>
                         )
                     }
+                    */}
+                    {
+                        galleryItems.length > 0 && (
+                            <div
+                                class="bg-white rounded-2xl shadow-sm p-8"
+                                data-animate="fade-up"
+                                data-delay="150"
+                            >
+                                <h2 class="text-3xl font-bold text-primary mb-6 font-serif flex items-center gap-3">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-8 w-8 text-secondary"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                    Temario
+                                </h2>
+
+                                <div
+                                    class="relative overflow-hidden rounded-2xl border border-gray-100 bg-gray-100"
+                                    data-program-gallery-carousel
+                                >
+                                    <div
+                                        class="flex transition-transform duration-500 ease-in-out"
+                                        data-program-gallery-track
+                                    >
+                                        {galleryItems.map((item) => (
+                                            <figure class="relative min-w-full h-[360px] sm:h-[460px] lg:h-[540px] bg-gray-100">
+                                                <img
+                                                    src={item.src}
+                                                    alt={item.alt ?? ""}
+                                                    class="h-full w-full object-contain"
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                />
+
+                                                {item.caption ? (
+                                                    <figcaption class="absolute bottom-0 left-0 right-0 bg-black/55 px-4 py-3 text-sm text-white">
+                                                        {item.caption}
+                                                    </figcaption>
+                                                ) : null}
+                                            </figure>
+                                        ))}
+                                    </div>
+
+                                    {galleryItems.length > 1 ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-md transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                                                data-program-gallery-prev
+                                                aria-label="Imagen anterior"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-6 w-6"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M15 19l-7-7 7-7"
+                                                    />
+                                                </svg>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-md transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                                                data-program-gallery-next
+                                                aria-label="Imagen siguiente"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-6 w-6"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M9 5l7 7-7 7"
+                                                    />
+                                                </svg>
+                                            </button>
+
+                                            <div
+                                                class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2"
+                                                data-program-gallery-dots
+                                            >
+                                                {galleryItems.map((_, index) => (
+                                                    <button
+                                                        type="button"
+                                                        class:list={[
+                                                            "h-2.5 w-2.5 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary",
+                                                            index === 0
+                                                                ? "bg-white"
+                                                                : "bg-white/50",
+                                                        ]}
+                                                        data-program-gallery-dot={index}
+                                                        aria-label={`Ver imagen ${index + 1}`}
+                                                        aria-current={
+                                                            index === 0
+                                                                ? "true"
+                                                                : "false"
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : null}
+                                </div>
+                            </div>
+                        )
+                    }
                     <!-- Perfil del Egresado -->
                     {
                         program.data.profile && (
@@ -527,7 +744,7 @@ const heroObjectPosition =
                     }
 
                     {
-                        (paymentOptions.length > 0 || program.data.price) && (
+                        showInvestmentBlock && (
                             <div
                                 class="bg-white rounded-2xl shadow-sm p-8"
                                 data-animate="fade-up"
@@ -687,9 +904,11 @@ const heroObjectPosition =
                             </div>
                         )
                     }
-                </div>
-            </div>
-        </section>
+                        </div>
+                    </div>
+                </section>
+            )
+        }
 
         <!-- Inscripción / admisión: sin data-animate aquí — el transform del fade-up
              hace que position:fixed de descendientes se ancle al section y el pie
@@ -800,6 +1019,7 @@ const heroObjectPosition =
                             stripePriceIds={stripePriceIdsForCheckout}
                             prices={continuousEducationPrices}
                             paymentOptions={paymentOptions}
+                            modalidad={String(data.modalidad)}
                             address={programAddress}
                             requiresVerification={programRequiresVerification}
                             embedInAsideCard={false}
@@ -809,4 +1029,58 @@ const heroObjectPosition =
             </div>
         </section>
     </main>
+
+    <script>
+        document
+            .querySelectorAll<HTMLElement>("[data-program-gallery-carousel]")
+            .forEach((carousel) => {
+                const track = carousel.querySelector<HTMLElement>(
+                    "[data-program-gallery-track]",
+                );
+                const prevButton = carousel.querySelector<HTMLButtonElement>(
+                    "[data-program-gallery-prev]",
+                );
+                const nextButton = carousel.querySelector<HTMLButtonElement>(
+                    "[data-program-gallery-next]",
+                );
+                const dots = Array.from(
+                    carousel.querySelectorAll<HTMLButtonElement>(
+                        "[data-program-gallery-dot]",
+                    ),
+                );
+                const totalSlides = track?.children.length ?? 0;
+                let currentSlide = 0;
+
+                if (!track || totalSlides <= 1) return;
+                const galleryTrack = track;
+
+                function showSlide(index: number) {
+                    currentSlide = (index + totalSlides) % totalSlides;
+                    galleryTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+                    dots.forEach((dot, dotIndex) => {
+                        const isActive = dotIndex === currentSlide;
+                        dot.classList.toggle("bg-white", isActive);
+                        dot.classList.toggle("bg-white/50", !isActive);
+                        dot.setAttribute("aria-current", String(isActive));
+                    });
+                }
+
+                prevButton?.addEventListener("click", () => {
+                    showSlide(currentSlide - 1);
+                });
+
+                nextButton?.addEventListener("click", () => {
+                    showSlide(currentSlide + 1);
+                });
+
+                dots.forEach((dot) => {
+                    const index = Number(dot.dataset.programGalleryDot);
+                    if (Number.isNaN(index)) return;
+                    dot.addEventListener("click", () => {
+                        showSlide(index);
+                    });
+                });
+            });
+    </script>
 </Layout>

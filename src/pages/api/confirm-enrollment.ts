@@ -21,6 +21,54 @@ import { validateStripeCheckoutSessionId } from "@lib/validation/enrollment";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import { getStripePriceIds, getProgramStatus } from "@lib/programPayments";
+import { getVariantOptions } from "@lib/programVariants";
+
+type ProgramPriceMatch = {
+  matches: boolean;
+  modality: "Presencial" | "En línea" | "Por definir";
+};
+
+function addPriceId(
+  target: Map<string, ProgramPriceMatch["modality"]>,
+  value: unknown,
+  modality: ProgramPriceMatch["modality"],
+) {
+  if (typeof value !== "string") return;
+  const priceId = value.trim();
+  if (!priceId) return;
+  target.set(priceId, modality);
+}
+
+function collectProgramPriceIds(program: Awaited<ReturnType<typeof getCollection<"programas">>>[number]) {
+  const priceIds = new Map<string, ProgramPriceMatch["modality"]>();
+  const stripeIds = getStripePriceIds(program);
+
+  addPriceId(priceIds, stripeIds?.presencial, "Presencial");
+  addPriceId(priceIds, stripeIds?.online, "En línea");
+
+  const paymentOptions = (program.data as { paymentOptions?: unknown }).paymentOptions;
+  if (Array.isArray(paymentOptions)) {
+    for (const option of paymentOptions) {
+      if (!option || typeof option !== "object") continue;
+      const row = option as { stripePriceId?: unknown; type?: unknown };
+      const modality =
+        row.type === "presencial"
+          ? "Presencial"
+          : row.type === "online"
+            ? "En línea"
+            : "Por definir";
+      addPriceId(priceIds, row.stripePriceId, modality);
+    }
+  }
+
+  const variants = getVariantOptions(program);
+  for (const option of variants?.moduleSelection?.options ?? []) {
+    addPriceId(priceIds, option.stripePriceIds?.presencial, "Presencial");
+    addPriceId(priceIds, option.stripePriceIds?.online, "En línea");
+  }
+
+  return priceIds;
+}
 
 function paymentIntentId(session: Stripe.Checkout.Session): string {
   const pi = session.payment_intent;
@@ -201,10 +249,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Use helper function to get stripe price IDs (supports both new paymentOptions and legacy format)
-    const stripeIds = getStripePriceIds(program);
+    const programPriceIds = collectProgramPriceIds(program);
 
-    if (!stripeIds || (!stripeIds.presencial && !stripeIds.online)) {
+    if (programPriceIds.size === 0) {
       apiLog("warn", route, "program_no_prices", {
         requestId,
         stripeSessionId,
@@ -221,9 +268,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const matchPresencial = linePriceId === stripeIds.presencial;
-    const matchOnline = linePriceId === stripeIds.online;
-    if (!matchPresencial && !matchOnline) {
+    const matchedModality = programPriceIds.get(linePriceId);
+    if (!matchedModality) {
       apiLog("warn", route, "price_program_mismatch", {
         requestId,
         stripeSessionId,
@@ -241,15 +287,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    let modalityLabel = "Por definir";
-    if (stripeIds.presencial === stripeIds.online) {
-      modalityLabel =
-        session.metadata?.modality?.trim() || "Por definir";
-    } else if (matchPresencial) {
-      modalityLabel = "Presencial";
-    } else if (matchOnline) {
-      modalityLabel = "En línea";
-    }
+    const modalityLabel =
+      session.metadata?.modality?.trim() || matchedModality || "Por definir";
 
     const participantName =
       session.metadata?.participantName?.trim() || "Participante";

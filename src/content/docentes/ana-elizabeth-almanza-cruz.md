@@ -5,7 +5,7 @@ bio: "Especialista en Derecho Penal, Sistema de Justicia Penal Acusatorio y Ejec
 position_laboral: "Jueza adscrita al Juzgado de Control, Enjuiciamiento, Justicia Integral para Adolescentes y Ejecución Penal Especializados en Violencia contra las Mujeres."
 # experience_institutional:
 #   - "Supremo Tribunal de Justicia - Maestrías de Sistema Acusatorio Adversarial y Derecho Judicial."
-image: "/images/faculty/anaAlmanza/Dra._Ana_Elizabeth_Almanza_Cruz.avif"
+image: "/images/faculty/anaAlmanza/Ana_Elizabeth_Almanza_Cruz_noBackground.png"
 order: 1
 ---
 

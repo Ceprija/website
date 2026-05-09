@@ -2,7 +2,6 @@
 import Layout from "../../layouts/Layout.astro";
 import Button from "@components/ui/Button.astro";
 import SchoolAreaProgramList from "@components/program/SchoolAreaProgramList.astro";
-import SchoolAreaCover from "@components/program/SchoolAreaCover.astro";
 ---
 
 <Layout pageId="administrativa">
@@ -27,7 +26,17 @@ import SchoolAreaCover from "@components/program/SchoolAreaCover.astro";
 
             <SchoolAreaProgramList
                 escuela="economica"
-                emptyHint="No hay programas con escuela “economica” en el CMS. Asigna `escuela: economica` en `src/content/programas/` para cursos de esta área (fiscal, finanzas, SAT, etc.). Esta vista ya no usa archivos estáticos en `src/data/`."
+                emptyHint="Estamos preparando nuevos programas académicos para ti."
+                sectionGroups={[
+                    {
+                        title: "Educación continua",
+                        niveles: ["diplomado", "curso", "taller"],
+                    },
+                    {
+                        title: "Posgrados",
+                        niveles: ["maestria", "doctorado", "especialidad"],
+                    },
+                ]}
             />
 
             <div class="mt-20 text-center">

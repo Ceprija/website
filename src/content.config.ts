@@ -40,7 +40,7 @@ const programas = defineCollection({
     image: z.string(),
     /** Encuadre para `object-fit: cover` en tarjeta y hero (p. ej. `52% 40%`). Opcional. */
     imagePosition: optionalYamlString(),
-    
+
     /**
      * Program status: controls visibility and enrollment behavior.
      * - "active": Program is available for enrollment with payment options
@@ -48,7 +48,7 @@ const programas = defineCollection({
      * - "disabled": Program is hidden from catalog
      */
     status: z.enum(["active", "waitlist", "disabled"]).default("active"),
-    
+
     /** @deprecated Use `status: "disabled"` instead. Kept for backward compatibility. */
     disabled: z.boolean().optional(),
     escuela: z.enum(["juridica", "economica", "integral"]),
@@ -61,7 +61,7 @@ const programas = defineCollection({
     startDate: z.string(),
     duracion: z.string(),
     modalidad: z.string(),
-    
+
     /**
      * Structured payment options for Stripe integration.
      * Each option represents a payment choice (e.g., "Presencial", "En línea", "Paquete").
@@ -79,12 +79,12 @@ const programas = defineCollection({
       /** Modality type: presencial, online, or hibrido (hybrid/both) */
       type: z.enum(["presencial", "online", "hibrido"])
     })).optional(),
-    
+
     /** @deprecated Use `paymentOptions` array instead. Kept for backward compatibility. */
     price: z.union([z.number(), z.record(z.string())]).optional(),
     featured: z.boolean().optional(),
     date: optionalYamlString(),
-    
+
     // Extended fields for rich program data
     curriculum: z.array(z.object({
       period: z.string(),
@@ -100,6 +100,13 @@ const programas = defineCollection({
     fieldOfWork: optionalYamlString(),
     includes: z.array(z.string()).optional(),
     prerequisites: z.array(z.string()).optional(),
+    gallery: z.array(z.object({
+      src: z.string(),
+      alt: optionalYamlString(),
+      caption: optionalYamlString(),
+    })).optional(),
+    /** Public folder path; all image files inside it render in the program gallery. */
+    galleryFolder: optionalYamlString(),
     paymentLinks: z.object({
       online: z.string().optional(),
       presencial: z.string().optional()
@@ -147,21 +154,29 @@ const programas = defineCollection({
         })).min(1)
       }).optional()
     }).optional(),
-    
+
     // Enrollment flow: determines if program uses inline form or dedicated application page
     // "inline" = simple registration on program page (curso, diplomado default)
     // "application" = multi-step application with documents (maestria, doctorado, especialidad default)
     enrollmentFlow: z.enum(["inline", "application"]).optional()
   }).refine((data) => {
-    // Conditional validation: active programs must have payment options and enrollment flow
+    // Active: always require enrollmentFlow. Payment options are optional for
+    // maestría / especialidad / doctorado (solicitud + documentos; pago fuera de línea).
     if (data.status === "active") {
-      const hasPaymentOptions = data.paymentOptions && data.paymentOptions.length > 0;
       const hasEnrollmentFlow = !!data.enrollmentFlow;
-      return hasPaymentOptions && hasEnrollmentFlow;
+      if (!hasEnrollmentFlow) return false;
+      const applicationOnlyNivel =
+        data.nivel === "maestria" ||
+        data.nivel === "especialidad" ||
+        data.nivel === "doctorado";
+      if (applicationOnlyNivel) return true;
+      const hasPaymentOptions = data.paymentOptions && data.paymentOptions.length > 0;
+      return hasPaymentOptions;
     }
     return true;
   }, {
-    message: "Active programs must have at least one paymentOption and an enrollmentFlow defined"
+    message:
+      "Active programs must define enrollmentFlow; non–postgraduate active programs also need at least one paymentOption",
   })
 });
 

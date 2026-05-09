@@ -6,7 +6,7 @@ excerpt: "Sellos digitales ante el SAT: cancelación, regularización y rutas pr
 image: "/images/programs/cancelacion-sellos-digitales.webp"
 escuela: "economica"
 nivel: "curso"
-status: "active"
+status: "waitlist"
 horario: ""
 startDate: ""
 duracion: "Por definir"

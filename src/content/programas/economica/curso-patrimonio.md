@@ -6,7 +6,7 @@ excerpt: "Educación financiera y cultura patrimonial: planificación, protecci�
 image: "/images/programs/mi-futuro-mi-patrimonio.webp"
 escuela: "economica"
 nivel: "curso"
-status: "active"
+status: "waitlist"
 horario: ""
 startDate: ""
 duracion: "Por definir"

@@ -11,7 +11,7 @@ rvoe: "ESM142024143"
 horario: "Miércoles 17:00 a 20:00 h · Viernes 9:00 a 14:00 h"
 startDate: ""
 duracion: "6 cuatrimestres"
-modalidad: "Presencial / En línea"
+modalidad: "Híbrida / En línea"
 paymentOptions:
   - id: "inscripcion"
     label: "Inscripción"
@@ -33,6 +33,7 @@ paymentOptions:
     price: 3900
     stripePriceId: "price_1CfgMaeCivilPres"
     type: "presencial"
+galleryFolder: "/images/programs/maestriaCivilFamiliar/gallery"
 featured: true
 date: ""
 address: ""

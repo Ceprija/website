@@ -5,7 +5,7 @@ bio: "Especialista en materia penal, justicia para adolescentes y litigación or
 position_laboral: "Abogada litigante en la firma legal Treviño & Treviño."
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Actos de Investigación en la Maestría en Derecho Penal."
-image: "/images/faculty/yenniAlsina/yenni_alsina_wensy.png"
+image: "/images/faculty/yenniAlsina/yenni_alsina_wensy_noBackground.png"
 order: 4
 ---
 

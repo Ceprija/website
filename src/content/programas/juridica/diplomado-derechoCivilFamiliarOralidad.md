@@ -1,7 +1,7 @@
 ---
 slug: "diplomado-en-derecho-civil-y-familiar"
 title: "Diplomado Civil y Familiar"
-description: "Adaptación transversal a la oralidad en materia civil y familiar: CNPCyF, audiencias, pruebas, medios alternos de solución de controversias, sucesiones y ejecución. Aprende con especialistas que operan el nuevo sistema civil y familiar a nivel nacional. Modalidad híbrida; calendario intensivo viernes y sábado."
+description: "Adaptación transversal a la oralidad en materia civil y familiar: CNPCyF, audiencias, pruebas, medios alternos de solución de controversias, sucesiones y ejecución. Aprende con especialistas que operan el nuevo sistema civil y familiar a nivel nacional. Modalidad híbrida y en línea; calendario intensivo viernes y sábado."
 excerpt: "Oralidad civil y familiar con CNPCyF: audiencias, pruebas, familia, sucesiones, mediación y conciliación, y ejecución, con práctica aplicada al litigio real."
 image: "/images/programs/diplomado-derecho-civil-y-familiar.webp"
 escuela: "juridica"
@@ -11,7 +11,7 @@ registroAcademico: "ESDIP-2024-123"
 horario: "Viernes 17:00–20:00 h · Sábado 9:00–14:00 h"
 startDate: "20 de marzo de 2026"
 duracion: "14 módulos"
-modalidad: "Híbrida"
+modalidad: "Híbrida / En línea"
 paymentOptions:
   - id: "inscripcion"
     label: "Inscripción"
@@ -26,8 +26,9 @@ paymentOptions:
   - id: "diferido"
     label: "Cuatro pagos diferidos"
     price: 5000
-    stripePriceId: "price_1TTcJOIMr3rp9BogpixoOSPp"
+    stripePriceId: "price_1TTarXKVaWLbvt9DqBhp8Gap"
     type: "hibrido"
+galleryFolder: "/images/programs/diplomadoDerechoCivil/gallery"
 featured: true
 date: "2026-03-20"
 address: ""

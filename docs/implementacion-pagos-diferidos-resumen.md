@@ -73,7 +73,7 @@ paymentOptions:
 ### 3. Modificar el formulario para múltiples opciones de pago
 
 **Problema:** El `ContinuousEducationForm` actual solo soporta 2 opciones:
-- Presencial
+- Hibrida / Presencial
 - En línea
 
 Pero ahora necesitas que el usuario elija entre 3 opciones de pago:

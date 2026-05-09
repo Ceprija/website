@@ -4,6 +4,7 @@ import Button from "@components/ui/Button.astro";
 import ProgramOfferCard from "@components/program/ProgramOfferCard.astro";
 import type { ProgramaNivel } from "@lib/programNiveles";
 import { filterPublishedPrograms } from "@lib/programPublished";
+import { getProgramStatus } from "@lib/programPayments";
 
 interface SectionGroup {
     title: string;
@@ -18,8 +19,12 @@ interface Props {
     sectionGroups?: SectionGroup[];
 }
 
-const { escuela, emptyHint, emptyTitle = "Próximamente", sectionGroups } =
-    Astro.props as Props;
+const {
+    escuela,
+    emptyHint,
+    emptyTitle = "Próximamente",
+    sectionGroups,
+} = Astro.props as Props;
 
 const allPrograms = filterPublishedPrograms(await getCollection("programas"));
 const programs = allPrograms
@@ -27,9 +32,15 @@ const programs = allPrograms
     .sort((a, b) =>
         a.data.title.localeCompare(b.data.title, "es", { sensitivity: "base" }),
     );
+const activePrograms = programs.filter((p) => getProgramStatus(p) === "active");
+const upcomingPrograms = programs.filter(
+    (p) => getProgramStatus(p) !== "active",
+);
 
 const useGroups =
-    Array.isArray(sectionGroups) && sectionGroups.length > 0 && programs.length > 0;
+    Array.isArray(sectionGroups) &&
+    sectionGroups.length > 0 &&
+    activePrograms.length > 0;
 ---
 
 {
@@ -60,39 +71,69 @@ const useGroups =
                 </Button>
             </div>
         </div>
-    ) : useGroups && sectionGroups ? (
-        <>
-            {sectionGroups.map((group) => {
-                const groupPrograms = programs.filter((p) =>
-                    group.niveles.includes(p.data.nivel as ProgramaNivel),
-                );
-                if (groupPrograms.length === 0) return null;
-                return (
-                    <div class="mt-10">
-                        <h2 class="text-3xl font-bold text-primary mb-6 font-serif">
-                            {group.title}
-                        </h2>
-                        <div
-                            class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-                            data-program-card-grid
-                        >
-                            {groupPrograms.map((program, index) => (
-                                <ProgramOfferCard program={program} index={index} />
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </>
     ) : (
-        <div
-            class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-            data-program-card-grid
-        >
-            {programs.map((program, index) => (
-                <ProgramOfferCard program={program} index={index} />
-            ))}
-        </div>
+        <>
+            {useGroups && sectionGroups ? (
+                <>
+                    {sectionGroups.map((group) => {
+                        const groupPrograms = activePrograms.filter((p) =>
+                            group.niveles.includes(
+                                p.data.nivel as ProgramaNivel,
+                            ),
+                        );
+                        if (groupPrograms.length === 0) return null;
+                        return (
+                            <div class="mt-10">
+                                <h2 class="text-3xl font-bold text-primary mb-6 font-serif">
+                                    {group.title}
+                                </h2>
+                                <div
+                                    class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                                    data-program-card-grid
+                                >
+                                    {groupPrograms.map((program, index) => (
+                                        <ProgramOfferCard
+                                            program={program}
+                                            index={index}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </>
+            ) : activePrograms.length > 0 ? (
+                <div
+                    class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                    data-program-card-grid
+                >
+                    {activePrograms.map((program, index) => (
+                        <ProgramOfferCard program={program} index={index} />
+                    ))}
+                </div>
+            ) : null}
+
+            {upcomingPrograms.length > 0 ? (
+                <div class="mt-16">
+                    <div class="mb-6">
+                        <span class="text-secondary font-bold tracking-wider uppercase text-sm">
+                            Próximamente
+                        </span>
+                        <h2 class="text-3xl font-bold text-primary mt-2 font-serif">
+                            Oferta académica en preparación
+                        </h2>
+                    </div>
+                    <div
+                        class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        data-program-card-grid
+                    >
+                        {upcomingPrograms.map((program, index) => (
+                            <ProgramOfferCard program={program} index={index} />
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+        </>
     )
 }
 
@@ -103,16 +144,16 @@ const useGroups =
         );
 
         grids.forEach((grid) => {
-            grid
-                .querySelectorAll<HTMLElement>("[data-program-card-title]")
-                .forEach((el) => {
-                    el.style.minHeight = "";
-                });
-            grid
-                .querySelectorAll<HTMLElement>("[data-program-card-excerpt]")
-                .forEach((el) => {
-                    el.style.minHeight = "";
-                });
+            grid.querySelectorAll<HTMLElement>(
+                "[data-program-card-title]",
+            ).forEach((el) => {
+                el.style.minHeight = "";
+            });
+            grid.querySelectorAll<HTMLElement>(
+                "[data-program-card-excerpt]",
+            ).forEach((el) => {
+                el.style.minHeight = "";
+            });
         });
 
         grids.forEach((grid) => {

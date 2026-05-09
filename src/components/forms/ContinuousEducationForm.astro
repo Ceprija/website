@@ -17,6 +17,7 @@ interface Props {
     };
     /** Varias opciones de pago (inscripción, paquete, cuotas): el usuario elige antes de Stripe. */
     paymentOptions?: PaymentOption[];
+    modalidad?: string;
     address?: string;
     requiresVerification?: boolean;
     /** Cuando el formulario va dentro de ProgramEnrollmentAsideCard (evita doble “card”). */
@@ -29,6 +30,7 @@ const {
     stripePriceIds,
     prices,
     paymentOptions: paymentOptionsProp,
+    modalidad = "",
     address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
     requiresVerification = false,
     embedInAsideCard = false,
@@ -36,8 +38,17 @@ const {
 
 const paymentOptions = paymentOptionsProp ?? [];
 const showPaymentPlanChoice = paymentOptions.length > 1;
+const inPersonModalityLabel = /h[ií]brida|h[ií]brido/i.test(modalidad)
+    ? "Híbrida"
+    : "Presencial";
+const inPersonModalityHint =
+    inPersonModalityLabel === "Híbrida"
+        ? "Asistencia en aula y/o en línea"
+        : "Asistencia en aula";
 
-const outerClass = embedInAsideCard ? "w-full" : "max-w-4xl mx-auto overflow-visible";
+const outerClass = embedInAsideCard
+    ? "w-full"
+    : "max-w-4xl mx-auto overflow-visible";
 const formSurfaceClass = embedInAsideCard
     ? "bg-transparent border-0 shadow-none rounded-none overflow-visible"
     : "bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-visible";
@@ -97,9 +108,24 @@ const formFooterClass = embedInAsideCard
             id="form-program-title"
             value={programTitle}
         />
-        <input type="hidden" name="paymentMethod" id="payment-method" value="stripe" />
-        <input type="hidden" name="wireReference" id="wire-reference" value="" />
-        <input type="hidden" name="enrollmentSessionId" id="ce-enrollment-session-id" value="" />
+        <input
+            type="hidden"
+            name="paymentMethod"
+            id="payment-method"
+            value="stripe"
+        />
+        <input
+            type="hidden"
+            name="wireReference"
+            id="wire-reference"
+            value=""
+        />
+        <input
+            type="hidden"
+            name="enrollmentSessionId"
+            id="ce-enrollment-session-id"
+            value=""
+        />
 
         <!-- SECCIÓN 1: DATOS PERSONALES -->
         <div class="step-section p-8 md:p-12" id="step-1">
@@ -174,14 +200,21 @@ const formFooterClass = embedInAsideCard
                         required
                         placeholder="tu@correo.com"
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                        autocomplete="email"
                     />
+                    <p class="mt-1.5 text-xs text-gray-500 leading-snug">
+                        Usa un correo que revises con frecuencia: será el medio
+                        oficial para acceso a clases y enlaces de reuniones.
+                    </p>
                 </div>
 
                 <div class="col-span-1 md:col-span-2" id="modality-section">
-                    {/*
+                    {
+                        /*
                       Modalidad: value Presencial | En línea — alineado con
                       src/lib/validation/enrollment.ts (normalizeWireModality).
-                    */}
+                    */
+                    }
                     <label
                         class="block text-sm font-semibold text-gray-700 mb-3"
                         >Modalidad *</label
@@ -200,10 +233,10 @@ const formFooterClass = embedInAsideCard
                             />
                             <div class="flex flex-col">
                                 <span class="font-bold text-gray-900"
-                                    >Presencial</span
+                                    >{inPersonModalityLabel}</span
                                 >
                                 <span class="text-xs text-gray-500"
-                                    >Asistencia en aula</span
+                                    >{inPersonModalityHint}</span
                                 >
                             </div>
                         </label>
@@ -399,7 +432,8 @@ const formFooterClass = embedInAsideCard
                     <div class="space-y-2 text-xs text-gray-600">
                         <div class="flex items-center justify-between gap-3">
                             <p class="truncate">
-                                <strong>Banco:</strong> {bankInfo.bankName}
+                                <strong>Banco:</strong>
+                                {bankInfo.bankName}
                             </p>
                             <button
                                 type="button"
@@ -411,7 +445,8 @@ const formFooterClass = embedInAsideCard
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <p class="truncate">
-                                <strong>Titular:</strong> {bankInfo.accountHolder}
+                                <strong>Titular:</strong>
+                                {bankInfo.accountHolder}
                             </p>
                             <button
                                 type="button"
@@ -423,7 +458,8 @@ const formFooterClass = embedInAsideCard
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <p class="truncate">
-                                <strong>No. Cuenta:</strong> {bankInfo.accountNumber}
+                                <strong>No. Cuenta:</strong>
+                                {bankInfo.accountNumber}
                             </p>
                             <button
                                 type="button"
@@ -435,7 +471,8 @@ const formFooterClass = embedInAsideCard
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <p class="truncate">
-                                <strong>CLABE:</strong> {bankInfo.clabe}
+                                <strong>CLABE:</strong>
+                                {bankInfo.clabe}
                             </p>
                             <button
                                 type="button"
@@ -445,20 +482,23 @@ const formFooterClass = embedInAsideCard
                                 Copiar
                             </button>
                         </div>
-                        {bankInfo.swiftCode && (
-                            <div class="flex items-center justify-between gap-3">
-                                <p class="truncate">
-                                    <strong>SWIFT:</strong> {bankInfo.swiftCode}
-                                </p>
-                                <button
-                                    type="button"
-                                    class="text-primary font-bold hover:underline"
-                                    data-copy={bankInfo.swiftCode}
-                                >
-                                    Copiar
-                                </button>
-                            </div>
-                        )}
+                        {
+                            bankInfo.swiftCode && (
+                                <div class="flex items-center justify-between gap-3">
+                                    <p class="truncate">
+                                        <strong>SWIFT:</strong>{" "}
+                                        {bankInfo.swiftCode}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="text-primary font-bold hover:underline"
+                                        data-copy={bankInfo.swiftCode}
+                                    >
+                                        Copiar
+                                    </button>
+                                </div>
+                            )
+                        }
                         <div class="pt-3 mt-3 border-t border-gray-200">
                             <p class="text-xs text-gray-600">
                                 <strong>Referencia:</strong>
@@ -490,16 +530,28 @@ const formFooterClass = embedInAsideCard
                         <h4 class="text-xl font-bold">Proceder al Pago</h4>
                     </div>
                     <p class="text-gray-600 mb-6 leading-relaxed">
-                        Serás redirigido a Stripe para completar tu pago de forma segura. 
-                        Tu información está protegida con encriptación de nivel bancario.
+                        Serás redirigido a Stripe para completar tu pago de
+                        forma segura. Tu información está protegida con
+                        encriptación de nivel bancario.
                     </p>
                     <button
                         type="button"
                         id="stripe-checkout-btn"
                         class="w-full bg-primary text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                            ></path>
                         </svg>
                         <span>Continuar al Pago Seguro →</span>
                     </button>
@@ -547,10 +599,15 @@ const formFooterClass = embedInAsideCard
 
             <!-- Wire proof upload (required when wire selected) -->
             <div id="wire-proof-section" class="hidden">
-                <div class="p-6 bg-white rounded-2xl border border-gray-200 mb-10">
-                    <h4 class="font-bold text-gray-900 mb-2">Comprobante de pago</h4>
+                <div
+                    class="p-6 bg-white rounded-2xl border border-gray-200 mb-10"
+                >
+                    <h4 class="font-bold text-gray-900 mb-2">
+                        Comprobante de pago
+                    </h4>
                     <p class="text-xs text-gray-600 mb-4">
-                        Sube tu comprobante de transferencia. Tu pago quedará en revisión.
+                        Sube tu comprobante de transferencia. Tu pago quedará en
+                        revisión.
                     </p>
                     <input
                         type="file"
@@ -602,68 +659,68 @@ const formFooterClass = embedInAsideCard
                     class="p-4 bg-white rounded-xl border border-gray-200 space-y-4"
                 >
                     <p class="text-xs text-gray-600">
-                        Sube tu <strong>CSF</strong> (constancia de situación
-                        fiscal) y el correo para facturación.
+                        Sube tu <strong>CSF</strong> (constancia de situación fiscal)
+                        y el correo para facturación.
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label
-                            class="block text-sm font-semibold text-gray-700 mb-2"
-                            >Constancia de Situación Fiscal *</label
-                        >
-                        <div class="relative group">
-                            <input
-                                type="file"
-                                id="csf-input"
-                                name="fiscalConstancy"
-                                accept=".pdf,image/*"
-                                class="hidden"
-                            />
+                        <div>
                             <label
-                                for="csf-input"
-                                class="flex items-center gap-3 px-4 py-3 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all group-hover:border-primary"
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                                >Constancia de Situación Fiscal *</label
                             >
-                                <div
-                                    class="bg-primary text-white p-2 rounded-lg"
+                            <div class="relative group">
+                                <input
+                                    type="file"
+                                    id="csf-input"
+                                    name="fiscalConstancy"
+                                    accept=".pdf,image/*"
+                                    class="hidden"
+                                />
+                                <label
+                                    for="csf-input"
+                                    class="flex items-center gap-3 px-4 py-3 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all group-hover:border-primary"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
+                                    <div
+                                        class="bg-primary text-white p-2 rounded-lg"
                                     >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                                        ></path>
-                                    </svg>
-                                </div>
-                                <span
-                                    class="text-sm font-bold text-gray-600 truncate"
-                                    id="csf-file-label">Subir CSF</span
-                                >
-                            </label>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                            ></path>
+                                        </svg>
+                                    </div>
+                                    <span
+                                        class="text-sm font-bold text-gray-600 truncate"
+                                        id="csf-file-label">Subir CSF</span
+                                    >
+                                </label>
+                            </div>
                         </div>
-                    </div>
 
-                    <div>
-                        <label
-                            class="block text-sm font-semibold text-gray-700 mb-2"
-                            >Correo para recibir factura *</label
-                        >
-                        <input
-                            type="email"
-                            name="invoiceEmail"
-                            placeholder="correo@facturacion.com"
-                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
-                        />
+                        <div>
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                                >Correo para recibir factura *</label
+                            >
+                            <input
+                                type="email"
+                                name="invoiceEmail"
+                                placeholder="correo@facturacion.com"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         </div>
 
         <!-- SECCIÓN 3: DECLARACIÓN Y ENVÍO -->
@@ -809,9 +866,11 @@ const formFooterClass = embedInAsideCard
         validateStepSection,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
-    import { wireReferenceFromSessionId } from "@lib/wireReference";
+    import { buildWireReferenceFromApplicant } from "@lib/wireReference";
 
-    const form = document.getElementById("ce-inscription-form") as HTMLFormElement | null;
+    const form = document.getElementById(
+        "ce-inscription-form",
+    ) as HTMLFormElement | null;
     const enrollmentSessionIdEl = form?.querySelector(
         "#ce-enrollment-session-id",
     ) as HTMLInputElement | null;
@@ -820,18 +879,32 @@ const formFooterClass = embedInAsideCard
     }
     // Wrapper = parent of <form> (stepper header + form live in the same root).
     const outer = form?.parentElement ?? null;
-    const progress = outer?.querySelector("#progress-bar") as HTMLElement | null;
+    const progress = outer?.querySelector(
+        "#progress-bar",
+    ) as HTMLElement | null;
     const stepLabel = outer?.querySelector("#step-label") as HTMLElement | null;
-    const stepNumberLabel = outer?.querySelector("#step-number") as HTMLElement | null;
+    const stepNumberLabel = outer?.querySelector(
+        "#step-number",
+    ) as HTMLElement | null;
     const sections = form?.querySelectorAll<HTMLElement>(".step-section") ?? [];
-    const prevBtn = form?.querySelector("#prev-btn") as HTMLButtonElement | null;
-    const nextBtn = form?.querySelector("#next-btn") as HTMLButtonElement | null;
-    const submitBtn = form?.querySelector("#submit-btn") as HTMLButtonElement | null;
-    const successMsg = outer?.querySelector("#success-msg") as HTMLElement | null;
+    const prevBtn = form?.querySelector(
+        "#prev-btn",
+    ) as HTMLButtonElement | null;
+    const nextBtn = form?.querySelector(
+        "#next-btn",
+    ) as HTMLButtonElement | null;
+    const submitBtn = form?.querySelector(
+        "#submit-btn",
+    ) as HTMLButtonElement | null;
+    const successMsg = outer?.querySelector(
+        "#success-msg",
+    ) as HTMLElement | null;
 
     // Facturación Logic
     const invoiceRadios =
-        form?.querySelectorAll<HTMLInputElement>('input[name="requiresInvoice"]') ?? [];
+        form?.querySelectorAll<HTMLInputElement>(
+            'input[name="requiresInvoice"]',
+        ) ?? [];
     const invoiceFields = form?.querySelector("#invoice-fields");
     const fiscalInputs =
         invoiceFields?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
@@ -840,7 +913,9 @@ const formFooterClass = embedInAsideCard
 
     // Modality selection
     const paymentMethodRadios =
-        form?.querySelectorAll<HTMLInputElement>('input[name="paymentMethodChoice"]') ?? [];
+        form?.querySelectorAll<HTMLInputElement>(
+            'input[name="paymentMethodChoice"]',
+        ) ?? [];
     const paymentMethodHidden = form?.querySelector(
         "#payment-method",
     ) as HTMLInputElement | null;
@@ -857,23 +932,37 @@ const formFooterClass = embedInAsideCard
 
     // Modality UI: some programs encode modality as `paymentOptions` (e.g. "Presencial" vs "Online")
     // with distinct Stripe price IDs. In that case, we must not ask for modality twice.
-    const modalitySection = form?.querySelector("#modality-section") as HTMLElement | null;
+    const modalitySection = form?.querySelector(
+        "#modality-section",
+    ) as HTMLElement | null;
     const modalityRadios =
-        form?.querySelectorAll<HTMLInputElement>('input[name="modality"]') ?? [];
+        form?.querySelectorAll<HTMLInputElement>('input[name="modality"]') ??
+        [];
     const paymentPlanSection = form?.querySelector(
         "#payment-plan-section",
     ) as HTMLElement | null;
     const paymentPlanRadios = Array.from(
-        form?.querySelectorAll<HTMLInputElement>('input[name="paymentPlan"]') ?? [],
+        form?.querySelectorAll<HTMLInputElement>('input[name="paymentPlan"]') ??
+            [],
     );
 
-    function paymentOptionsLookLikeModalityChoices(opts: PaymentOptionRow[]): boolean {
-        if (opts.length < 1) return false;
+    function paymentOptionsLookLikeModalityChoices(
+        opts: PaymentOptionRow[],
+    ): boolean {
+        if (opts.length < 2) return false;
         const ids = new Set(opts.map((o) => String(o.id).toLowerCase()));
         const labels = new Set(opts.map((o) => String(o.label).toLowerCase()));
-        const allowed = new Set(["presencial", "online", "en línea", "en linea"]);
+        const allowed = new Set([
+            "presencial",
+            "online",
+            "en línea",
+            "en linea",
+        ]);
         // If every option is clearly a modality choice, treat it as such.
-        return [...ids].every((id) => allowed.has(id)) || [...labels].every((l) => allowed.has(l));
+        return (
+            [...ids].every((id) => allowed.has(id)) ||
+            [...labels].every((l) => allowed.has(l))
+        );
     }
 
     function setModalityValue(value: "Presencial" | "En línea") {
@@ -888,7 +977,9 @@ const formFooterClass = embedInAsideCard
             try {
                 const raw = form?.dataset.prices ?? "{}";
                 const parsed = JSON.parse(raw === "null" ? "{}" : raw);
-                return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+                return parsed && typeof parsed === "object"
+                    ? (parsed as Record<string, unknown>)
+                    : {};
             } catch {
                 return {};
             }
@@ -905,14 +996,20 @@ const formFooterClass = embedInAsideCard
             paymentPlanRadios.forEach((r) => (r.required = false));
 
             const selectedModality = (
-                form?.querySelector('input[name="modality"]:checked') as HTMLInputElement | null
+                form?.querySelector(
+                    'input[name="modality"]:checked',
+                ) as HTMLInputElement | null
             )?.value;
-            const normalized = String(selectedModality ?? "Presencial").toLowerCase();
-            const want = normalized.includes("línea") || normalized.includes("linea")
-                ? "online"
-                : "presencial";
+            const normalized = String(
+                selectedModality ?? "Presencial",
+            ).toLowerCase();
+            const want =
+                normalized.includes("línea") || normalized.includes("linea")
+                    ? "online"
+                    : "presencial";
             const plan = paymentPlanRadios.find(
-                (radio: HTMLInputElement) => String(radio.value).toLowerCase() === want,
+                (radio: HTMLInputElement) =>
+                    String(radio.value).toLowerCase() === want,
             );
             if (plan) plan.checked = true;
             return;
@@ -922,10 +1019,10 @@ const formFooterClass = embedInAsideCard
         const hasOnline =
             typeof (prices as any).Online === "string" ||
             typeof (prices as any)["En línea"] === "string" ||
-            typeof (readStripePriceIdsFromForm().online) === "string";
+            typeof readStripePriceIdsFromForm().online === "string";
         const hasPresencial =
             typeof (prices as any).Presencial === "string" ||
-            typeof (readStripePriceIdsFromForm().presencial) === "string";
+            typeof readStripePriceIdsFromForm().presencial === "string";
 
         if (hasOnline !== hasPresencial) {
             modalitySection?.classList.add("hidden");
@@ -958,7 +1055,11 @@ const formFooterClass = embedInAsideCard
         // Stripe flow completes on `/pago-exitoso` after redirect, so we only
         // show 2 steps in the UI. Wire transfer requires the final step (proof).
         return selectedPaymentMethod() === "wire"
-            ? ["Datos del Participante", "Método de Pago", "Finalizar Inscripción"]
+            ? [
+                  "Datos del Participante",
+                  "Método de Pago",
+                  "Finalizar Inscripción",
+              ]
             : ["Datos del Participante", "Pago en línea (Stripe)"];
     }
 
@@ -1078,7 +1179,11 @@ const formFooterClass = embedInAsideCard
         try {
             const raw = form?.dataset.stripePriceIds ?? "{}";
             const parsed = JSON.parse(raw === "null" ? "{}" : raw);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            if (
+                parsed &&
+                typeof parsed === "object" &&
+                !Array.isArray(parsed)
+            ) {
                 return parsed as Record<string, string>;
             }
         } catch {
@@ -1126,7 +1231,10 @@ const formFooterClass = embedInAsideCard
                         .includes("linea")
                         ? "online"
                         : "presencial";
-                return opts.find((o) => String(o.id).toLowerCase() === want)?.stripePriceId ?? null;
+                return (
+                    opts.find((o) => String(o.id).toLowerCase() === want)
+                        ?.stripePriceId ?? null
+                );
             }
 
             const selected = (
@@ -1146,8 +1254,8 @@ const formFooterClass = embedInAsideCard
         if (!modality) return null;
         const stripePriceIds = readStripePriceIdsFromForm();
         return modality === "Presencial"
-            ? stripePriceIds.presencial ?? null
-            : stripePriceIds.online ?? null;
+            ? (stripePriceIds.presencial ?? null)
+            : (stripePriceIds.online ?? null);
     }
 
     stripeCheckoutBtn?.addEventListener("click", async () => {
@@ -1190,8 +1298,7 @@ const formFooterClass = embedInAsideCard
         }
 
         const priceOk =
-            typeof priceId === "string" &&
-            /^price_[a-zA-Z0-9]+$/.test(priceId);
+            typeof priceId === "string" && /^price_[a-zA-Z0-9]+$/.test(priceId);
         if (!priceOk) {
             alert(
                 "Este programa no tiene un Price ID de Stripe válido. Crea precios en el Dashboard de Stripe y agrégalos al archivo del programa en content/programas (stripePriceIds).",
@@ -1210,7 +1317,10 @@ const formFooterClass = embedInAsideCard
                 reportStepValidationFailure(title, stepResult);
                 currentStep = s + 1;
                 updateStep();
-                window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+                window.scrollTo({
+                    top: form.offsetTop - 100,
+                    behavior: "smooth",
+                });
                 return;
             }
         }
@@ -1229,16 +1339,22 @@ const formFooterClass = embedInAsideCard
                 ) as HTMLInputElement | null
             )?.value === "Sí";
         const invoiceEmail = String(formData.get("invoiceEmail") ?? "").trim();
-        const csfInput = form.querySelector("#csf-input") as HTMLInputElement | null;
+        const csfInput = form.querySelector(
+            "#csf-input",
+        ) as HTMLInputElement | null;
 
         if (needsInvoice) {
             if (!invoiceEmail) {
-                alert("Indicaste que requieres factura: escribe el correo para factura.");
+                alert(
+                    "Indicaste que requieres factura: escribe el correo para factura.",
+                );
                 return;
             }
             const f = csfInput?.files?.[0];
             if (!f) {
-                alert("Indicaste que requieres factura: adjunta tu CSF (PDF o imagen).");
+                alert(
+                    "Indicaste que requieres factura: adjunta tu CSF (PDF o imagen).",
+                );
                 return;
             }
         }
@@ -1274,20 +1390,23 @@ const formFooterClass = embedInAsideCard
                 }
             }
 
-            const response = await fetch("/api/stripe/create-checkout-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    priceId,
-                    customerEmail: email,
-                    programSlug,
-                    participantName,
-                    participantPhone,
-                    modality,
-                    requiresInvoice: needsInvoice ? "Sí" : "No",
-                    invoiceEmail: needsInvoice ? invoiceEmail : "",
-                })
-            });
+            const response = await fetch(
+                "/api/stripe/create-checkout-session",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        priceId,
+                        customerEmail: email,
+                        programSlug,
+                        participantName,
+                        participantPhone,
+                        modality,
+                        requiresInvoice: needsInvoice ? "Sí" : "No",
+                        invoiceEmail: needsInvoice ? invoiceEmail : "",
+                    }),
+                },
+            );
 
             const data = await response.json();
             if (data.url) {
@@ -1311,7 +1430,9 @@ const formFooterClass = embedInAsideCard
 
     // When modality is encoded as paymentOptions (e.g. presencial vs online),
     // keep the hidden `modality` radios in sync with that selection.
-    form?.querySelectorAll<HTMLInputElement>('input[name="paymentPlan"]').forEach((r) =>
+    form?.querySelectorAll<HTMLInputElement>(
+        'input[name="paymentPlan"]',
+    ).forEach((r) =>
         r.addEventListener("change", () => {
             ensureModalityIsSingleSourceOfTruth();
         }),
@@ -1324,8 +1445,23 @@ const formFooterClass = embedInAsideCard
     );
 
     function generateWireReference() {
-        const sid = enrollmentSessionIdEl?.value?.trim();
-        if (sid) return wireReferenceFromSessionId(sid);
+        const title = String(
+            (
+                document.getElementById(
+                    "form-program-title",
+                ) as HTMLInputElement | null
+            )?.value ?? "",
+        ).trim();
+        const name = String(
+            (
+                form?.querySelector(
+                    'input[name="name"]',
+                ) as HTMLInputElement | null
+            )?.value ?? "",
+        ).trim();
+        if (title && name) {
+            return buildWireReferenceFromApplicant(title, name, "");
+        }
         return "CEPRIJA-PENDING";
     }
 
@@ -1425,7 +1561,10 @@ const formFooterClass = embedInAsideCard
                 updateStep();
                 const title = `Paso ${i + 1} de ${totalSteps}: ${stepNames[i]}`;
                 reportStepValidationFailure(title, r);
-                window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
+                window.scrollTo({
+                    top: form.offsetTop - 100,
+                    behavior: "smooth",
+                });
                 return;
             }
         }
@@ -1463,7 +1602,10 @@ const formFooterClass = embedInAsideCard
                     ? "/api/payments/wire-proof"
                     : "/api/educacion-continua-inscription";
 
-            const response = await fetch(endpoint, { method: "POST", body: formData });
+            const response = await fetch(endpoint, {
+                method: "POST",
+                body: formData,
+            });
 
             if (response.ok) {
                 form.classList.add("hidden");

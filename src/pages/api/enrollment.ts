@@ -25,7 +25,12 @@ import type { ProgramaNivel } from "@lib/programNiveles";
 import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
 import { programIsPublished } from "@lib/programPublished";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
-import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB, KEY_API_BREVO } from "astro:env/server";
+import {
+  EMAIL_CONTROL_ESCOLAR,
+  EMAIL_SOPORTE_WEB,
+  KEY_API_BREVO,
+  NOTIFY_CONTROL_ESCOLAR_ENROLLMENT,
+} from "astro:env/server";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
@@ -38,6 +43,12 @@ const MAX_DEGREE_ENTRIES = 10;
  */
 const MAX_ENROLLMENT_FILES = 1 + MAX_DEGREE_ENTRIES * 2;
 const MAX_ENROLLMENT_FILES_TALLER_ONLY = 1;
+
+function shouldNotifyControlEscolarOnEnrollment(): boolean {
+  const raw = (NOTIFY_CONTROL_ESCOLAR_ENROLLMENT ?? "").trim().toLowerCase();
+  if (raw === "false" || raw === "0" || raw === "no") return false;
+  return true;
+}
 
 type UploadedFile = {
   fieldname: string;
@@ -603,10 +614,19 @@ export const POST: APIRoute = async ({ request }) => {
         }, 503, requestId, programSlug);
     }
 
-    const adminRecipients = [
-      { email: controlEscolar },
-      ...(senderEmail !== controlEscolar ? [{ email: senderEmail }] : []),
-    ];
+    const adminRecipients: { email: string }[] = [];
+    if (shouldNotifyControlEscolarOnEnrollment()) {
+      adminRecipients.push({ email: controlEscolar });
+    }
+    if (
+      senderEmail &&
+      !adminRecipients.some((r) => r.email.toLowerCase() === senderEmail.toLowerCase())
+    ) {
+      adminRecipients.push({ email: senderEmail });
+    }
+    if (adminRecipients.length === 0) {
+      adminRecipients.push({ email: senderEmail || controlEscolar });
+    }
 
     // Prepare email content with escaped values (use sanitized strings)
     const safeNombre = escapeHtml(nombreS);
@@ -749,6 +769,24 @@ export const POST: APIRoute = async ({ request }) => {
       console.error("[enrollment] Brevo admin error:", adminRes.status, await adminRes.text());
     }
 
+    const applicationOnlyNivel =
+      nivel === "maestria" || nivel === "especialidad" || nivel === "doctorado";
+    const proximosPasosOl = applicationOnlyNivel
+      ? `
+          <ol>
+            <li>Nuestro equipo revisará su solicitud y documentos en las próximas <strong>48-72 horas</strong>.</li>
+            <li>Le contactaremos por correo electrónico con el resultado de la evaluación y, en su caso, las indicaciones para completar su inscripción.</li>
+            <li>El proceso de pago y formalización se coordina con CEPRIJA después de la revisión de su expediente; <strong>no debe realizar pago en línea al enviar esta solicitud</strong>.</li>
+          </ol>
+        `
+      : `
+          <ol>
+            <li>Nuestro equipo revisará su solicitud y documentos en las próximas <strong>48-72 horas</strong>.</li>
+            <li>Le contactaremos por correo electrónico con el resultado de la evaluación.</li>
+            <li>Si es aceptado, recibirá instrucciones para completar su inscripción y realizar el pago correspondiente.</li>
+          </ol>
+        `;
+
     // User confirmation email
     const userHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -770,11 +808,7 @@ export const POST: APIRoute = async ({ request }) => {
           </div>
           
           <h3 style="color: #003d82;">Próximos Pasos</h3>
-          <ol>
-            <li>Nuestro equipo revisará su solicitud y documentos en las próximas <strong>48-72 horas</strong>.</li>
-            <li>Le contactaremos por correo electrónico con el resultado de la evaluación.</li>
-            <li>Si es aceptado, recibirá instrucciones para completar su inscripción y realizar el pago correspondiente.</li>
-          </ol>
+          ${proximosPasosOl}
           
           <p>Si tiene alguna pregunta, no dude en contactarnos:</p>
           <p>📧 Email: ${escapeHtml(controlEscolar)}<br>

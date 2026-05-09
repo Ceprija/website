@@ -39,14 +39,31 @@ const programSlug = getProgramPathSlug(program);
 
 const rawStripe = program.data.stripePriceIds;
 const stripePriceIdsForClient =
-    rawStripe &&
-    typeof rawStripe === "object" &&
-    !Array.isArray(rawStripe)
+    rawStripe && typeof rawStripe === "object" && !Array.isArray(rawStripe)
         ? rawStripe
         : null;
 
 const variantOptions = getVariantOptions(program);
 const hasVariantStep = variantOptions !== null;
+const variantModuleOptions = variantOptions?.moduleSelection?.options ?? [];
+const variantHasConfiguredPrices = variantModuleOptions.some(
+    (option) => !!option.stripePriceIds,
+);
+const showPresencialModality = variantHasConfiguredPrices
+    ? variantModuleOptions.some((option) => !!option.stripePriceIds?.presencial)
+    : true;
+const showOnlineModality = variantHasConfiguredPrices
+    ? variantModuleOptions.some((option) => !!option.stripePriceIds?.online)
+    : true;
+const defaultModality = showPresencialModality ? "Presencial" : "En línea";
+const programModalityText = String(program.data.modalidad ?? "");
+const inPersonModalityLabel = /h[ií]brida|h[ií]brido/i.test(programModalityText)
+    ? "Híbrida"
+    : "Presencial";
+const inPersonModalityHint =
+    inPersonModalityLabel === "Híbrida"
+        ? "Asistencia en aula y/o en línea"
+        : "Asistencia en aula";
 
 // Multi-degree scaffolding: `initialDegrees` is the minimum list the form should
 // render (e.g. 1 Licenciatura for Maestría/Especialidad, Licenciatura + Maestría
@@ -56,7 +73,9 @@ const hasVariantStep = variantOptions !== null;
 const programNivel = program.data.nivel;
 const requiresDegreeSteps = requiresAcademicDegreeSteps(programNivel);
 const requiresExtendedProfile = requiresExtendedApplicantProfile(programNivel);
-const initialDegrees = requiresDegreeSteps ? getInitialDegreesForNivel(programNivel) : [];
+const initialDegrees = requiresDegreeSteps
+    ? getInitialDegreesForNivel(programNivel)
+    : [];
 
 // Extended profile splits into 4 sub-steps (personal, address, emergency, health)
 // for maestría/doctorado/especialidad to mirror the historical inscription form.
@@ -177,11 +196,14 @@ const seo = {
                             `Paso 1 de ${stepCount}: ${hasVariantStep ? "Opciones del programa" : "Información Personal"}`
                         }
                     </h2>
-                    <span class="text-sm font-semibold text-gray-500" id="step-number"
-                        >{firstStepPct}% completado</span
+                    <span
+                        class="text-sm font-semibold text-gray-500"
+                        id="step-number">{firstStepPct}% completado</span
                     >
                 </div>
-                <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                <div
+                    class="w-full bg-gray-100 h-3 rounded-full overflow-hidden"
+                >
                     <div
                         id="progress-bar"
                         class="bg-secondary h-full transition-all duration-500 ease-out shadow-sm"
@@ -202,14 +224,20 @@ const seo = {
                 data-stripe-price-ids={JSON.stringify(stripePriceIdsForClient)}
                 data-has-variant-step={hasVariantStep ? "1" : "0"}
                 data-requires-degree-steps={requiresDegreeSteps ? "1" : "0"}
-                data-requires-extended-profile={requiresExtendedProfile ? "1" : "0"}
-                data-variant-options={
-                    hasVariantStep ? JSON.stringify(variantOptions) : ""
-                }
+                data-requires-extended-profile={requiresExtendedProfile
+                    ? "1"
+                    : "0"}
+                data-variant-options={hasVariantStep
+                    ? JSON.stringify(variantOptions)
+                    : ""}
             >
                 <!-- Hidden fields -->
                 <input type="hidden" name="programSlug" value={programSlug} />
-                <input type="hidden" name="programTitle" value={String(program.data.title)} />
+                <input
+                    type="hidden"
+                    name="programTitle"
+                    value={String(program.data.title)}
+                />
 
                 {
                     hasVariantStep && variantOptions && (
@@ -245,13 +273,18 @@ const seo = {
                             </svg>
                         </div>
                         <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Complete su información personal para iniciar el proceso de admisión.
+                            Complete su información personal para iniciar el
+                            proceso de admisión.
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto"
+                    >
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Nombre(s) *
                             </label>
                             <input
@@ -264,7 +297,9 @@ const seo = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Apellidos *
                             </label>
                             <input
@@ -277,7 +312,9 @@ const seo = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Correo Electrónico *
                             </label>
                             <input
@@ -286,11 +323,21 @@ const seo = {
                                 required
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                 placeholder="tu@email.com"
+                                autocomplete="email"
                             />
+                            <p
+                                class="mt-1.5 text-xs text-gray-500 leading-snug"
+                            >
+                                Este correo será el que uses para conectarte a
+                                clases y reuniones en línea; revisa que esté
+                                bien escrito.
+                            </p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Teléfono / WhatsApp *
                             </label>
                             <input
@@ -303,37 +350,61 @@ const seo = {
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Modalidad de Estudio *
                             </label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50">
-                                    <input
-                                        type="radio"
-                                        name="modality"
-                                        value="Presencial"
-                                        required
-                                        checked
-                                        class="w-5 h-5 text-primary focus:ring-primary"
-                                    />
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-gray-900">Presencial</span>
-                                        <span class="text-xs text-gray-500">Asistencia en campus</span>
-                                    </div>
-                                </label>
-                                <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50">
-                                    <input
-                                        type="radio"
-                                        name="modality"
-                                        value="En línea"
-                                        required
-                                        class="w-5 h-5 text-primary focus:ring-primary"
-                                    />
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-gray-900">En línea</span>
-                                        <span class="text-xs text-gray-500">Vía videoconferencia</span>
-                                    </div>
-                                </label>
+                                {
+                                    showPresencialModality && (
+                                        <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50">
+                                            <input
+                                                type="radio"
+                                                name="modality"
+                                                value="Presencial"
+                                                required
+                                                checked={
+                                                    defaultModality ===
+                                                    "Presencial"
+                                                }
+                                                class="w-5 h-5 text-primary focus:ring-primary"
+                                            />
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-gray-900">
+                                                    {inPersonModalityLabel}
+                                                </span>
+                                                <span class="text-xs text-gray-500">
+                                                    {inPersonModalityHint}
+                                                </span>
+                                            </div>
+                                        </label>
+                                    )
+                                }
+                                {
+                                    showOnlineModality && (
+                                        <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50">
+                                            <input
+                                                type="radio"
+                                                name="modality"
+                                                value="En línea"
+                                                required
+                                                checked={
+                                                    defaultModality === "En línea"
+                                                }
+                                                class="w-5 h-5 text-primary focus:ring-primary"
+                                            />
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-gray-900">
+                                                    En línea
+                                                </span>
+                                                <span class="text-xs text-gray-500">
+                                                    Vía videoconferencia
+                                                </span>
+                                            </div>
+                                        </label>
+                                    )
+                                }
                             </div>
                         </div>
                     </div>
@@ -375,8 +446,8 @@ const seo = {
                                         </svg>
                                     </div>
                                     <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                                        Datos personales adicionales requeridos para tu
-                                        expediente académico.
+                                        Datos personales adicionales requeridos
+                                        para tu expediente académico.
                                     </p>
                                 </div>
 
@@ -390,7 +461,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {genres.map((g: string) => (
                                                 <option value={g}>{g}</option>
                                             ))}
@@ -440,7 +513,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {nationalities.map((n: string) => (
                                                 <option value={n}>{n}</option>
                                             ))}
@@ -456,7 +531,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {civilStates.map((s: string) => (
                                                 <option value={s}>{s}</option>
                                             ))}
@@ -472,7 +549,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {mexicanStates.map((s: string) => (
                                                 <option value={s}>{s}</option>
                                             ))}
@@ -502,7 +581,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {yesNo.map((v: string) => (
                                                 <option value={v}>{v}</option>
                                             ))}
@@ -518,7 +599,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {sources.map((s: string) => (
                                                 <option value={s}>{s}</option>
                                             ))}
@@ -573,8 +656,8 @@ const seo = {
                                         </svg>
                                     </div>
                                     <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                                        Tu dirección particular para envíos y notificaciones
-                                        oficiales.
+                                        Tu dirección particular para envíos y
+                                        notificaciones oficiales.
                                     </p>
                                 </div>
 
@@ -646,7 +729,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {mexicanStates.map((s: string) => (
                                                 <option value={s}>{s}</option>
                                             ))}
@@ -695,14 +780,16 @@ const seo = {
                                         </svg>
                                     </div>
                                     <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                                        Persona a contactar en caso de emergencia.
+                                        Persona a contactar en caso de
+                                        emergencia.
                                     </p>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                                     <div class="md:col-span-2">
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                            Contacto de emergencia (nombre completo) *
+                                            Contacto de emergencia (nombre
+                                            completo) *
                                         </label>
                                         <input
                                             type="text"
@@ -723,7 +810,9 @@ const seo = {
                                             required
                                             class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
                                         >
-                                            <option value="">Selecciona…</option>
+                                            <option value="">
+                                                Selecciona…
+                                            </option>
                                             {relatives.map((r: string) => (
                                                 <option value={r}>{r}</option>
                                             ))}
@@ -786,15 +875,17 @@ const seo = {
                                         </svg>
                                     </div>
                                     <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                                        Información de salud para fines administrativos y
-                                        de seguridad. Solo se usa internamente.
+                                        Información de salud para fines
+                                        administrativos y de seguridad. Solo se
+                                        usa internamente.
                                     </p>
                                 </div>
 
                                 <div class="space-y-5 max-w-4xl mx-auto">
                                     <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
                                         <label class="block font-semibold text-gray-800 mb-3">
-                                            ¿Presenta alguna capacidad diferente? *
+                                            ¿Presenta alguna capacidad
+                                            diferente? *
                                         </label>
                                         <div class="flex gap-6 mb-3">
                                             {yesNo.map((v: string) => (
@@ -881,7 +972,8 @@ const seo = {
 
                                     <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
                                         <label class="block font-semibold text-gray-800 mb-3">
-                                            ¿Está bajo tratamiento médico controlado? *
+                                            ¿Está bajo tratamiento médico
+                                            controlado? *
                                         </label>
                                         <div class="flex gap-6 mb-3">
                                             {yesNo.map((v: string) => (
@@ -931,95 +1023,98 @@ const seo = {
                 }
 
                 <!-- Step 2: Academic Background (dynamic multi-degree) -->
-                {requiresDegreeSteps && (
-                <div class="step-section p-8 md:p-12 hidden" id="step-2">
-                    <div class="mb-8 text-center">
+                {
+                    requiresDegreeSteps && (
                         <div
-                            class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary"
+                            class="step-section p-8 md:p-12 hidden"
+                            id="step-2"
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-8 w-8"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    d="M12 14l9-5-9-5-9 5 9 5z"></path>
-                                <path
-                                    d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
-                                ></path>
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
-                                ></path>
-                            </svg>
+                            <div class="mb-8 text-center">
+                                <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4 text-primary">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-8 w-8"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                                        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+                                        />
+                                    </svg>
+                                </div>
+                                <p class="text-gray-600 text-sm max-w-2xl mx-auto">
+                                    Agregue todos sus grados académicos
+                                    relevantes en orden cronológico.
+                                </p>
+                            </div>
+
+                            <div class="max-w-4xl mx-auto">
+                                <div
+                                    id="degree-requirements-info"
+                                    class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900"
+                                >
+                                    <p class="font-semibold mb-1">
+                                        Requisitos mínimos para este programa:
+                                    </p>
+                                    <ul
+                                        id="degree-requirements-list"
+                                        class="list-disc ml-5"
+                                    ></ul>
+                                </div>
+
+                                <div
+                                    id="degrees-container"
+                                    class="space-y-6"
+                                ></div>
+
+                                <button
+                                    type="button"
+                                    id="add-degree-btn"
+                                    class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-primary font-semibold rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-all"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 4v16m8-8H4"
+                                        />
+                                    </svg>
+                                    Agregar otro grado académico
+                                </button>
+                            </div>
+
+                            <div class="flex justify-between mt-8 max-w-4xl mx-auto">
+                                <button
+                                    type="button"
+                                    id="prev-step-2"
+                                    class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    type="button"
+                                    id="next-step-2"
+                                    class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
                         </div>
-                        <p class="text-gray-600 text-sm max-w-2xl mx-auto">
-                            Agregue todos sus grados académicos relevantes en orden cronológico.
-                        </p>
-                    </div>
-
-                    <div class="max-w-4xl mx-auto">
-                        <div
-                            id="degree-requirements-info"
-                            class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900"
-                        >
-                            <p class="font-semibold mb-1">
-                                Requisitos mínimos para este programa:
-                            </p>
-                            <ul
-                                id="degree-requirements-list"
-                                class="list-disc ml-5"
-                            >
-                            </ul>
-                        </div>
-
-                        <div id="degrees-container" class="space-y-6">
-                        </div>
-
-                        <button
-                            type="button"
-                            id="add-degree-btn"
-                            class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-primary font-semibold rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-all"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Agregar otro grado académico
-                        </button>
-                    </div>
-
-                    <div class="flex justify-between mt-8 max-w-4xl mx-auto">
-                        <button
-                            type="button"
-                            id="prev-step-2"
-                            class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
-                        >
-                            Anterior
-                        </button>
-                        <button
-                            type="button"
-                            id="next-step-2"
-                            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
-                        >
-                            Siguiente
-                        </button>
-                    </div>
-                </div>
-                )}
+                    )
+                }
 
                 <!--
                     Degree entry template: cloned by the client script for each
@@ -1035,9 +1130,12 @@ const seo = {
                         <div
                             class="flex items-center justify-between mb-4 gap-4"
                         >
-                            <h3 class="font-bold text-primary text-lg font-serif">
+                            <h3
+                                class="font-bold text-primary text-lg font-serif"
+                            >
                                 Grado académico <span
-                                    class="degree-entry-number">{"#{{POSITION}}"}</span
+                                    class="degree-entry-number"
+                                    >{"#{{POSITION}}"}</span
                                 >
                             </h3>
                             <button
@@ -1166,8 +1264,8 @@ const seo = {
                                     </>
                                 ) : (
                                     <>
-                                        Adjunte únicamente su curriculum vitae (CV)
-                                        en el formato indicado.
+                                        Adjunte únicamente su curriculum vitae
+                                        (CV) en el formato indicado.
                                     </>
                                 )
                             }
@@ -1176,10 +1274,14 @@ const seo = {
 
                     <div class="max-w-4xl mx-auto space-y-8">
                         <div>
-                            <h3 class="font-bold text-primary text-lg font-serif mb-3">
+                            <h3
+                                class="font-bold text-primary text-lg font-serif mb-3"
+                            >
                                 Documentos generales
                             </h3>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                class="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Curriculum Vitae (CV) *
                             </label>
                             <input
@@ -1190,7 +1292,8 @@ const seo = {
                                 class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                             />
                             <p class="text-xs text-gray-500 mt-1">
-                                Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                                Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10
+                                MB)
                             </p>
                         </div>
 
@@ -1198,7 +1301,11 @@ const seo = {
                         </div>
                     </div>
 
-                    <div id="form-status" class="hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto"></div>
+                    <div
+                        id="form-status"
+                        class="hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto"
+                    >
+                    </div>
 
                     <!--
                         Per-degree documents template: cloned once for every degree
@@ -1219,7 +1326,9 @@ const seo = {
 
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >
                                         Título Profesional *
                                     </label>
                                     <input
@@ -1230,12 +1339,15 @@ const seo = {
                                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                                     />
                                     <p class="text-xs text-gray-500 mt-1">
-                                        Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                                        Formatos aceptados: PDF, JPG, PNG, HEIC
+                                        (máx. 10 MB)
                                     </p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 mb-2"
+                                    >
                                         Cédula Profesional *
                                     </label>
                                     <input
@@ -1246,7 +1358,8 @@ const seo = {
                                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
                                     />
                                     <p class="text-xs text-gray-500 mt-1">
-                                        Formatos aceptados: PDF, JPG, PNG, HEIC (máx. 10 MB)
+                                        Formatos aceptados: PDF, JPG, PNG, HEIC
+                                        (máx. 10 MB)
                                     </p>
                                 </div>
                             </div>
@@ -1333,7 +1446,9 @@ const seo = {
                         id="post-submit-payment-section"
                         class="hidden text-left max-w-3xl mx-auto mb-8 w-full"
                     >
-                        <h3 class="font-bold text-primary font-serif text-lg mb-4 text-center">
+                        <h3
+                            class="font-bold text-primary font-serif text-lg mb-4 text-center"
+                        >
                             Elige cómo pagar (opcional)
                         </h3>
                         <p class="text-sm text-gray-600 mb-4 text-center">
@@ -1341,9 +1456,7 @@ const seo = {
                             solicitud.
                         </p>
 
-                        <div
-                            class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
-                        >
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <label
                                 id="post-pay-stripe-label"
                                 class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50"
@@ -1390,8 +1503,8 @@ const seo = {
                             class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4"
                         >
                             El pago con tarjeta no está disponible para esta
-                            modalidad. Usa transferencia o consulta la página del
-                            programa.
+                            modalidad. Usa transferencia o consulta la página
+                            del programa.
                         </p>
 
                         <div
@@ -1404,7 +1517,9 @@ const seo = {
                                 SAT; Stripe no sustituye ese trámite.
                             </p>
 
-                            <div class="p-4 bg-white rounded-xl border border-gray-100">
+                            <div
+                                class="p-4 bg-white rounded-xl border border-gray-100"
+                            >
                                 <label
                                     class="block text-sm font-bold text-primary mb-3"
                                     >¿Requiere factura? *</label
@@ -1441,9 +1556,8 @@ const seo = {
                                 class="hidden space-y-4 p-4 bg-white rounded-xl border border-gray-200"
                             >
                                 <p class="text-xs text-gray-600">
-                                    Sube tu <strong>CSF</strong> (constancia de
-                                    situación fiscal) para agilizar la
-                                    facturación tras el pago.
+                                    Sube tu <strong>CSF</strong> (constancia de situación
+                                    fiscal) para agilizar la facturación tras el pago.
                                 </p>
                                 <div
                                     class="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -1451,8 +1565,8 @@ const seo = {
                                     <div>
                                         <label
                                             class="block text-sm font-semibold text-gray-700 mb-2"
-                                            >Constancia de situación fiscal (CSF)
-                                            *</label
+                                            >Constancia de situación fiscal
+                                            (CSF) *</label
                                         >
                                         <input
                                             type="file"
@@ -1506,9 +1620,21 @@ const seo = {
                             id="post-submit-wire-form"
                             class="hidden space-y-6"
                         >
-                            <input type="hidden" name="name" id="post-wire-name" />
-                            <input type="hidden" name="email" id="post-wire-email" />
-                            <input type="hidden" name="phone" id="post-wire-phone" />
+                            <input
+                                type="hidden"
+                                name="name"
+                                id="post-wire-name"
+                            />
+                            <input
+                                type="hidden"
+                                name="email"
+                                id="post-wire-email"
+                            />
+                            <input
+                                type="hidden"
+                                name="phone"
+                                id="post-wire-phone"
+                            />
                             <input
                                 type="hidden"
                                 name="programTitle"
@@ -1538,7 +1664,9 @@ const seo = {
                             <div
                                 class="p-6 bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-sm"
                             >
-                                <div class="flex items-center gap-3 mb-4 text-primary">
+                                <div
+                                    class="flex items-center gap-3 mb-4 text-primary"
+                                >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         class="h-6 w-6"
@@ -1564,9 +1692,8 @@ const seo = {
                                         class="flex items-center justify-between gap-3"
                                     >
                                         <p class="truncate">
-                                            <strong>Banco:</strong> {
-                                                bankInfo.bankName
-                                            }
+                                            <strong>Banco:</strong>
+                                            {bankInfo.bankName}
                                         </p>
                                         <button
                                             type="button"
@@ -1579,9 +1706,8 @@ const seo = {
                                         class="flex items-center justify-between gap-3"
                                     >
                                         <p class="truncate">
-                                            <strong>Titular:</strong> {
-                                                bankInfo.accountHolder
-                                            }
+                                            <strong>Titular:</strong>
+                                            {bankInfo.accountHolder}
                                         </p>
                                         <button
                                             type="button"
@@ -1594,9 +1720,8 @@ const seo = {
                                         class="flex items-center justify-between gap-3"
                                     >
                                         <p class="truncate">
-                                            <strong>No. Cuenta:</strong> {
-                                                bankInfo.accountNumber
-                                            }
+                                            <strong>No. Cuenta:</strong>
+                                            {bankInfo.accountNumber}
                                         </p>
                                         <button
                                             type="button"
@@ -1609,7 +1734,8 @@ const seo = {
                                         class="flex items-center justify-between gap-3"
                                     >
                                         <p class="truncate">
-                                            <strong>CLABE:</strong> {bankInfo.clabe}
+                                            <strong>CLABE:</strong>
+                                            {bankInfo.clabe}
                                         </p>
                                         <button
                                             type="button"
@@ -1628,14 +1754,18 @@ const seo = {
                                                 <button
                                                     type="button"
                                                     class="text-primary font-bold hover:underline shrink-0"
-                                                    data-copy={bankInfo.swiftCode}
+                                                    data-copy={
+                                                        bankInfo.swiftCode
+                                                    }
                                                 >
                                                     Copiar
                                                 </button>
                                             </div>
                                         )
                                     }
-                                    <p class="pt-3 mt-3 border-t border-gray-200 text-xs text-gray-600">
+                                    <p
+                                        class="pt-3 mt-3 border-t border-gray-200 text-xs text-gray-600"
+                                    >
                                         <strong>Referencia:</strong>
                                         <span
                                             id="post-wire-reference-preview"
@@ -1645,13 +1775,15 @@ const seo = {
                                 </div>
                             </div>
 
-                            <div class="p-6 bg-white rounded-2xl border border-gray-200">
+                            <div
+                                class="p-6 bg-white rounded-2xl border border-gray-200"
+                            >
                                 <h4 class="font-bold text-gray-900 mb-2">
                                     Comprobante de pago
                                 </h4>
                                 <p class="text-xs text-gray-600 mb-4">
-                                    Sube tu comprobante de transferencia. Tu pago
-                                    quedará en revisión.
+                                    Sube tu comprobante de transferencia. Tu
+                                    pago quedará en revisión.
                                 </p>
                                 <label
                                     class="block text-sm font-semibold text-gray-700 mb-2"
@@ -1667,7 +1799,9 @@ const seo = {
                                 />
                             </div>
 
-                            <div class="p-4 bg-white rounded-xl border border-gray-100">
+                            <div
+                                class="p-4 bg-white rounded-xl border border-gray-100"
+                            >
                                 <label
                                     class="block text-sm font-bold text-primary mb-3"
                                     >¿Requiere factura? *</label
@@ -1704,9 +1838,8 @@ const seo = {
                                 class="hidden space-y-4 p-4 bg-white rounded-xl border border-gray-200"
                             >
                                 <p class="text-xs text-gray-600">
-                                    Adjunta tu <strong>CSF</strong> y el correo
-                                    para facturación (mismo criterio que pago con
-                                    tarjeta).
+                                    Adjunta tu <strong>CSF</strong> y el correo para
+                                    facturación (mismo criterio que pago con tarjeta).
                                 </p>
                                 <div
                                     class="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -1714,8 +1847,8 @@ const seo = {
                                     <div>
                                         <label
                                             class="block text-sm font-semibold text-gray-700 mb-2"
-                                            >Constancia de situación fiscal (CSF)
-                                            *</label
+                                            >Constancia de situación fiscal
+                                            (CSF) *</label
                                         >
                                         <input
                                             type="file"
@@ -1783,7 +1916,10 @@ const seo = {
         reportStepValidationFailure,
         formatStepValidationMessage,
     } from "@lib/client/multiStepFormValidation";
-    import { wireReferenceFromSessionId } from "@lib/wireReference";
+    import {
+        buildWireReferenceFromApplicant,
+        wireReferenceFromSessionId,
+    } from "@lib/wireReference";
 
     const form = document.getElementById("enrollment-form") as HTMLFormElement;
 
@@ -1796,7 +1932,8 @@ const seo = {
     type StepEntry = { id: string; baseTitle: string };
     const hasVariantStep = form?.dataset.hasVariantStep === "1";
     const requiresDegreeSteps = form?.dataset.requiresDegreeSteps === "1";
-    const requiresExtendedProfile = form?.dataset.requiresExtendedProfile === "1";
+    const requiresExtendedProfile =
+        form?.dataset.requiresExtendedProfile === "1";
     const stepEntries: StepEntry[] = [
         ...(hasVariantStep
             ? [{ id: "step-variant", baseTitle: "Opciones del programa" }]
@@ -1838,7 +1975,9 @@ const seo = {
     const postSubmitPaymentSection = document.getElementById(
         "post-submit-payment-section",
     );
-    const postSubmitStripeBlock = document.getElementById("post-submit-stripe-block");
+    const postSubmitStripeBlock = document.getElementById(
+        "post-submit-stripe-block",
+    );
     const postSubmitWireForm = document.getElementById(
         "post-submit-wire-form",
     ) as HTMLFormElement | null;
@@ -1848,7 +1987,9 @@ const seo = {
     const stepNumber = document.getElementById("step-number");
     const progressBar = document.getElementById("progress-bar");
     const statusDiv = document.getElementById("form-status");
-    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
+    const submitBtn = document.getElementById(
+        "submit-btn",
+    ) as HTMLButtonElement | null;
     const spinner = document.getElementById("loading-spinner");
 
     function stepTitle(index: number): string {
@@ -1869,7 +2010,11 @@ const seo = {
     // index is not the same as the visual position; a small helper
     // recomputes the position (`#1`, `#2`, ...) on every render.
     // ---------------------------------------------------------------
-    type DegreeGrado = "Licenciatura" | "Especialidad" | "Maestría" | "Doctorado";
+    type DegreeGrado =
+        | "Licenciatura"
+        | "Especialidad"
+        | "Maestría"
+        | "Doctorado";
     type InitialDegree = { grado: DegreeGrado; locked?: boolean };
 
     const programNivelDataset = (form?.dataset.programNivel ?? "").trim();
@@ -1938,16 +2083,20 @@ const seo = {
         return entries.map((entry) => {
             const index = Number(entry.dataset.degreeIndex ?? "0");
             const grado = (
-                entry.querySelector<HTMLSelectElement>(".degree-grado")?.value ?? ""
+                entry.querySelector<HTMLSelectElement>(".degree-grado")
+                    ?.value ?? ""
             ).trim();
             const carrera = (
-                entry.querySelector<HTMLInputElement>(".degree-carrera")?.value ?? ""
+                entry.querySelector<HTMLInputElement>(".degree-carrera")
+                    ?.value ?? ""
             ).trim();
             const institucion = (
-                entry.querySelector<HTMLInputElement>(".degree-institucion")?.value ?? ""
+                entry.querySelector<HTMLInputElement>(".degree-institucion")
+                    ?.value ?? ""
             ).trim();
             const cedulaNum = (
-                entry.querySelector<HTMLInputElement>(".degree-cedula-num")?.value ?? ""
+                entry.querySelector<HTMLInputElement>(".degree-cedula-num")
+                    ?.value ?? ""
             ).trim();
             const locked = entry.dataset.locked === "1";
             return { index, grado, carrera, institucion, cedulaNum, locked };
@@ -1987,11 +2136,12 @@ const seo = {
             degreesContainer.querySelectorAll<HTMLElement>(".degree-entry"),
         );
         entries.forEach((entry, i) => {
-            const numEl = entry.querySelector<HTMLElement>(".degree-entry-number");
-            if (numEl) numEl.textContent = `#${i + 1}`;
-            const removeBtn = entry.querySelector<HTMLButtonElement>(
-                ".remove-degree-btn",
+            const numEl = entry.querySelector<HTMLElement>(
+                ".degree-entry-number",
             );
+            if (numEl) numEl.textContent = `#${i + 1}`;
+            const removeBtn =
+                entry.querySelector<HTMLButtonElement>(".remove-degree-btn");
             if (removeBtn) {
                 const locked = entry.dataset.locked === "1";
                 removeBtn.disabled = locked;
@@ -2056,7 +2206,8 @@ const seo = {
         if (!node) return;
         if (opts.locked) node.dataset.locked = "1";
         if (opts.grado) {
-            const select = node.querySelector<HTMLSelectElement>(".degree-grado");
+            const select =
+                node.querySelector<HTMLSelectElement>(".degree-grado");
             if (select) select.value = opts.grado;
         }
         degreesContainer.appendChild(node);
@@ -2098,7 +2249,9 @@ const seo = {
             addDegreeEntry({ locked: false });
             return;
         }
-        initial.forEach((d) => addDegreeEntry({ grado: d.grado, locked: d.locked }));
+        initial.forEach((d) =>
+            addDegreeEntry({ grado: d.grado, locked: d.locked }),
+        );
     }
 
     degreesContainer?.addEventListener("click", (e) => {
@@ -2181,8 +2334,8 @@ const seo = {
             [];
         for (const entry of entries) {
             const grado =
-                entry.querySelector<HTMLSelectElement>(".degree-grado")?.value ??
-                "";
+                entry.querySelector<HTMLSelectElement>(".degree-grado")
+                    ?.value ?? "";
             if (grado !== "Doctorado") continue;
             const ced = (
                 entry.querySelector<HTMLInputElement>(".degree-cedula-num")
@@ -2198,6 +2351,8 @@ const seo = {
     type PostPayload = {
         applicationId: string;
         email: string;
+        nombre: string;
+        apellidos: string;
         participantName: string;
         participantPhone: string;
         modality: string;
@@ -2218,7 +2373,11 @@ const seo = {
         stripePriceIds?: StripePriceIds;
     };
     type ParsedVariantOptions = {
-        moduleSelection?: { label: string; required?: boolean; options: VariantOption[] };
+        moduleSelection?: {
+            label: string;
+            required?: boolean;
+            options: VariantOption[];
+        };
         dateSelection?: {
             label: string;
             required?: boolean;
@@ -2230,7 +2389,11 @@ const seo = {
         try {
             const raw = form?.dataset.stripePriceIds ?? "null";
             const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            if (
+                parsed &&
+                typeof parsed === "object" &&
+                !Array.isArray(parsed)
+            ) {
                 return parsed as StripePriceIds;
             }
         } catch {
@@ -2244,7 +2407,11 @@ const seo = {
             const raw = form?.dataset.variantOptions ?? "";
             if (!raw) return null;
             const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            if (
+                parsed &&
+                typeof parsed === "object" &&
+                !Array.isArray(parsed)
+            ) {
                 return parsed as ParsedVariantOptions;
             }
         } catch {
@@ -2264,7 +2431,9 @@ const seo = {
         modality: string,
     ): string | null {
         if (!variants?.moduleSelection || !moduleId) return null;
-        const opt = variants.moduleSelection.options.find((o) => o.id === moduleId);
+        const opt = variants.moduleSelection.options.find(
+            (o) => o.id === moduleId,
+        );
         const candidate =
             modality === "Presencial"
                 ? opt?.stripePriceIds?.presencial
@@ -2301,12 +2470,19 @@ const seo = {
 
     function priceIdIsValid(priceId: string): boolean {
         return (
-            typeof priceId === "string" &&
-            /^price_[a-zA-Z0-9]+$/.test(priceId)
+            typeof priceId === "string" && /^price_[a-zA-Z0-9]+$/.test(priceId)
         );
     }
 
     function generateWireReferencePost(): string {
+        const title = String(
+            postSubmitPanel?.dataset.programTitle ?? "",
+        ).trim();
+        const n = String(lastPostPayload?.nombre ?? "").trim();
+        const a = String(lastPostPayload?.apellidos ?? "").trim();
+        if (title && (n || a)) {
+            return buildWireReferenceFromApplicant(title, n, a);
+        }
         const id = String(lastPostPayload?.applicationId ?? "").trim();
         if (id) return wireReferenceFromSessionId(id);
         return "CEPRIJA-PENDING";
@@ -2319,8 +2495,12 @@ const seo = {
             'input[name="requiresInvoice"][value="Sí"]:checked',
         );
         const inv = document.getElementById("post-wire-invoice-fields");
-        const fiscal = document.getElementById("post-wire-fiscal") as HTMLInputElement | null;
-        const invEmail = document.getElementById("post-wire-invoice-email") as HTMLInputElement | null;
+        const fiscal = document.getElementById(
+            "post-wire-fiscal",
+        ) as HTMLInputElement | null;
+        const invEmail = document.getElementById(
+            "post-wire-invoice-email",
+        ) as HTMLInputElement | null;
         inv?.classList.toggle("hidden", !yes);
         if (fiscal) fiscal.required = yes;
         if (invEmail) invEmail.required = yes;
@@ -2346,7 +2526,9 @@ const seo = {
         ) as HTMLInputElement | null;
         if (method === "wire") {
             const ref = generateWireReferencePost();
-            const refH = document.getElementById("post-wire-reference") as HTMLInputElement | null;
+            const refH = document.getElementById(
+                "post-wire-reference",
+            ) as HTMLInputElement | null;
             const prev = document.getElementById("post-wire-reference-preview");
             if (refH) refH.value = ref;
             if (prev) prev.textContent = ref;
@@ -2423,10 +2605,12 @@ const seo = {
         return stepEntries.findIndex((e) => e.id === id) + 1;
     }
 
-    document.getElementById("next-step-variant")?.addEventListener("click", () => {
-        const idx = indexOfStep("step-variant");
-        if (idx > 0) attemptAdvance(idx);
-    });
+    document
+        .getElementById("next-step-variant")
+        ?.addEventListener("click", () => {
+            const idx = indexOfStep("step-variant");
+            if (idx > 0) attemptAdvance(idx);
+        });
 
     document.getElementById("next-step-1")?.addEventListener("click", () => {
         const idx = indexOfStep("step-1");
@@ -2539,11 +2723,16 @@ const seo = {
         if (postSubmitWireForm) {
             const wireCheck = validateStepSection(postSubmitWireForm);
             if (!wireCheck.ok) {
-                reportStepValidationFailure("Comprobante de transferencia", wireCheck);
+                reportStepValidationFailure(
+                    "Comprobante de transferencia",
+                    wireCheck,
+                );
                 return;
             }
         }
-        const btn = document.getElementById("post-wire-submit-btn") as HTMLButtonElement | null;
+        const btn = document.getElementById(
+            "post-wire-submit-btn",
+        ) as HTMLButtonElement | null;
         if (btn) btn.disabled = true;
         try {
             const fd = new FormData(postSubmitWireForm);
@@ -2554,12 +2743,17 @@ const seo = {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 throw new Error(
-                    typeof data.error === "string" ? data.error : "Error al enviar el comprobante",
+                    typeof data.error === "string"
+                        ? data.error
+                        : "Error al enviar el comprobante",
                 );
             }
             postSubmitWireForm.classList.add("hidden");
             postWireSuccess?.classList.remove("hidden");
-            window.scrollTo({ top: postWireSuccess?.offsetTop ?? 0, behavior: "smooth" });
+            window.scrollTo({
+                top: postWireSuccess?.offsetTop ?? 0,
+                behavior: "smooth",
+            });
         } catch (err) {
             console.error(err);
             alert(
@@ -2595,7 +2789,9 @@ const seo = {
                     : stripeIds.online;
         }
         const priceOk =
-            typeof priceId === "string" && priceId.length > 0 && priceIdIsValid(priceId);
+            typeof priceId === "string" &&
+            priceId.length > 0 &&
+            priceIdIsValid(priceId);
         lastCheckoutPriceId = priceOk ? (priceId as string) : null;
 
         if (postSubmitApplicationId) {
@@ -2604,15 +2800,30 @@ const seo = {
                 : "";
         }
 
-        const titleEl = document.getElementById("post-wire-program-title") as HTMLInputElement | null;
-        const nameEl = document.getElementById("post-wire-name") as HTMLInputElement | null;
-        const emailEl = document.getElementById("post-wire-email") as HTMLInputElement | null;
-        const phoneEl = document.getElementById("post-wire-phone") as HTMLInputElement | null;
-        const pidEl = document.getElementById("post-wire-program-id") as HTMLInputElement | null;
-        const modEl = document.getElementById("post-wire-modality") as HTMLInputElement | null;
-        const appEl = document.getElementById("post-wire-application-id") as HTMLInputElement | null;
+        const titleEl = document.getElementById(
+            "post-wire-program-title",
+        ) as HTMLInputElement | null;
+        const nameEl = document.getElementById(
+            "post-wire-name",
+        ) as HTMLInputElement | null;
+        const emailEl = document.getElementById(
+            "post-wire-email",
+        ) as HTMLInputElement | null;
+        const phoneEl = document.getElementById(
+            "post-wire-phone",
+        ) as HTMLInputElement | null;
+        const pidEl = document.getElementById(
+            "post-wire-program-id",
+        ) as HTMLInputElement | null;
+        const modEl = document.getElementById(
+            "post-wire-modality",
+        ) as HTMLInputElement | null;
+        const appEl = document.getElementById(
+            "post-wire-application-id",
+        ) as HTMLInputElement | null;
 
-        if (titleEl) titleEl.value = postSubmitPanel?.dataset.programTitle ?? "";
+        if (titleEl)
+            titleEl.value = postSubmitPanel?.dataset.programTitle ?? "";
         if (nameEl) nameEl.value = payload.participantName;
         if (emailEl) emailEl.value = payload.email;
         if (phoneEl) phoneEl.value = payload.participantPhone;
@@ -2625,7 +2836,9 @@ const seo = {
         const payProof = document.getElementById(
             "post-wire-payment-proof",
         ) as HTMLInputElement | null;
-        const fiscalClear = document.getElementById("post-wire-fiscal") as HTMLInputElement | null;
+        const fiscalClear = document.getElementById(
+            "post-wire-fiscal",
+        ) as HTMLInputElement | null;
         const invMailClear = document.getElementById(
             "post-wire-invoice-email",
         ) as HTMLInputElement | null;
@@ -2633,20 +2846,34 @@ const seo = {
         if (fiscalClear) fiscalClear.value = "";
         if (invMailClear) invMailClear.value = "";
 
-        const stripeRadio = document.getElementById("post-pay-stripe") as HTMLInputElement | null;
-        const wireRadio = document.getElementById("post-pay-wire") as HTMLInputElement | null;
-        const stripeUnavailable = document.getElementById("post-pay-stripe-unavailable");
+        const stripeRadio = document.getElementById(
+            "post-pay-stripe",
+        ) as HTMLInputElement | null;
+        const wireRadio = document.getElementById(
+            "post-pay-wire",
+        ) as HTMLInputElement | null;
+        const stripeUnavailable = document.getElementById(
+            "post-pay-stripe-unavailable",
+        );
         const stripeLabel = document.getElementById("post-pay-stripe-label");
 
         if (priceOk) {
             stripeUnavailable?.classList.add("hidden");
             if (stripeRadio) stripeRadio.disabled = false;
-            stripeLabel?.classList.remove("opacity-50", "cursor-not-allowed", "pointer-events-none");
+            stripeLabel?.classList.remove(
+                "opacity-50",
+                "cursor-not-allowed",
+                "pointer-events-none",
+            );
             if (stripeRadio) stripeRadio.checked = true;
         } else {
             stripeUnavailable?.classList.remove("hidden");
             if (stripeRadio) stripeRadio.disabled = true;
-            stripeLabel?.classList.add("opacity-50", "cursor-not-allowed", "pointer-events-none");
+            stripeLabel?.classList.add(
+                "opacity-50",
+                "cursor-not-allowed",
+                "pointer-events-none",
+            );
             if (wireRadio) wireRadio.checked = true;
         }
 
@@ -2671,17 +2898,39 @@ const seo = {
         const stMail = document.getElementById(
             "post-stripe-invoice-email",
         ) as HTMLInputElement | null;
-        const stFis = document.getElementById("post-stripe-fiscal") as HTMLInputElement | null;
+        const stFis = document.getElementById(
+            "post-stripe-fiscal",
+        ) as HTMLInputElement | null;
         if (stMail) stMail.value = "";
         if (stFis) stFis.value = "";
         applyPostStripeInvoiceFields();
 
-        postSubmitPaymentSection?.classList.remove("hidden");
+        const applicationOnlyNivel =
+            programNivelDataset === "maestria" ||
+            programNivelDataset === "especialidad" ||
+            programNivelDataset === "doctorado";
+
+        const postSubmitSummary = document.getElementById(
+            "post-submit-summary",
+        );
+        if (applicationOnlyNivel) {
+            postSubmitPaymentSection?.classList.add("hidden");
+            if (postSubmitSummary) {
+                postSubmitSummary.textContent =
+                    "Tu documentación fue enviada. Revisa tu correo para la confirmación. Nuestro equipo evaluará tu expediente y te indicará los siguientes pasos; en esta etapa no aplica pago en línea.";
+            }
+        } else {
+            postSubmitPaymentSection?.classList.remove("hidden");
+            if (postSubmitSummary) {
+                postSubmitSummary.textContent =
+                    "Tu documentación fue enviada. Revisa tu correo para la confirmación.";
+            }
+        }
 
         const stripeBtn = document.getElementById(
             "stripe-after-enrollment-btn",
         ) as HTMLButtonElement | null;
-        if (stripeBtn && priceOk) {
+        if (!applicationOnlyNivel && stripeBtn && priceOk) {
             const fresh = stripeBtn.cloneNode(true) as HTMLButtonElement;
             stripeBtn.replaceWith(fresh);
             fresh.addEventListener("click", async () => {
@@ -2705,7 +2954,9 @@ const seo = {
                     }
                     const f = fiscalEl?.files?.[0];
                     if (!f) {
-                        alert("Adjunta la constancia de situación fiscal (CSF).");
+                        alert(
+                            "Adjunta la constancia de situación fiscal (CSF).",
+                        );
                         return;
                     }
                     fresh.disabled = true;
@@ -2718,18 +2969,30 @@ const seo = {
                             "programTitle",
                             postSubmitPanel?.dataset.programTitle ?? "",
                         );
-                        fd.append("participantName", lastPostPayload.participantName);
-                        fd.append("participantPhone", lastPostPayload.participantPhone);
+                        fd.append(
+                            "participantName",
+                            lastPostPayload.participantName,
+                        );
+                        fd.append(
+                            "participantPhone",
+                            lastPostPayload.participantPhone,
+                        );
                         fd.append("modality", lastPostPayload.modality);
                         fd.append("customerEmail", lastPostPayload.email);
                         if (lastPostPayload.applicationId) {
-                            fd.append("applicationId", lastPostPayload.applicationId);
+                            fd.append(
+                                "applicationId",
+                                lastPostPayload.applicationId,
+                            );
                         }
                         fd.append("fiscalConstancy", f);
-                        const pre = await fetch("/api/stripe/fiscal-preflight", {
-                            method: "POST",
-                            body: fd,
-                        });
+                        const pre = await fetch(
+                            "/api/stripe/fiscal-preflight",
+                            {
+                                method: "POST",
+                                body: fd,
+                            },
+                        );
                         const preJson = await pre.json().catch(() => ({}));
                         if (!pre.ok) {
                             throw new Error(
@@ -2754,34 +3017,50 @@ const seo = {
                 fresh.disabled = true;
                 fresh.textContent = "Redirigiendo a Stripe…";
                 try {
-                    const res = await fetch("/api/stripe/create-checkout-session", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            priceId: lastCheckoutPriceId,
-                            customerEmail: lastPostPayload.email,
-                            programSlug: lastPostPayload.programSlug,
-                            participantName: lastPostPayload.participantName,
-                            participantPhone: lastPostPayload.participantPhone,
-                            modality: lastPostPayload.modality,
-                            requiresInvoice: needsInv ? "Sí" : "No",
-                            invoiceEmail: needsInv ? invEmail : "",
-                            ...(lastPostPayload.applicationId
-                                ? { applicationId: lastPostPayload.applicationId }
-                                : {}),
-                            ...(lastPostPayload.selectedModule
-                                ? { selectedModule: lastPostPayload.selectedModule }
-                                : {}),
-                            ...(lastPostPayload.selectedDate
-                                ? { selectedDate: lastPostPayload.selectedDate }
-                                : {}),
-                        }),
-                    });
+                    const res = await fetch(
+                        "/api/stripe/create-checkout-session",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                priceId: lastCheckoutPriceId,
+                                customerEmail: lastPostPayload.email,
+                                programSlug: lastPostPayload.programSlug,
+                                participantName:
+                                    lastPostPayload.participantName,
+                                participantPhone:
+                                    lastPostPayload.participantPhone,
+                                modality: lastPostPayload.modality,
+                                requiresInvoice: needsInv ? "Sí" : "No",
+                                invoiceEmail: needsInv ? invEmail : "",
+                                ...(lastPostPayload.applicationId
+                                    ? {
+                                          applicationId:
+                                              lastPostPayload.applicationId,
+                                      }
+                                    : {}),
+                                ...(lastPostPayload.selectedModule
+                                    ? {
+                                          selectedModule:
+                                              lastPostPayload.selectedModule,
+                                      }
+                                    : {}),
+                                ...(lastPostPayload.selectedDate
+                                    ? {
+                                          selectedDate:
+                                              lastPostPayload.selectedDate,
+                                      }
+                                    : {}),
+                            }),
+                        },
+                    );
                     const data = await res.json();
                     if (data.url) {
                         window.location.href = data.url;
                     } else {
-                        throw new Error(data.error || "No se pudo iniciar el pago");
+                        throw new Error(
+                            data.error || "No se pudo iniciar el pago",
+                        );
                     }
                 } catch (err) {
                     console.error(err);
@@ -2796,7 +3075,9 @@ const seo = {
             });
         }
 
-        applyPostPaymentMethodUI();
+        if (!applicationOnlyNivel) {
+            applyPostPaymentMethodUI();
+        }
 
         stepperCard?.classList.add("hidden");
         form?.classList.add("hidden");
@@ -2827,7 +3108,12 @@ const seo = {
                 reportStepValidationFailure(stepTitle(i), result);
                 // No `scrollTo(0)` aquí: anula el `scrollIntoView` de
                 // `reportStepValidationFailure` y parece que «Enviar» no hace nada.
-                alert(formatStepValidationMessage(stepTitle(i), result.missingLabels));
+                alert(
+                    formatStepValidationMessage(
+                        stepTitle(i),
+                        result.missingLabels,
+                    ),
+                );
                 return;
             }
             if (entry?.id === "step-2") {
@@ -2860,7 +3146,8 @@ const seo = {
 
         if (statusDiv) {
             statusDiv.classList.add("hidden");
-            statusDiv.className = "hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto";
+            statusDiv.className =
+                "hidden mt-6 p-4 rounded-xl text-sm max-w-4xl mx-auto";
         }
 
         if (submitBtn && spinner) {
@@ -2884,7 +3171,9 @@ const seo = {
         // the program defines variantOptions. They go in the multipart payload
         // automatically (the dropdowns live inside `<form>`); we capture the
         // labels here so we can show them in the post-submit panel.
-        const selectedModule = String(formData.get("selectedModule") ?? "").trim();
+        const selectedModule = String(
+            formData.get("selectedModule") ?? "",
+        ).trim();
         const selectedDate = String(formData.get("selectedDate") ?? "").trim();
         const selectedModuleLabel = getCurrentSelectedModuleLabel();
         const selectedDateLabel = getCurrentSelectedDateLabel();
@@ -2901,11 +3190,15 @@ const seo = {
                 body: formData,
             });
 
-            const result = (await response.json().catch(() => null)) as
-                | { applicationId?: string; message?: string; error?: string }
-                | null;
+            const result = (await response.json().catch(() => null)) as {
+                applicationId?: string;
+                message?: string;
+                error?: string;
+            } | null;
             const serverMsg =
-                (result && typeof result.message === "string" && result.message) ||
+                (result &&
+                    typeof result.message === "string" &&
+                    result.message) ||
                 (result && typeof result.error === "string" && result.error) ||
                 "";
 
@@ -2920,6 +3213,8 @@ const seo = {
                 showPostSubmitPaymentOptions({
                     applicationId,
                     email,
+                    nombre,
+                    apellidos,
                     participantName,
                     participantPhone: telefono,
                     modality,
@@ -2941,8 +3236,16 @@ const seo = {
                         : "Hubo un error al enviar tu solicitud.";
                 statusDiv.textContent = `${detail} Verifica los archivos (PDF o imagen) o contáctanos.`;
                 statusDiv.classList.remove("hidden");
-                statusDiv.classList.add("bg-red-100", "text-red-800", "border", "border-red-200");
-                statusDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                statusDiv.classList.add(
+                    "bg-red-100",
+                    "text-red-800",
+                    "border",
+                    "border-red-200",
+                );
+                statusDiv.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                });
             }
             console.error("Error submitting enrollment:", error);
         } finally {

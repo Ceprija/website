@@ -1,29 +1,29 @@
 ---
 slug: "taller-redaccion-de-contratos"
 title: "Taller Práctico de Redacción de Contratos"
-description: "Taller práctico de redacción de contratos: enfoque civil, mercantil y laboral con docentes del Poder Judicial de la Federación. Fortalece redacción e interpretación contractual, cláusulas esenciales, nulidades, cumplimiento y litigio con criterios jurisprudenciales. Modalidad presencial y en línea."
+description: "Taller práctico de redacción de contratos: enfoque civil, mercantil y laboral con docentes del Poder Judicial de la Federación. Fortalece redacción e interpretación contractual, cláusulas esenciales, nulidades, cumplimiento y litigio con criterios jurisprudenciales. Modalidad híbrida y en línea."
 excerpt: "Contratos civiles, mercantiles y laborales: redacción, interpretación, cumplimiento y controversias con criterios de tribunales federales."
 image: "/images/programs/taller-redaccion-de-contratos.webp"
 imagePosition: "center 20%"
-escuela: "integral"
+escuela: "economica"
 nivel: "taller"
 status: "active"
 horario: "18:00 a 21:00 h"
 startDate: "14 de mayo de 2026"
 duracion: "3 módulos (36 h)"
-modalidad: "Presencial y en línea"
+modalidad: "Híbrida / En línea"
 paymentOptions:
   - id: "modulo_individual"
     label: "Módulo individual"
     price: 2500
-    stripePriceId: "price_REPLACE_taller_modulo"
-    type: "hibrido"
+    stripePriceId: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
+    type: "online"
   - id: "paquete"
     label: "Paquete (3 módulos)"
     price: 6750
-    stripePriceId: "price_REPLACE_taller_paquete"
-    type: "hibrido"
-featured: true
+    stripePriceId: "price_1TUhyKKVaWLbvt9DoJn55wyR"
+    type: "online"
+galleryFolder: "/images/programs/tallerContratos/gallery"
 date: "2026-05-14"
 address: ""
 requiresVerification: false
@@ -77,6 +77,7 @@ curriculum:
         30 de julio: Taller: Elaboración de contratos laborales
         Impartido por el Maestro Rubén Darío Larios García, magistrado en retiro y docente del módulo de contratos laborales.
 profileAudience: "Abogados litigantes, notarios, asesores jurídicos, mandos medios y empresarios que redactan o negocian contratos."
+fieldOfWork: "Derecho contractual, litigio civil, mercantil y laboral" 
 includes:
   - "Enfoque práctico por especialidad (civil, mercantil, laboral)"
   - "Sesiones con magistradas/os y juezas/es federales por tema (según temario)"
@@ -90,31 +91,31 @@ variantOptions:
         label: "Módulo individual: Contratos civiles"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_REPLACE_modulo_civil_presencial"
-          online: "price_REPLACE_modulo_civil_online"
+          presencial: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
+          online: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
       - id: "modulo_mercantil"
         label: "Módulo individual: Contratos mercantiles"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_REPLACE_modulo_mercantil_presencial"
-          online: "price_REPLACE_modulo_mercantil_online"
+          presencial: "price_1TUhxpKVaWLbvt9Dve0a6Dqz"
+          online: "price_1TUhxpKVaWLbvt9Dve0a6Dqz"
       - id: "modulo_laboral"
         label: "Módulo individual: Contratos laborales"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_REPLACE_modulo_laboral_presencial"
-          online: "price_REPLACE_modulo_laboral_online"
+          presencial: "price_1TUhy2KVaWLbvt9DxMDpqTun"
+          online: "price_1TUhy2KVaWLbvt9DxMDpqTun"
       - id: "paquete_3_modulos"
         label: "Paquete completo (3 módulos)"
         description: "$6,750 MXN · 36 horas totales"
         stripePriceIds:
-          presencial: "price_REPLACE_paquete_3_modulos_presencial"
-          online: "price_REPLACE_paquete_3_modulos_online"
+          presencial: "price_1TUhyKKVaWLbvt9DoJn55wyR"
+          online: "price_1TUhyKKVaWLbvt9DoJn55wyR"
   dateSelection:
     label: "Calendario"
     required: true
     options:
       - id: "cohorte_mayo_julio_2026"
         label: "Mayo–julio de 2026"
-        description: "Inicio 14 de mayo · 18:00–21:00 h · presencial y en línea"
+        description: "Inicio 14 de mayo · 18:00–21:00 h · híbrido y en línea"
 ---

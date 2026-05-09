@@ -265,7 +265,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const senderEmail = SMTP_FROM || CONTACT_EMAIL;
-    const adminEmail1 = EMAIL_EDUCACION_CONTINUA || CONTACT_EMAIL;
+    const adminEmail1 =
+      (EMAIL_EDUCACION_CONTINUA ?? "").trim() || "educacioncontinua@ceprija.edu.mx";
     const adminEmail2 = EMAIL_SOPORTE_WEB;
 
     const adminTo = [{ email: adminEmail1 }];

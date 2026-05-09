@@ -6,7 +6,7 @@ excerpt: "Actualización jurisprudencial fiscal para litigio y asesoría: criter
 image: "/images/programs/actualizacion-jurisprudencial-en-materia-fiscal.webp"
 escuela: "economica"
 nivel: "curso"
-status: "active"
+status: "waitlist"
 horario: ""
 startDate: "19 de marzo de 2026"
 duracion: "1 sesión (3.5 h)"
