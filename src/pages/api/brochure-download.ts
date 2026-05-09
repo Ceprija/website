@@ -11,13 +11,12 @@ import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import { getProgramPathSlug } from "@lib/programPaths";
 import { programIsPublished } from "@lib/programPublished";
 import {
-  checkRateLimit,
-  clientIpFromRequest,
-  pruneRateLimitBuckets,
-} from "@lib/server/rateLimit";
-import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
-import { hasHoneypotValue } from "@lib/server/publicEndpointGuards";
+  guardPublicPost,
+  hasHoneypotValue,
+  honeypotResponse,
+} from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s().-]{7,24}$/;
@@ -37,77 +36,25 @@ function isSafePublicPdfPath(value: string): boolean {
   );
 }
 
-function isAllowedRequestOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin")?.trim();
-  if (!origin) return true;
-
-  try {
-    return origin === new URL(request.url).origin;
-  } catch {
-    return false;
-  }
-}
-
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
   const route = "POST /api/brochure-download";
-  pruneRateLimitBuckets();
-
-  if (!isAllowedRequestOrigin(request)) {
-    apiLog("warn", route, "origin_not_allowed", {
-      requestId,
-      origin: request.headers.get("origin"),
-      code: "origin_not_allowed",
-    });
-    return jsonResponse(
-      {
-        error: "Origen no permitido.",
-        code: "origin_not_allowed",
-      },
-      403,
-      requestId,
-    );
-  }
-
-  const ip = clientIpFromRequest(request);
-  const rateLimit = checkRateLimit(`brochure:${ip}`, {
+  const guarded = guardPublicPost(request, {
+    route,
+    requestId,
+    rateLimitKey: "brochure",
     limit: 5,
     windowMs: 10 * 60_000,
+    expectedContentType: "json",
   });
-  if (!rateLimit.ok) {
-    apiLog("warn", route, "rate_limit_exceeded", {
-      requestId,
-      ip,
-      retryAfterSeconds: rateLimit.retryAfterSeconds,
-    });
-    return jsonResponse(
-      {
-        error: "Demasiados intentos. Espera unos minutos y vuelve a intentar.",
-        code: "rate_limit_exceeded",
-      },
-      429,
-      requestId,
-    );
-  }
-
-  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-  if (!contentType.includes("application/json")) {
-    return jsonResponse(
-      {
-        error: "Content-Type inválido.",
-        code: "invalid_content_type",
-      },
-      400,
-      requestId,
-    );
-  }
+  if (guarded) return guarded;
 
   const body = (await request.json().catch(() => null)) as Record<
     string,
     unknown
   > | null;
   if (hasHoneypotValue(body)) {
-    return jsonResponse({ success: true }, 200, requestId);
+    return honeypotResponse(route, requestId);
   }
 
   const name = clean(body?.name, 120);

@@ -332,7 +332,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Primero obtenemos información del Price para determinar si es recurrente
     const priceObj = await stripe.prices.retrieve(priceId);
     const isRecurring = priceObj.type === "recurring";
-    
+
     // Preparamos metadata común
     const commonMetadata = {
       programSlug: truncateMeta(programSlug),
@@ -392,6 +392,7 @@ export const POST: APIRoute = async ({ request }) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail || undefined,
+      allow_promotion_codes: true,
       client_reference_id: truncateMeta(programSlug, 200),
       metadata: commonMetadata,
       payment_intent_data: {
