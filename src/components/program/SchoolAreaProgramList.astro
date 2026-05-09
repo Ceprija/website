@@ -24,6 +24,8 @@ interface Props {
     escuela: "integral" | "economica" | "juridica";
     emptyHint: string;
     emptyTitle?: string;
+    /** Si es true, oculta programas waitlist/disabled y muestra solo activos. */
+    activeOnly?: boolean;
     /** Si se define, divide la cuadrícula en secciones (p. ej. Formación Jurídica: continua vs postgrado). */
     sectionGroups?: SectionGroup[];
 }
@@ -32,12 +34,14 @@ const {
     escuela,
     emptyHint,
     emptyTitle = "Próximamente",
+    activeOnly = false,
     sectionGroups,
 } = Astro.props as Props;
 
 const allPrograms = filterPublishedPrograms(await getCollection("programas"));
 const programs = allPrograms
     .filter((p) => p.data.escuela === escuela)
+    .filter((p) => !activeOnly || getProgramStatus(p) === "active")
     .sort((a, b) => {
         const statusA = getProgramStatus(a) === "active" ? 0 : 1;
         const statusB = getProgramStatus(b) === "active" ? 0 : 1;

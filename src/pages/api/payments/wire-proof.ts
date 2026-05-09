@@ -1,7 +1,8 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB } from "astro:env/server";
+import { getCollection } from "astro:content";
+import { EMAIL_SOPORTE_WEB } from "astro:env/server";
 import Busboy from "busboy";
 import crypto from "node:crypto";
 import { escapeHtml } from "@lib/htmlEscape";
@@ -18,6 +19,8 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 type UploadedFile = {
   fieldname: string;
@@ -124,13 +127,6 @@ async function parseFormData(request: Request) {
         .catch(reject);
     },
   );
-}
-
-function toEmailList(...emails: Array<string | undefined | null>): Array<{ email: string }> {
-  const uniq = new Set(
-    emails.map((e) => (typeof e === "string" ? e.trim() : "")).filter(Boolean),
-  );
-  return [...uniq].map((email) => ({ email }));
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -278,10 +274,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const controlEscolar =
-      (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    const adminRecipients = toEmailList(controlEscolar, senderEmail);
+    const programs = await getCollection("programas");
+    const program = programs.find(
+      (entry) =>
+        getProgramPathSlug(entry) === programId ||
+        String(entry.data.title ?? "") === programTitle,
+    );
+    const adminRecipients = programAdminRecipients(program);
 
     const safeEnrollmentId = escapeHtml(enrollmentId);
     const safeWireRef = escapeHtml(wireReference);

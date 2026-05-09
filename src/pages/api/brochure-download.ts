@@ -2,10 +2,7 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
-import {
-  CONTACT_EMAIL,
-  SMTP_FROM,
-} from "astro:env/server";
+import { SMTP_FROM } from "astro:env/server";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import { getProgramPathSlug } from "@lib/programPaths";
@@ -16,6 +13,7 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { brochureDownloadRecipients } from "@lib/email/programAdminRecipients";
 import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,19 +118,6 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  const toEmail = (CONTACT_EMAIL ?? "").trim();
-  if (!toEmail) {
-    apiLog("error", route, "brochure_email_not_configured", { requestId });
-    return jsonResponse(
-      {
-        error: "No pudimos registrar tu solicitud. Intenta de nuevo más tarde.",
-        code: "email_not_configured",
-      },
-      503,
-      requestId,
-    );
-  }
-
   const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
   const safeProgram = escapeHtml(programTitle);
   const safeName = escapeHtml(name);
@@ -141,12 +126,8 @@ export const POST: APIRoute = async ({ request }) => {
   const safeBrochure = escapeHtml(brochure);
   const safeMessage = escapeHtml(message || "Sin mensaje adicional");
 
-  const emailResult = await sendBrevoEmail(
-    {
-      sender: { email: senderEmail, name: "CEPRIJA Web" },
-      to: [{ email: toEmail }],
-      subject: sanitizeEmailSubjectLine(`Descarga de brochure: ${programTitle}`),
-      htmlContent: `
+  const emailSubject = sanitizeEmailSubjectLine(`Descarga de brochure: ${programTitle}`);
+  const emailHtml = `
         <h2>Nueva descarga de brochure</h2>
         <p><strong>Programa:</strong> ${safeProgram}</p>
         <p><strong>Slug:</strong> ${escapeHtml(programSlug || "N/A")}</p>
@@ -156,7 +137,14 @@ export const POST: APIRoute = async ({ request }) => {
         <p><strong>Email:</strong> ${safeEmail}</p>
         <p><strong>Teléfono:</strong> ${safePhone}</p>
         <p><strong>Mensaje:</strong> ${safeMessage}</p>
-      `,
+      `;
+
+  const emailResult = await sendBrevoEmail(
+    {
+      sender: { email: senderEmail, name: "CEPRIJA Web" },
+      to: brochureDownloadRecipients(),
+      subject: emailSubject,
+      htmlContent: emailHtml,
     },
     {
       route,

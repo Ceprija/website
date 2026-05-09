@@ -2,7 +2,8 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import Busboy from "busboy";
-import { EMAIL_CONTROL_ESCOLAR, EMAIL_SOPORTE_WEB } from "astro:env/server";
+import { getCollection } from "astro:content";
+import { EMAIL_SOPORTE_WEB } from "astro:env/server";
 import { escapeHtml } from "@lib/htmlEscape";
 import {
   MAX_FILES_PER_REQUEST,
@@ -17,6 +18,8 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 type UploadedFile = {
   fieldname: string;
@@ -226,8 +229,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const controlEscolar =
-      (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
+    const programs = await getCollection("programas");
+    const program = programs.find(
+      (entry) =>
+        getProgramPathSlug(entry) === programSlug ||
+        String(entry.data.title ?? "") === programTitle,
+    );
 
     const adminHtml = `
       <h2>Facturación — pago con Stripe (pendiente)</h2>
@@ -248,7 +255,7 @@ export const POST: APIRoute = async ({ request }) => {
     const adminRes = await sendBrevoEmail(
       {
         sender: { email: senderEmail, name: "Sistema CEPRIJA" },
-        to: [{ email: controlEscolar }, ...(senderEmail !== controlEscolar ? [{ email: senderEmail }] : [])],
+        to: programAdminRecipients(program),
         subject: `Facturación (Stripe) — ${programTitle || programSlug} — ${participantName}`,
         htmlContent: adminHtml,
         attachment: [

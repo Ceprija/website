@@ -8,7 +8,6 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import {
-  EMAIL_CONTROL_ESCOLAR,
   EMAIL_SOPORTE_WEB,
   STRIPE_ALLOWED_PRICE_IDS,
   STRIPE_SECRET_KEY,
@@ -27,6 +26,10 @@ import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 import { withStripeRetry } from "@lib/stripeRetry";
 import { guardPublicPost, hasHoneypotValue } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import {
+  programAdminEmail,
+  programAdminRecipients,
+} from "@lib/email/programAdminRecipients";
 
 type ProgramPriceMatch = {
   matches: boolean;
@@ -419,12 +422,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const controlEscolar =
-      (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    const adminNotificationRecipients = [
-      ...new Set([controlEscolar, senderEmail]),
-    ].map((email) => ({ email }));
+    const controlEscolar = programAdminEmail(program);
+    const adminNotificationRecipients = programAdminRecipients(program);
 
     const piId = paymentIntentId(session);
     const amountStr = session.amount_total

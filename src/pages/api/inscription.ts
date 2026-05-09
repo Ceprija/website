@@ -1,6 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
+import { getCollection } from "astro:content";
 import Busboy from "busboy";
 import {
   MAX_FILES_PER_REQUEST,
@@ -9,9 +10,6 @@ import {
 } from "@lib/uploads/fileValidation";
 import { validateInscriptionIdentity } from "@lib/validation/enrollment";
 import {
-  CONTACT_EMAIL,
-  EMAIL_CONTROL_ESCOLAR,
-  EMAIL_SOPORTE_WEB,
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
@@ -22,6 +20,8 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
+import { getProgramPathSlug } from "@lib/programPaths";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -253,9 +253,12 @@ export const POST: APIRoute = async ({ request }) => {
 
         // 2. Send Emails
         const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-        const controlEscolar = (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-        const controlAdmin = (CONTACT_EMAIL ?? "").trim() || "contacto@ceprija.edu.mx";
-        const soporteWeb = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
+        const programs = await getCollection("programas");
+        const program = programs.find(
+            (entry) =>
+                getProgramPathSlug(entry) === programTitle ||
+                String(entry.data.title ?? "") === programTitle,
+        );
 
         // Create CSV in memory
         const csvContent = headers.join(',') + '\n' + row + '\n';
@@ -274,7 +277,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         const adminBody = {
             sender: { email: senderEmail },
-            to: [{ email: soporteWeb }, { email: controlEscolar }, { email: controlAdmin }],
+            to: programAdminRecipients(program),
             subject: `Nueva Inscripción: ${programTitle}`,
             htmlContent: `<h2>Nueva inscripción recibida</h2><p>Se adjunta el archivo CSV con los registros y los documentos adjuntos de <b>${fields.nombre} ${fields.apellidos}</b>.</p>`,
             attachment: attachments

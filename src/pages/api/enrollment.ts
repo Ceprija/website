@@ -26,7 +26,6 @@ import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags"
 import { programIsPublished } from "@lib/programPublished";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
 import {
-  EMAIL_CONTROL_ESCOLAR,
   EMAIL_SOPORTE_WEB,
   NOTIFY_CONTROL_ESCOLAR_ENROLLMENT,
 } from "astro:env/server";
@@ -37,6 +36,10 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import {
+  programAdminEmail,
+  programAdminRecipients,
+} from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
@@ -624,21 +627,10 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const controlEscolar = (EMAIL_CONTROL_ESCOLAR ?? "").trim() || "controlescolar@ceprija.edu.mx";
-
-    const adminRecipients: { email: string }[] = [];
-    if (shouldNotifyControlEscolarOnEnrollment()) {
-      adminRecipients.push({ email: controlEscolar });
-    }
-    if (
-      senderEmail &&
-      !adminRecipients.some((r) => r.email.toLowerCase() === senderEmail.toLowerCase())
-    ) {
-      adminRecipients.push({ email: senderEmail });
-    }
-    if (adminRecipients.length === 0) {
-      adminRecipients.push({ email: senderEmail || controlEscolar });
-    }
+    const controlEscolar = programAdminEmail(program);
+    const adminRecipients = shouldNotifyControlEscolarOnEnrollment()
+      ? programAdminRecipients(program)
+      : [{ email: senderEmail }];
 
     // Prepare email content with escaped values (use sanitized strings)
     const safeNombre = escapeHtml(nombreS);

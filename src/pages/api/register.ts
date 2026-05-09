@@ -6,7 +6,7 @@ import { parseWireRegistrationMultipart } from "@lib/multipart/parseWireRegistra
 import { escapeHtml } from "@lib/htmlEscape";
 import { validateUploadBuffer } from "@lib/uploads/fileValidation";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
-import { CONTACT_EMAIL, SMTP_FROM } from "astro:env/server";
+import { SMTP_FROM } from "astro:env/server";
 import { getProgramStatus } from "@lib/programPayments";
 import { getRequestId } from "@lib/server/apiRequestLog";
 import {
@@ -15,6 +15,7 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
@@ -109,7 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const adminBody: Record<string, unknown> = {
       sender: { email: senderEmail },
-      to: [{ email: CONTACT_EMAIL }],
+      to: programAdminRecipients(program),
       subject: `Nuevo ${type === "registration" ? "Registro" : "Mensaje"}: ${programTitle || "General"}`,
       htmlContent: adminHtml,
     };

@@ -16,8 +16,6 @@ import {
 } from "@lib/validation/enrollment";
 import {
   CONTACT_EMAIL,
-  EMAIL_EDUCACION_CONTINUA,
-  EMAIL_SOPORTE_WEB,
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
@@ -28,6 +26,7 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
 
 function sanitizeFilename(name: string): string {
@@ -268,14 +267,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (SMTP_FROM ?? CONTACT_EMAIL ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const adminEmail1 =
-      (EMAIL_EDUCACION_CONTINUA ?? "").trim() || "educacioncontinua@ceprija.edu.mx";
-    const adminEmail2 = EMAIL_SOPORTE_WEB;
-
-    const adminTo = [{ email: adminEmail1 }];
-    if (adminEmail2 && adminEmail2 !== adminEmail1) {
-      adminTo.push({ email: adminEmail2 });
-    }
+    const adminTo = programAdminRecipients(program);
 
     const sendToBrevo = async () => {
       try {

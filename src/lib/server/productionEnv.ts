@@ -1,5 +1,6 @@
 import {
   EMAIL_CONTROL_ESCOLAR,
+  EMAIL_EDUCACION_CONTINUA,
   EMAIL_SOPORTE_WEB,
   KEY_API_BREVO,
   SITE_URL,
@@ -65,6 +66,9 @@ export function validateProductionEnv(): ProductionEnvCheck {
     if (!hasValue(KEY_API_BREVO)) errors.push("KEY_API_BREVO is required.");
     if (!hasValue(EMAIL_CONTROL_ESCOLAR)) {
       errors.push("EMAIL_CONTROL_ESCOLAR is required.");
+    }
+    if (!hasValue(EMAIL_EDUCACION_CONTINUA)) {
+      errors.push("EMAIL_EDUCACION_CONTINUA is required.");
     }
     if (!hasValue(EMAIL_SOPORTE_WEB)) {
       errors.push("EMAIL_SOPORTE_WEB is required.");
