@@ -17,17 +17,39 @@ type GuardOptions = {
 
 function allowedOrigins(request: Request): Set<string> {
   const origins = new Set<string>();
+  const addOrigin = (value: string | null | undefined) => {
+    if (!value) return;
+    try {
+      const url = new URL(value);
+      origins.add(url.origin);
+
+      // Accept both apex and www variants for the public CEPRIJA domain. This
+      // keeps same-site requests working during canonical-domain transitions.
+      if (url.hostname === "ceprija.edu.mx") {
+        origins.add(`${url.protocol}//www.ceprija.edu.mx`);
+      } else if (url.hostname === "www.ceprija.edu.mx") {
+        origins.add(`${url.protocol}//ceprija.edu.mx`);
+      }
+    } catch {
+      // Malformed origin candidates are ignored.
+    }
+  };
+
   try {
-    origins.add(new URL(request.url).origin);
+    addOrigin(new URL(request.url).origin);
   } catch {
     // Invalid request URLs will fail the comparison below.
   }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host")?.trim();
+  if (host) {
+    addOrigin(`${forwardedProto || "https"}://${host}`);
+  }
+
   if (SITE_URL) {
-    try {
-      origins.add(new URL(SITE_URL).origin);
-    } catch {
-      // Environment validation reports malformed SITE_URL separately.
-    }
+    addOrigin(SITE_URL);
   }
   return origins;
 }

@@ -10,6 +10,12 @@ import partytown from '@astrojs/partytown';
 // only if you want SSR for all routes by default.
 export default defineConfig({
   site: 'https://ceprija.edu.mx',
+  security: {
+    // Public write endpoints implement their own origin, content-type, honeypot,
+    // and rate-limit guards. Disable Astro's pre-route POST origin check because
+    // it can compare against the internal proxy origin behind Nginx/PM2.
+    checkOrigin: false,
+  },
   env: {
     schema: {
       SITE_URL: envField.string({
