@@ -16,17 +16,17 @@ paymentOptions:
   - id: "inscripcion"
     label: "Inscripción"
     price: 1500
-    stripePriceId: "price_1TTaX1KVaWLbvt9DGPdhK4Dh"
+    stripePriceId: "price_1TVFHm3s3evyMWraJcL9tSIz"
     type: "hibrido"
   - id: "total"
     label: "Costo total del diplomado"
     price: 21500
-    stripePriceId: "price_1TTaYTKVaWLbvt9Dk3JrHOjP"
+    stripePriceId: "price_1TVFI53s3evyMWragy9CyQQj"
     type: "hibrido"
   - id: "diferido"
     label: "Cuatro pagos diferidos"
     price: 5000
-    stripePriceId: "price_1TTarXKVaWLbvt9DqBhp8Gap"
+    stripePriceId: "price_1TVFIP3s3evyMWraHsFBn3ev"
     type: "hibrido"
 galleryFolder: "/images/programs/diplomadoDerechoCivil/gallery"
 brochure: "/brochures/diplomadoDerechoCivil.pdf"

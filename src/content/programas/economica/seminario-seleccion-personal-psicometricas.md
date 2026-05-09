@@ -15,17 +15,17 @@ paymentOptions:
   - id: "modulo_1"
     label: "Módulo Individual — Pruebas psicométricas"
     price: 2450
-    stripePriceId: "price_1TUhzBKVaWLbvt9DXd1gGpJA"
+    stripePriceId: "price_1TVFKC3s3evyMWraPmO7E3A1"
     type: "hibrido"
   - id: "modulo_2"
     label: "Módulo Individual — Selección de personal"
     price: 1980
-    stripePriceId: "price_1TUhzSKVaWLbvt9DjEOWeNgV"
+    stripePriceId: "price_1TVFKQ3s3evyMWraf6RsyBn2"
     type: "hibrido"
   - id: "paquete"
     label: "Paquete (Ambos Módulos)"
     price: 4430
-    stripePriceId: "price_1TUi0gKVaWLbvt9DL55TZV1X"
+    stripePriceId: "price_1TVFKf3s3evyMWraG9aLay3E"
     type: "hibrido"
 galleryFolder: "/images/programs/seminarioPsicometricos/gallery"
 brochure: "/brochures/seminarioPsicometrico.pdf"

@@ -16,12 +16,12 @@ paymentOptions:
   - id: "modulo_individual"
     label: "Módulo individual"
     price: 2500
-    stripePriceId: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
+    stripePriceId: "price_1TVFIe3s3evyMWra2lbdqVBh"
     type: "online"
   - id: "paquete"
     label: "Paquete (3 módulos)"
     price: 6750
-    stripePriceId: "price_1TUhyKKVaWLbvt9DoJn55wyR"
+    stripePriceId: "price_1TVFJy3s3evyMWraaKWa4zTh"
     type: "online"
 galleryFolder: "/images/programs/tallerContratos/gallery"
 brochure: "/brochures/tallerContratos.pdf"
@@ -92,26 +92,26 @@ variantOptions:
         label: "Módulo individual: Contratos civiles"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
-          online: "price_1TUhxYKVaWLbvt9DEpq2fFEy"
+          presencial: "price_1TVFIe3s3evyMWra2lbdqVBh"
+          online: "price_1TVFIe3s3evyMWra2lbdqVBh"
       - id: "modulo_mercantil"
         label: "Módulo individual: Contratos mercantiles"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_1TUhxpKVaWLbvt9Dve0a6Dqz"
-          online: "price_1TUhxpKVaWLbvt9Dve0a6Dqz"
+          presencial: "price_1TVFJA3s3evyMWrao9O7KSq0"
+          online: "price_1TVFJA3s3evyMWrao9O7KSq0"
       - id: "modulo_laboral"
         label: "Módulo individual: Contratos laborales"
         description: "$2,500 MXN · 12 horas · 4 sesiones"
         stripePriceIds:
-          presencial: "price_1TUhy2KVaWLbvt9DxMDpqTun"
-          online: "price_1TUhy2KVaWLbvt9DxMDpqTun"
+          presencial: "price_1TVFJb3s3evyMWraucnAZ3eR"
+          online: "price_1TVFJb3s3evyMWraucnAZ3eR"
       - id: "paquete_3_modulos"
         label: "Paquete completo (3 módulos)"
         description: "$6,750 MXN · 36 horas totales"
         stripePriceIds:
-          presencial: "price_1TUhyKKVaWLbvt9DoJn55wyR"
-          online: "price_1TUhyKKVaWLbvt9DoJn55wyR"
+          presencial: "price_1TVFJy3s3evyMWraaKWa4zTh"
+          online: "price_1TVFJy3s3evyMWraaKWa4zTh"
   dateSelection:
     label: "Calendario"
     required: true

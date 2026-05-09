@@ -16,7 +16,7 @@ paymentOptions:
   - id: "online"
     label: "Curso: Nuevas Facultades"
     price: 1500
-    stripePriceId: "price_1TUi2BKVaWLbvt9DY0SnnHYD"
+    stripePriceId: "price_1TVFKu3s3evyMWra7WORkyYU"
     type: "online"
 galleryFolder: "/images/programs/cursoNuevasFacultades/gallery"
 featured: true
