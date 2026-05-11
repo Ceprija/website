@@ -144,49 +144,83 @@ function programsForSubsection(subsection: ProgramSubsection) {
                                     {group.title}
                                 </h2>
                                 {subsections.length > 0 ? (
-                                    <div class="space-y-10 border-l-2 border-transparent pl-4 md:pl-6">
-                                        {" "}
-                                        {subsections.map((subsection) => {
-                                            const subsectionPrograms =
-                                                programsForSubsection(
-                                                    subsection,
-                                                );
-                                            if (subsectionPrograms.length === 0)
-                                                return null;
-                                            return (
-                                                <section class="relative">
-                                                    <div class="mb-5 flex items-center gap-3">
-                                                        <span
-                                                            class="hidden"
-                                                            aria-hidden="true"
-                                                        />
-                                                        <h3 class="text-xl md:text-2xl font-bold text-gray-800 font-serif">
-                                                            {subsection.title}
-                                                        </h3>
-                                                    </div>
-                                                    <div
-                                                        class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-                                                        data-program-card-grid
+                                    <div class="space-y-5 border-l-2 border-transparent pl-4 md:pl-6">
+                                        {subsections
+                                            .map((subsection) => ({
+                                                subsection,
+                                                programs:
+                                                    programsForSubsection(
+                                                        subsection,
+                                                    ),
+                                            }))
+                                            .filter(
+                                                ({ programs }) =>
+                                                    programs.length > 0,
+                                            )
+                                            .map(
+                                                (
+                                                    {
+                                                        subsection,
+                                                        programs:
+                                                            subsectionPrograms,
+                                                    },
+                                                    subsectionIndex,
+                                                ) => (
+                                                    <details
+                                                        class="group border border-gray-200 rounded-xl bg-gray-50/80 shadow-sm overflow-hidden open:shadow-md transition-shadow"
+                                                        open={
+                                                            subsectionIndex ===
+                                                            0
+                                                        }
+                                                        data-program-subsection
                                                     >
-                                                        {subsectionPrograms.map(
-                                                            (
-                                                                program,
-                                                                index,
-                                                            ) => (
-                                                                <ProgramOfferCard
-                                                                    program={
-                                                                        program
-                                                                    }
-                                                                    index={
-                                                                        index
-                                                                    }
+                                                        <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-5 py-4 font-serif text-xl md:text-2xl font-bold text-gray-800 hover:bg-white/80 transition-colors [&::-webkit-details-marker]:hidden">
+                                                            <span class="text-left">
+                                                                {
+                                                                    subsection.title
+                                                                }
+                                                            </span>
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                class="h-6 w-6 text-secondary shrink-0 transition-transform duration-200 group-open:rotate-180"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M19 9l-7 7-7-7"
                                                                 />
-                                                            ),
-                                                        )}
-                                                    </div>
-                                                </section>
-                                            );
-                                        })}
+                                                            </svg>
+                                                        </summary>
+                                                        <div class="px-5 pb-5 pt-5 border-t border-gray-200/80 bg-white">
+                                                            <div
+                                                                class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                                                                data-program-card-grid
+                                                            >
+                                                                {subsectionPrograms.map(
+                                                                    (
+                                                                        program,
+                                                                        index,
+                                                                    ) => (
+                                                                        <ProgramOfferCard
+                                                                            program={
+                                                                                program
+                                                                            }
+                                                                            index={
+                                                                                index
+                                                                            }
+                                                                        />
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </details>
+                                                ),
+                                            )}
                                     </div>
                                 ) : (
                                     <div
@@ -276,6 +310,14 @@ function programsForSubsection(subsection: ProgramSubsection) {
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(alignProgramCardBlocks);
     }
+
+    document
+        .querySelectorAll<HTMLDetailsElement>("[data-program-subsection]")
+        .forEach((details) => {
+            details.addEventListener("toggle", () => {
+                requestAnimationFrame(alignProgramCardBlocks);
+            });
+        });
 
     let resizeTimer: number | undefined;
     window.addEventListener("resize", () => {
