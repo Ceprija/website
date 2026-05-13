@@ -1,7 +1,6 @@
 ---
 import { readdir } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import ContactForm from "@components/forms/ContactForm.astro";
@@ -54,9 +53,7 @@ const galleryImageExtensions = new Set([
     ".svg",
     ".webp",
 ]);
-const publicDirectory = fileURLToPath(
-    new URL("../../../public", import.meta.url),
-);
+const publicDirectory = join(process.cwd(), "public");
 
 function normalizePublicFolderPath(folderPath: unknown): string | null {
     if (typeof folderPath !== "string") return null;
@@ -1001,6 +998,93 @@ const heroObjectPosition =
                             </p>
                         </ProgramEnrollmentAsideCard>
                     ) : (
+                        <div class="max-w-3xl mx-auto">
+                            <div class="bg-white rounded-3xl shadow-xl p-8 md:p-12 text-center">
+                                <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/15 text-secondary mb-5">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-9 w-9"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 class="text-2xl md:text-3xl font-bold text-primary mb-4 font-serif">
+                                    Inscripción al programa
+                                </h3>
+                                <p class="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+                                    Completa tu registro en línea y selecciona
+                                    tu modalidad o forma de pago disponible.
+                                </p>
+                                <button
+                                    type="button"
+                                    data-enrollment-modal-open
+                                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-8 py-4 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                >
+                                    Inscríbete Ya
+                                </button>
+                            </div>
+                        </div>
+                    )
+                }
+            </div>
+        </section>
+        {
+            enrollmentFlow === "inline" && programStatus !== "waitlist" && (
+                <div
+                    id="enrollment-modal"
+                    class="fixed inset-0 z-50 flex pointer-events-none items-center justify-center bg-black/60 px-4 py-8 opacity-0 transition-opacity duration-200 ease-out"
+                    aria-hidden="true"
+                    inert
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="enrollment-modal-title"
+                    aria-describedby="enrollment-modal-description"
+                >
+                    <div
+                        class="relative w-full max-w-5xl max-h-[90vh] scale-95 overflow-y-auto rounded-3xl bg-white p-6 opacity-0 shadow-2xl transition-all duration-200 ease-out md:p-8"
+                        data-modal-panel
+                    >
+                        <button
+                            type="button"
+                            id="enrollment-modal-close"
+                            class="absolute right-4 top-4 z-10 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            aria-label="Cerrar"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+
+                        <div class="mb-8 pr-10">
+                            <h2 id="enrollment-modal-title" class="mb-2 text-2xl md:text-3xl font-bold text-primary font-serif">
+                                Inscríbete Ya
+                            </h2>
+                            <p id="enrollment-modal-description" class="text-sm md:text-base text-gray-600">
+                                Completa el formulario para registrar tu interés
+                                y continuar con tu inscripción.
+                            </p>
+                        </div>
+
                         <ContinuousEducationForm
                             programTitle={String(data.title)}
                             programId={programSlug}
@@ -1012,22 +1096,26 @@ const heroObjectPosition =
                             requiresVerification={programRequiresVerification}
                             embedInAsideCard={false}
                         />
-                    )
-                }
-            </div>
-        </section>
+                    </div>
+                </div>
+            )
+        }
         {
             programBrochure && (
                 <div
                     id="brochure-modal"
-                    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 py-8"
+                    class="fixed inset-0 z-50 flex pointer-events-none items-center justify-center bg-black/60 px-4 py-8 opacity-0 transition-opacity duration-200 ease-out"
                     aria-hidden="true"
+                    inert
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="brochure-modal-title"
                     aria-describedby="brochure-modal-description"
                 >
-                    <div class="relative w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+                    <div
+                        class="relative w-full max-w-xl scale-95 rounded-3xl bg-white p-6 opacity-0 shadow-2xl transition-all duration-200 ease-out md:p-8"
+                        data-modal-panel
+                    >
                         <button
                             type="button"
                             id="brochure-modal-close"
@@ -1183,15 +1271,64 @@ const heroObjectPosition =
             "brochure-submit",
         ) as HTMLButtonElement | null;
         let brochureLastFocused: HTMLElement | null = null;
+        const enrollmentModal = document.getElementById("enrollment-modal");
+        const enrollmentOpenButtons =
+            document.querySelectorAll<HTMLButtonElement>("[data-enrollment-modal-open]");
+        const enrollmentCloseButton = document.getElementById(
+            "enrollment-modal-close",
+        );
+        let enrollmentLastFocused: HTMLElement | null = null;
+
+        function focusableElements(container: Element): HTMLElement[] {
+            return Array.from(
+                container.querySelectorAll<HTMLElement>(
+                    'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            );
+        }
+
+        function isModalOpen(modal: HTMLElement | null): modal is HTMLElement {
+            return !!modal && modal.getAttribute("aria-hidden") === "false";
+        }
+
+        function setModalVisualState(modal: HTMLElement, open: boolean) {
+            const panel = modal.querySelector<HTMLElement>("[data-modal-panel]");
+            modal.classList.toggle("opacity-0", !open);
+            modal.classList.toggle("opacity-100", open);
+            modal.classList.toggle("pointer-events-none", !open);
+            modal.classList.toggle("pointer-events-auto", open);
+            modal.setAttribute("aria-hidden", String(!open));
+            if (open) {
+                modal.removeAttribute("inert");
+            } else {
+                modal.setAttribute("inert", "");
+            }
+            panel?.classList.toggle("opacity-0", !open);
+            panel?.classList.toggle("opacity-100", open);
+            panel?.classList.toggle("scale-95", !open);
+            panel?.classList.toggle("scale-100", open);
+        }
 
         function setBrochureModalOpen(open: boolean) {
             if (!brochureModal) return;
             if (open) brochureLastFocused = document.activeElement as HTMLElement | null;
-            brochureModal.classList.toggle("hidden", !open);
-            brochureModal.classList.toggle("flex", open);
-            brochureModal.setAttribute("aria-hidden", String(!open));
+            setModalVisualState(brochureModal, open);
             document.body.classList.toggle("overflow-hidden", open);
             if (!open) brochureLastFocused?.focus?.();
+        }
+
+        function setEnrollmentModalOpen(open: boolean) {
+            if (!enrollmentModal) return;
+            if (open) enrollmentLastFocused = document.activeElement as HTMLElement | null;
+            setModalVisualState(enrollmentModal, open);
+            document.body.classList.toggle("overflow-hidden", open);
+            if (open) {
+                window.setTimeout(() => {
+                    focusableElements(enrollmentModal)[0]?.focus();
+                }, 0);
+            } else {
+                enrollmentLastFocused?.focus?.();
+            }
         }
 
         function showBrochureStatus(kind: "error" | "success", message: string) {
@@ -1220,14 +1357,34 @@ const heroObjectPosition =
             if (event.target === brochureModal) setBrochureModalOpen(false);
         });
 
+        enrollmentOpenButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                setEnrollmentModalOpen(true);
+            });
+        });
+
+        enrollmentCloseButton?.addEventListener("click", () => {
+            setEnrollmentModalOpen(false);
+        });
+
+        enrollmentModal?.addEventListener("click", (event) => {
+            if (event.target === enrollmentModal) setEnrollmentModalOpen(false);
+        });
+
         window.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") setBrochureModalOpen(false);
-            if (event.key !== "Tab" || !brochureModal || brochureModal.classList.contains("hidden")) return;
-            const focusable = Array.from(
-                brochureModal.querySelectorAll<HTMLElement>(
-                    'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-                ),
-            );
+            const activeModal =
+                isModalOpen(enrollmentModal)
+                    ? enrollmentModal
+                    : isModalOpen(brochureModal)
+                      ? brochureModal
+                      : null;
+            if (event.key === "Escape") {
+                if (activeModal === enrollmentModal) setEnrollmentModalOpen(false);
+                if (activeModal === brochureModal) setBrochureModalOpen(false);
+                return;
+            }
+            if (event.key !== "Tab" || !activeModal) return;
+            const focusable = focusableElements(activeModal);
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
             if (!first || !last) return;
