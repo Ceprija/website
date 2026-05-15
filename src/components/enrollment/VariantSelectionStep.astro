@@ -5,9 +5,12 @@ interface Props {
     variants: VariantOptions;
     /** ID del contenedor del paso. El script de la página lo usa para mostrar/ocultar la sección. */
     stepId?: string;
+    /** En `ContinuousEducationForm` la navegación va con el pie del formulario; oculta el botón interno. */
+    showFooterButton?: boolean;
 }
 
-const { variants, stepId = "step-variant" } = Astro.props;
+const { variants, stepId = "step-variant", showFooterButton = true } =
+    Astro.props;
 
 const moduleSel = variants.moduleSelection;
 const dateSel = variants.dateSelection;
@@ -196,15 +199,19 @@ const CARD_THRESHOLD = 8;
         }
     </div>
 
-    <div class="flex justify-end mt-8 max-w-4xl mx-auto">
-        <button
-            type="button"
-            id="next-step-variant"
-            class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
-        >
-            Siguiente
-        </button>
-    </div>
+    {
+        showFooterButton && (
+            <div class="flex justify-end mt-8 max-w-4xl mx-auto">
+                <button
+                    type="button"
+                    id="next-step-variant"
+                    class="px-8 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+                >
+                    Siguiente
+                </button>
+            </div>
+        )
+    }
 </section>
 
 <script>

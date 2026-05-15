@@ -10,12 +10,13 @@ import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import { programMetaDescriptionSuffix } from "../../data/config/seo.js";
 import { filterPublishedPrograms } from "@lib/programPublished";
-import { 
-    getPaymentOptions, 
-    getStripePriceIds, 
+import {
+    getPaymentOptions,
+    getStripePriceIds,
     getDisplayPrices,
     getProgramStatus,
 } from "@lib/programPayments";
+import { getVariantOptions } from "@lib/programVariants";
 
 export async function getStaticPaths() {
     const programs = await getCollection("programas");
@@ -121,6 +122,7 @@ const prerequisitesItems: string[] = Array.isArray(data.prerequisites)
     : [];
 // Extract payment data using new helper functions (with backward compatibility)
 const paymentOptions = getPaymentOptions(program);
+const variantOptions = getVariantOptions(program);
 const stripePriceIdsForCheckout = getStripePriceIds(program);
 const continuousEducationPrices = getDisplayPrices(program);
 const programAddress =
@@ -1091,6 +1093,7 @@ const heroObjectPosition =
                             stripePriceIds={stripePriceIdsForCheckout}
                             prices={continuousEducationPrices}
                             paymentOptions={paymentOptions}
+                            variantOptions={variantOptions}
                             modalidad={String(data.modalidad)}
                             address={programAddress}
                             requiresVerification={programRequiresVerification}

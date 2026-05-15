@@ -3,6 +3,8 @@ import { ecConsentLabels } from "@data/forms/educacion-continua-options";
 import bankInfo from "@data/bank-info.json";
 import type { PaymentOption } from "@lib/programPayments";
 import { formatPrice } from "@lib/programPayments";
+import type { VariantOptions } from "@lib/programVariants";
+import VariantSelectionStep from "@components/enrollment/VariantSelectionStep.astro";
 
 interface Props {
     programTitle?: string;
@@ -17,6 +19,8 @@ interface Props {
     };
     /** Varias opciones de pago (inscripción, paquete, cuotas): el usuario elige antes de Stripe. */
     paymentOptions?: PaymentOption[];
+    /** Cuando el programa define `variantOptions` en el MD (módulos/fechas con precios por variante). */
+    variantOptions?: VariantOptions | null;
     modalidad?: string;
     address?: string;
     requiresVerification?: boolean;
@@ -30,6 +34,7 @@ const {
     stripePriceIds,
     prices,
     paymentOptions: paymentOptionsProp,
+    variantOptions: variantOptionsProp = null,
     modalidad = "",
     address = "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
     requiresVerification = false,
@@ -37,7 +42,17 @@ const {
 } = Astro.props;
 
 const paymentOptions = paymentOptionsProp ?? [];
-const showPaymentPlanChoice = paymentOptions.length > 1;
+const variantOptions = variantOptionsProp;
+const hasVariantStep = Boolean(
+    variantOptions &&
+        ((variantOptions.moduleSelection?.options?.length ?? 0) > 0 ||
+            (variantOptions.dateSelection?.options?.length ?? 0) > 0),
+);
+/** El precio de Stripe lo elige el módulo/paquete en `variantOptions`, no la lista `paymentOptions`. */
+const variantDrivesStripePrice = Boolean(
+    variantOptions?.moduleSelection?.options?.length,
+);
+const showPaymentPlanChoice = paymentOptions.length > 1 && !variantDrivesStripePrice;
 const inPersonModalityLabel = /h[ií]brida|h[ií]brido/i.test(modalidad)
     ? "Híbrida"
     : "Presencial";
@@ -91,6 +106,8 @@ const formFooterClass = embedInAsideCard
         data-stripe-price-ids={JSON.stringify(stripePriceIds || null)}
         data-prices={JSON.stringify(prices || null)}
         data-payment-options={JSON.stringify(paymentOptions)}
+        data-has-variant-step={hasVariantStep ? "1" : "0"}
+        data-variant-options={hasVariantStep ? JSON.stringify(variantOptions) : ""}
         data-address={address}
         data-bank-info={JSON.stringify(bankInfo)}
         data-requires-verification={requiresVerification ? "1" : "0"}
@@ -294,6 +311,16 @@ const formFooterClass = embedInAsideCard
                 </div>
             </div>
         </div>
+
+        {
+            hasVariantStep && variantOptions && (
+                <VariantSelectionStep
+                    variants={variantOptions}
+                    stepId="step-variant"
+                    showFooterButton={false}
+                />
+            )
+        }
 
         <!-- SECCIÓN 2: PAGO -->
         <div class="step-section p-8 md:p-12 hidden" id="step-2">
@@ -714,8 +741,11 @@ const formFooterClass = embedInAsideCard
             </div>
         </div>
 
-        <!-- SECCIÓN 3: DECLARACIÓN Y ENVÍO -->
-        <div class="step-section p-8 md:p-12 hidden" id="step-3">
+        <!-- SECCIÓN 3: DECLARACIÓN Y ENVÍO (solo transferencia) -->
+        <div
+            class="step-section ce-step-wire-only p-8 md:p-12 hidden"
+            id="step-3"
+        >
             <!-- Este encabezado cambiará dinámicamente según si requiere factura o no -->
             <div id="invoice-header" class="mb-10 text-center">
                 <div
@@ -1060,14 +1090,43 @@ const formFooterClass = embedInAsideCard
         return value === "wire" ? "wire" : "stripe";
     }
 
+    function datasetHasVariantStep(): boolean {
+        return form?.dataset.hasVariantStep === "1";
+    }
+
+    function visibleWizardSections(): HTMLElement[] {
+        return [...sections].filter((s) => {
+            if (
+                s.classList.contains("ce-step-wire-only") &&
+                selectedPaymentMethod() !== "wire"
+            ) {
+                return false;
+            }
+            return true;
+        });
+    }
+
     function activeStepNames(): string[] {
-        // Stripe flow completes on `/pago-exitoso` after redirect, so we only
-        // show 2 steps in the UI. Wire transfer requires the final step (proof).
-        return selectedPaymentMethod() === "wire"
+        const hasV = datasetHasVariantStep();
+        if (selectedPaymentMethod() === "wire") {
+            return hasV
+                ? [
+                      "Datos del Participante",
+                      "Opciones del programa",
+                      "Método de Pago",
+                      "Finalizar Inscripción",
+                  ]
+                : [
+                      "Datos del Participante",
+                      "Método de Pago",
+                      "Finalizar Inscripción",
+                  ];
+        }
+        return hasV
             ? [
                   "Datos del Participante",
-                  "Método de Pago",
-                  "Finalizar Inscripción",
+                  "Opciones del programa",
+                  "Pago en línea (Stripe)",
               ]
             : ["Datos del Participante", "Pago en línea (Stripe)"];
     }
@@ -1081,13 +1140,21 @@ const formFooterClass = embedInAsideCard
         const totalSteps = activeTotalSteps();
         if (currentStep > totalSteps) currentStep = totalSteps;
 
-        sections.forEach((s, i) => {
-            // Step 3 is only reachable/visible for wire transfers.
-            if (i === 2 && selectedPaymentMethod() !== "wire") {
+        const visible = visibleWizardSections();
+        [...sections].forEach((s) => {
+            const wireOnlyHidden =
+                s.classList.contains("ce-step-wire-only") &&
+                selectedPaymentMethod() !== "wire";
+            if (wireOnlyHidden) {
                 s.classList.add("hidden");
                 return;
             }
-            s.classList.toggle("hidden", i + 1 !== currentStep);
+            const idx = visible.indexOf(s);
+            if (idx < 0) {
+                s.classList.add("hidden");
+                return;
+            }
+            s.classList.toggle("hidden", idx + 1 !== currentStep);
         });
 
         const stepNames = activeStepNames();
@@ -1100,18 +1167,16 @@ const formFooterClass = embedInAsideCard
 
         if (prevBtn) prevBtn.classList.toggle("hidden", currentStep === 1);
         if (nextBtn) {
-            // Stripe is a redirect flow: on the payment step (step 2) the user should
-            // click the dedicated Stripe button, not “Siguiente”.
+            const visibleSteps = visibleWizardSections().length;
             const hideNextForStripePaymentStep =
-                selectedPaymentMethod() === "stripe" && currentStep === 2;
+                selectedPaymentMethod() === "stripe" &&
+                currentStep === visibleSteps;
             nextBtn.classList.toggle(
                 "hidden",
                 currentStep === totalSteps || hideNextForStripePaymentStep,
             );
         }
         if (submitBtn) {
-            // Stripe is a redirect flow: users should never submit from inside the
-            // wizard; they must complete payment on Stripe and return via /pago-exitoso.
             const hideSubmitForStripe = selectedPaymentMethod() === "stripe";
             submitBtn.classList.toggle(
                 "hidden",
@@ -1123,7 +1188,8 @@ const formFooterClass = embedInAsideCard
     nextBtn?.addEventListener("click", () => {
         const totalSteps = activeTotalSteps();
         const stepNames = activeStepNames();
-        const section = sections[currentStep - 1];
+        const visible = visibleWizardSections();
+        const section = visible[currentStep - 1];
         if (!section || !form) return;
         // Check formats (phone, email) in addition to required-ness so users
         // can't advance past a step with a bad value only to find out at the
@@ -1134,10 +1200,8 @@ const formFooterClass = embedInAsideCard
             reportStepValidationFailure(title, result);
             return;
         }
-        // Step 2 is the payment step. For Stripe, users must use the dedicated
-        // Stripe Checkout button (redirect) and cannot proceed to the next step
-        // without paying.
-        if (currentStep === 2) {
+        const stripePayStepIndex = visibleWizardSections().length;
+        if (currentStep === stripePayStepIndex) {
             if (selectedPaymentMethod() === "stripe") {
                 alert(
                     "Para pago en línea (Stripe), usa el botón «Continuar al Pago Seguro» en este paso. No puedes continuar sin completar el pago en Stripe.",
@@ -1220,7 +1284,48 @@ const formFooterClass = embedInAsideCard
         return [];
     }
 
+    function readVariantOptionsFromDataset(): {
+        moduleSelection?: {
+            options: Array<{
+                id: string;
+                stripePriceIds?: { presencial?: string; online?: string };
+            }>;
+        };
+    } | null {
+        try {
+            const raw = form?.dataset.variantOptions ?? "";
+            if (!raw.trim()) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+
     function resolveStripePriceId(): string | null {
+        const variants = readVariantOptionsFromDataset();
+        const modOpts = variants?.moduleSelection?.options;
+        if (modOpts && modOpts.length > 0) {
+            const selected = (
+                form?.querySelector(
+                    'input[name="selectedModule"]:checked',
+                ) as HTMLInputElement | null
+            )?.value;
+            if (!selected) return null;
+            const modality = (
+                form?.querySelector(
+                    'input[name="modality"]:checked',
+                ) as HTMLInputElement | null
+            )?.value;
+            const modalityNorm = String(modality ?? "Presencial").toLowerCase();
+            const wantOnline =
+                modalityNorm.includes("línea") || modalityNorm.includes("linea");
+            const key = wantOnline ? "online" : "presencial";
+            const row = modOpts.find((o) => o.id === selected);
+            const id = row?.stripePriceIds?.[key]?.trim();
+            return id || null;
+        }
+
         const opts = readPaymentOptionsFromForm();
         if (opts.length > 1) {
             // If paymentOptions are actually modality choices (presencial/online),
@@ -1293,15 +1398,21 @@ const formFooterClass = embedInAsideCard
         const priceId = resolveStripePriceId();
 
         if (!priceId) {
-            const opts = readPaymentOptionsFromForm();
-            if (opts.length > 1) {
+            if (readVariantOptionsFromDataset()?.moduleSelection?.options?.length) {
                 alert(
-                    "Selecciona una opción de inversión (inscripción, pago completo o plan en cuotas).",
+                    "Selecciona un módulo o paquete y confirma tu modalidad (Presencial o En línea).",
                 );
             } else {
-                alert(
-                    "Precio no configurado para esta modalidad. Por favor contacta al administrador.",
-                );
+                const opts = readPaymentOptionsFromForm();
+                if (opts.length > 1) {
+                    alert(
+                        "Selecciona una opción de inversión (inscripción, pago completo o plan en cuotas).",
+                    );
+                } else {
+                    alert(
+                        "Precio no configurado para esta modalidad. Por favor contacta al administrador.",
+                    );
+                }
             }
             return;
         }
@@ -1318,9 +1429,9 @@ const formFooterClass = embedInAsideCard
         const stepNames = activeStepNames();
         const totalSteps = activeTotalSteps();
 
-        // Pasos 1 y 2 deben estar completos antes de Stripe (el botón vive en el paso 2)
-        for (let s = 0; s <= 1; s++) {
-            const stepResult = validateStepSection(sections[s]);
+        const visibleSteps = visibleWizardSections();
+        for (let s = 0; s < visibleSteps.length; s++) {
+            const stepResult = validateStepSection(visibleSteps[s]);
             if (!stepResult.ok) {
                 const title = `Paso ${s + 1} de ${totalSteps}: ${stepNames[s]}`;
                 reportStepValidationFailure(title, stepResult);
@@ -1399,6 +1510,17 @@ const formFooterClass = embedInAsideCard
                 }
             }
 
+            const selectedModule = (
+                form.querySelector(
+                    'input[name="selectedModule"]:checked',
+                ) as HTMLInputElement | null
+            )?.value?.trim();
+            const selectedDate = (
+                form.querySelector(
+                    'input[name="selectedDate"]:checked',
+                ) as HTMLInputElement | null
+            )?.value?.trim();
+
             const response = await fetch(
                 "/api/stripe/create-checkout-session",
                 {
@@ -1413,6 +1535,10 @@ const formFooterClass = embedInAsideCard
                         modality,
                         requiresInvoice: needsInvoice ? "Sí" : "No",
                         invoiceEmail: needsInvoice ? invoiceEmail : "",
+                        ...(selectedModule
+                            ? { selectedModule }
+                            : {}),
+                        ...(selectedDate ? { selectedDate } : {}),
                     }),
                 },
             );
@@ -1563,8 +1689,9 @@ const formFooterClass = embedInAsideCard
         const stepNames = activeStepNames();
         const totalSteps = activeTotalSteps();
 
+        const visibleSteps = visibleWizardSections();
         for (let i = 0; i < totalSteps; i++) {
-            const r = validateStepSection(sections[i]);
+            const r = validateStepSection(visibleSteps[i]);
             if (!r.ok) {
                 currentStep = i + 1;
                 updateStep();
@@ -1585,9 +1712,10 @@ const formFooterClass = embedInAsideCard
         )?.value;
         if (paymentChoice === "stripe") {
             alert(
-                "Con pago en línea (Stripe) debes usar el botón «Continuar al Pago Seguro» en el paso 2. No puedes finalizar aquí sin completar el pago en Stripe.",
+                "Con pago en línea (Stripe) debes usar el botón «Continuar al Pago Seguro» en el paso de pago. No puedes finalizar aquí sin completar el pago en Stripe.",
             );
-            currentStep = 2;
+            const payIdx = visibleWizardSections().length;
+            currentStep = payIdx;
             updateStep();
             stripeCheckoutBtn?.scrollIntoView({
                 behavior: "smooth",

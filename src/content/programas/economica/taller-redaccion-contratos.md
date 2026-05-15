@@ -29,7 +29,7 @@ date: "2026-05-14"
 address: ""
 requiresVerification: false
 instructor: "Por sesión y módulo puede variar el docente. El claustro incluye magistradas/os, juezas/es de distrito y especialistas del PJF y del ámbito académico; el detalle por fecha aparece en el temario."
-enrollmentFlow: "application"
+enrollmentFlow: "inline"
 curriculumTitle: "Temario por módulo y sesión"
 curriculum:
   - period: "Módulo 1 — Contratos civiles"
