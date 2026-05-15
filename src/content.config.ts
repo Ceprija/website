@@ -206,6 +206,27 @@ const docentes = defineCollection({
     /** Short bio used on cards / list views. */
     bio: z.string(),
     /**
+     * Perfil extendido (estándar editorial): firma / rol en una línea.
+     * Si está definido, la ficha de detalle usa el layout “estructurado” junto con
+     * `area_especialidad` y `hito_profesional` (las entradas antiguas siguen usando
+     * `position_laboral` + listas si estos campos no existen).
+     */
+    cargo_intro: optionalYamlString(),
+    /** Bloque “Área de Especialidad” (texto corrido). */
+    area_especialidad: optionalYamlString(),
+    /** Bloque “Hito Profesional” (texto corrido). */
+    hito_profesional: optionalYamlString(),
+    /**
+     * Bloque “Trayectoria Académica” en frontmatter (alternativa al cuerpo Markdown).
+     * Si falta, la ficha usa el cuerpo del `.md` cuando el perfil estructurado está activo.
+     */
+    trayectoria_academica: optionalYamlString(),
+    /**
+     * Título del último bloque (por defecto en la plantilla: «Trayectoria Académica»).
+     * Usar p. ej. «Trayectoria Profesional» o «Trayectoria» cuando el copy no sea académico.
+     */
+    trayectoria_titulo: optionalYamlString(),
+    /**
      * Long-form bio fallback. Prefer writing the long bio as the markdown body
      * of the entry; this field is kept for entries that haven't been migrated
      * to body content yet.

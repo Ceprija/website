@@ -53,9 +53,13 @@ const { name, degree, bio, image } = member.data;
             >
                 {name}
             </h3>
-            <p class="text-secondary font-medium text-sm mb-4 font-serif">
-                {degree}
-            </p>
+            {
+                degree.trim().length > 0 && (
+                    <p class="text-secondary font-medium text-sm mb-4 font-serif">
+                        {degree}
+                    </p>
+                )
+            }
             <p
                 class="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 font-sans flex-grow"
             >

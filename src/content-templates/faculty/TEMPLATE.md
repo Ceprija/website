@@ -1,3 +1,24 @@
+## Docente — texto (YAML + Markdown)
+
+Perfiles en `src/content/docentes/*.md`. Campos **obligatorios** siempre: `name`, `degree`, `bio`, `image`, `order` (y `draft` si aplica).
+
+### Perfil estructurado (recomendado para fichas nuevas)
+
+Si defines **cualquiera** de estos campos opcionales, la página de detalle usa el layout con títulos fijos:
+
+1. **`cargo_intro`** — Firma / rol (párrafo bajo el grado; equivale a la segunda línea del brief).
+2. **`area_especialidad`** — Bloque “Área de Especialidad”. Si falta pero existe `position_laboral`, se muestra ahí como respaldo.
+3. **`hito_profesional`** — Bloque “Hito Profesional”.
+4. **Trayectoria académica** — En el **cuerpo Markdown** del archivo (después del frontmatter), **o** en frontmatter con **`trayectoria_academica`** (texto corrido).
+
+Listas opcionales bajo esos bloques: `education`, `experience_institutional`. Si rellenas `hito_profesional`, la lista `experience_institutional` no se duplica en “Docencia en”.
+
+### Perfiles antiguos (sin migrar)
+
+Si **no** hay ninguno de `cargo_intro`, `area_especialidad`, `hito_profesional`, `trayectoria_academica`, se mantiene el layout anterior: “Trayectoria” + “Cargo” + listas.
+
+---
+
 ## What is this for?
 
 This is the **standard prompt** we use to generate or normalize **faculty headshot images** so they look consistent across:
@@ -6,6 +27,28 @@ This is the **standard prompt** we use to generate or normalize **faculty headsh
 - `src/components/sections/Faculty.astro` (grid + slider cards)
 
 It aims to reduce visual variance (framing, background, lighting) so the site looks cohesive even when the original photos come from different sources.
+
+## Faculty markdown (`src/content/docentes/*.md`)
+
+**Required frontmatter (all entries):** `name`, `degree`, `bio`, `image`, `order`, `draft` (default `false`).
+
+### New structured profile (recommended)
+
+If **any** of `cargo_intro`, `area_especialidad`, `hito_profesional`, or `trayectoria_academica` is set, the detail page uses the **structured layout** (headings: *Área de Especialidad*, *Hito Profesional*, *Trayectoria Académica*).
+
+| Campo | Uso |
+|-------|-----|
+| `cargo_intro` | Firma / rol en una o dos líneas (debajo del `degree`). |
+| `area_especialidad` | Texto del bloque *Área de Especialidad*. Si falta, se usa `position_laboral` como respaldo. |
+| `hito_profesional` | Texto del bloque *Hito Profesional*. Si falta y hay un solo ítem en `experience_institutional`, se usa como respaldo. |
+| `trayectoria_academica` | Texto del último bloque en frontmatter (alternativa al cuerpo Markdown). |
+| `trayectoria_titulo` | Título del último bloque (por defecto «Trayectoria Académica»). Ej.: «Trayectoria Profesional» (Aida) o «Trayectoria» (Alfonso). |
+| `education` | Opcional; lista *Formación Académica* (se muestra bajo la trayectoria si existe). |
+| `experience_institutional` | En layout estructurado solo se lista si **no** hay `hito_profesional` (evita duplicar el hito). |
+
+### Legacy profile (sin migrar)
+
+Omite los cuatro campos anteriores y usa como hasta ahora: cuerpo Markdown o `fullBio` bajo *Trayectoria*, más `position_laboral` (*Cargo*), `education`, `experience_institutional` (*Docencia en*).
 
 ## How to use
 

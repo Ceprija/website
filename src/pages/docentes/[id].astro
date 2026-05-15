@@ -2,7 +2,11 @@
 import Layout from "../../layouts/Layout.astro";
 import { render } from "astro:content";
 import IconList from "../../components/faculty/IconList.astro";
-import { getFacultyMembers, getFacultySlug, type FacultyEntry } from "../../lib/faculty";
+import {
+    getFacultyMembers,
+    getFacultySlug,
+    type FacultyEntry,
+} from "../../lib/faculty";
 
 export async function getStaticPaths() {
     const members = await getFacultyMembers();
@@ -24,19 +28,43 @@ const {
     degree,
     bio,
     fullBio,
+    cargo_intro,
+    area_especialidad,
+    hito_profesional,
+    trayectoria_academica,
+    trayectoria_titulo,
     position_laboral,
     education,
     experience_institutional,
     image,
 } = member.data;
 
-// Prefer the markdown body when authors moved the long bio there; fall back to
-// the legacy `fullBio` frontmatter field, then to the short `bio`.
+/** Nuevo layout por bloques editoriales; basta con que exista cualquiera de estos campos. */
+const usesStructuredProfile = Boolean(
+    cargo_intro ||
+    area_especialidad ||
+    hito_profesional ||
+    trayectoria_academica,
+);
+
+const trayectoriaHeading =
+    (trayectoria_titulo && String(trayectoria_titulo).trim()) ||
+    "Trayectoria Académica";
+
 const hasMarkdownBody = (member.body ?? "").trim().length > 0;
+
+const areaDisplay = area_especialidad ?? position_laboral;
+const hitoFromSingleExperience =
+    !hito_profesional && experience_institutional?.length === 1
+        ? experience_institutional[0]
+        : undefined;
+const hitoDisplay = hito_profesional ?? hitoFromSingleExperience;
+const hideExperienceListInStructured =
+    Boolean(hito_profesional) || Boolean(hitoFromSingleExperience);
 
 const seo = {
     title: `${name} | Docentes CEPRIJA`,
-    description: fullBio || bio,
+    description: cargo_intro || area_especialidad || fullBio || bio,
     image,
 };
 ---
@@ -66,67 +94,151 @@ const seo = {
                         >
                             {name}
                         </h1>
-                        <p
-                            class="text-xl text-secondary font-medium mb-6"
-                            data-animate="fade-up"
-                            data-delay="100"
-                        >
-                            {degree}
-                        </p>
+                        {
+                            degree.trim().length > 0 && (
+                                <p
+                                    class="text-xl text-secondary font-medium mb-6"
+                                    data-animate="fade-up"
+                                    data-delay="100"
+                                >
+                                    {degree}
+                                </p>
+                            )
+                        }
 
-                        <div
-                            class="mb-8"
-                            data-animate="fade-up"
-                            data-delay="200"
-                        >
-                            <h2
-                                class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif"
-                            >
-                                Trayectoria
-                            </h2>
-                            {
-                                hasMarkdownBody ? (
-                                    <div class="prose prose-lg max-w-none text-gray-600 leading-relaxed">
-                                        <Content />
+                        {
+                            usesStructuredProfile ? (
+                                <>
+                                    {cargo_intro && (
+                                        <p
+                                            class="text-gray-600 leading-relaxed text-lg mb-8"
+                                            data-animate="fade-up"
+                                            data-delay="150"
+                                        >
+                                            {cargo_intro}
+                                        </p>
+                                    )}
+
+                                    {areaDisplay && (
+                                        <div
+                                            class="mb-8"
+                                            data-animate="fade-up"
+                                            data-delay="200"
+                                        >
+                                            <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
+                                                Área de Especialidad
+                                            </h2>
+                                            <p class="text-gray-600 leading-relaxed text-lg">
+                                                {areaDisplay}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {hitoDisplay && (
+                                        <div
+                                            class="mb-8"
+                                            data-animate="fade-up"
+                                            data-delay="250"
+                                        >
+                                            <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
+                                                Hito Profesional
+                                            </h2>
+                                            <p class="text-gray-600 leading-relaxed text-lg">
+                                                {hitoDisplay}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div
+                                        class="mb-8"
+                                        data-animate="fade-up"
+                                        data-delay="300"
+                                    >
+                                        <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
+                                            {trayectoriaHeading}
+                                        </h2>
+                                        {trayectoria_academica ? (
+                                            <p class="text-gray-600 leading-relaxed text-lg whitespace-pre-line">
+                                                {trayectoria_academica}
+                                            </p>
+                                        ) : hasMarkdownBody ? (
+                                            <div class="prose prose-lg max-w-none text-gray-600 leading-relaxed">
+                                                <Content />
+                                            </div>
+                                        ) : (
+                                            <p class="text-gray-600 leading-relaxed text-lg">
+                                                {fullBio || bio}
+                                            </p>
+                                        )}
                                     </div>
-                                ) : (
-                                    <p class="text-gray-600 leading-relaxed text-lg">
-                                        {fullBio || bio}
-                                    </p>
-                                )
-                            }
-                        </div>
 
-                        {
-                            position_laboral && (
-                                <div data-animate="fade-up" data-delay="200">
-                                    <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
-                                        Cargo
-                                    </h2>
-                                    <p class="text-gray-600 leading-relaxed text-lg mb-8">
-                                        {position_laboral}
-                                    </p>
-                                </div>
+                                    {education && education.length > 0 && (
+                                        <IconList
+                                            title="Formación Académica"
+                                            items={education}
+                                        />
+                                    )}
+
+                                    {experience_institutional &&
+                                        experience_institutional.length > 0 &&
+                                        !hideExperienceListInStructured && (
+                                            <IconList
+                                                title="Docencia en"
+                                                items={experience_institutional}
+                                            />
+                                        )}
+                                </>
+                            ) : (
+                                <>
+                                    <div
+                                        class="mb-8"
+                                        data-animate="fade-up"
+                                        data-delay="200"
+                                    >
+                                        <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
+                                            Trayectoria
+                                        </h2>
+                                        {hasMarkdownBody ? (
+                                            <div class="prose prose-lg max-w-none text-gray-600 leading-relaxed">
+                                                <Content />
+                                            </div>
+                                        ) : (
+                                            <p class="text-gray-600 leading-relaxed text-lg">
+                                                {fullBio || bio}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {position_laboral && (
+                                        <div
+                                            data-animate="fade-up"
+                                            data-delay="200"
+                                        >
+                                            <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 font-serif">
+                                                Cargo
+                                            </h2>
+                                            <p class="text-gray-600 leading-relaxed text-lg mb-8">
+                                                {position_laboral}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {education && education.length > 0 && (
+                                        <IconList
+                                            title="Formación Académica"
+                                            items={education}
+                                        />
+                                    )}
+
+                                    {experience_institutional &&
+                                        experience_institutional.length > 0 && (
+                                            <IconList
+                                                title="Docencia en"
+                                                items={experience_institutional}
+                                            />
+                                        )}
+                                </>
                             )
-                        }
-
-                        {
-                            education && education.length > 0 && (
-                                <IconList
-                                    title="Formación Académica"
-                                    items={education}
-                                />
-                            )
-                        }
-
-                        {
-                            experience_institutional &&
-                                experience_institutional.length > 0 && (
-                                    <IconList
-                                        title="Docencia en"
-                                        items={experience_institutional}
-                                    />
-                                )
                         }
 
                         <div
