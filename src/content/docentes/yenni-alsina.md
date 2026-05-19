@@ -1,5 +1,5 @@
 ---
-name: "Mtra. Yenni Alsina"
+name: "Mtra. Yenni Alsina Wensy"
 degree: "Maestra en Sistema Acusatorio Adversarial"
 bio: "Especialista en materia penal, justicia para adolescentes y litigación oral."
 position_laboral: "Abogada litigante en la firma legal Treviño & Treviño."

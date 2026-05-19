@@ -1,6 +1,6 @@
 ---
-name: "Lic. Fernando Agraz Sánchez Vázquez"
-degree: "Licenciado en Derecho"
+name: "Dr. Fernando Agraz Sánchez Vázquez"
+degree: "Doctor en Derecho"
 bio: "Socio de CliftonLarsonAllen Global; trayectoria penal, fiscal y corporativa."
 cargo_intro: "Socio de la firma internacional CliftonLarsonAllen Global, con amplia trayectoria en materia penal, fiscal y corporativa."
 area_especialidad: "Especialista en derecho penal, procedimiento penal, materia fiscal y asesoría corporativa."

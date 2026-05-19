@@ -1,6 +1,6 @@
 ---
-name: "Lic. Aida Isabel Girscher La Verne"
-degree: "Licenciada en Psicología Educativa"
+name: "Mtra. Aida Isabel Girscher La Verne"
+degree: "Maestra en Psicología Educativa"
 bio: "Directora de desarrollo organizacional, A.G.L. Consultores RH; cultura y capacitación."
 cargo_intro: "Directora de Desarrollo Organizacional y Consultora Titular en A.G.L. Consultores Recursos Humanos, S. C."
 area_especialidad: "Especialista en administración y desarrollo de recursos humanos, cultura organizacional, capacitación, clima laboral y psicología educativa."

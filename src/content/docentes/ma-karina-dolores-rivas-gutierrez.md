@@ -1,6 +1,6 @@
 ---
-name: "Mtra. María Karina Dolores Rivas Gutiérrez"
-degree: "Maestra en Derecho"
+name: "Dra. María Karina Dolores Rivas Gutiérrez"
+degree: "Doctora en Derecho"
 bio: "Jueza especializada en violencia contra las mujeres con 30 años de experiencia judicial."
 position_laboral: "Jueza de Control, Juicio Oral, Ejecución de Penas y Justicia para Adolescentes en Puerto Vallarta."
 # experience_institutional:
