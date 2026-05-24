@@ -9,7 +9,7 @@ nivel: "diplomado"
 status: "active"
 registroAcademico: "ESDIP-2024-123"
 horario: "Viernes 17:00–20:00 h · Sábado 9:00–14:00 h"
-startDate: "20 de marzo de 2026"
+startDate: "29 de mayo de 2026"
 duracion: "14 módulos"
 modalidad: "Híbrida / En línea"
 paymentOptions:
