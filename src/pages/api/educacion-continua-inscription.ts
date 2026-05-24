@@ -28,6 +28,15 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { ENABLE_LARAVEL_INSCRIPTION_MIRROR } from "astro:env/server";
+import {
+  appendSubmissionEvent,
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -250,6 +259,43 @@ export const POST: APIRoute = async ({ request }) => {
       meetingLink: "Se enviará previo al inicio"
     };
 
+    const hasWireProof = nonEmptyFiles.some((f) =>
+      ["paymentProof", "comprobantePago", "comprobante_pago"].includes(f.fieldname),
+    );
+
+    let submissionId: string | undefined;
+    if (isSupabaseConfigured()) {
+      const persisted = await persistSubmission(
+        {
+          requestId,
+          idempotencyKey: getIdempotencyKey(request),
+          flow: "educacion_continua",
+          personKind: "enrollment_intent",
+          workflowStatus: hasWireProof ? "pending_review" : "received",
+          wireReviewStatus: hasWireProof ? "pending" : null,
+          email,
+          phone,
+          programSlug: programId,
+          programTitle,
+          apiRoute: route,
+          payload: {
+            name,
+            modality: modalityCanonical,
+            requiresInvoice,
+            invoiceEmail,
+          },
+        },
+        route,
+      );
+      if (persisted.ok) {
+        submissionId = persisted.submissionId;
+        const bucket = hasWireProof
+          ? bucketForFlow("wire_proof")
+          : bucketForFlow("educacion_continua");
+        await uploadSubmissionFiles(submissionId, nonEmptyFiles, bucket, route);
+      }
+    }
+
     const header = "FECHA,NOMBRE,EMAIL,TELEFONO,MODALIDAD,FACTURA,EMAIL FACTURA\n";
     const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
     const csvRow =
@@ -371,6 +417,8 @@ export const POST: APIRoute = async ({ request }) => {
     };
 
     const sendToLaravel = async () => {
+      const raw = (ENABLE_LARAVEL_INSCRIPTION_MIRROR ?? "").trim().toLowerCase();
+      if (!(raw === "true" || raw === "1" || raw === "yes")) return;
       try {
         const apiUrl = URL_BASE_API;
         if (!apiUrl) return;
@@ -424,6 +472,11 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (!apiRes.ok) {
           const errText = await apiRes.text();
+          if (submissionId) {
+            await appendSubmissionEvent(submissionId, "laravel_mirror_failed", {
+              httpStatus: apiRes.status,
+            });
+          }
           apiLog("warn", route, "laravel_api_error", {
             requestId,
             programSlug: programSlug || undefined,
@@ -446,13 +499,19 @@ export const POST: APIRoute = async ({ request }) => {
       }
     };
 
-    await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
+    await sendToBrevo();
+    await sendToLaravel();
 
     apiLog("info", route, "inscription_accepted", {
       requestId,
       programSlug: programSlug || undefined,
+      submissionId,
     });
-    return jsonResponse({ message: "Ok" }, 200, requestId);
+    return jsonResponse(
+      { message: "Ok", ...(submissionId ? { submissionId } : {}) },
+      200,
+      requestId,
+    );
   } catch (error: unknown) {
     if (
       error &&

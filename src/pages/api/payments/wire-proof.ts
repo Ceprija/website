@@ -21,6 +21,14 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import {
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 type UploadedFile = {
   fieldname: string;
@@ -148,8 +156,6 @@ export const POST: APIRoute = async ({ request }) => {
     if (hasHoneypotValue(fields)) {
       return honeypotResponse(route, requestId);
     }
-    const enrollmentId = crypto.randomUUID();
-
     const fieldErr = validateWireProofFields(fields);
     if (fieldErr) {
       programSlug = (fields.programId ?? "").trim();
@@ -272,6 +278,55 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    let submissionId: string | undefined;
+    const filesToStore = [paymentProof, ...(fiscalConstancy ? [fiscalConstancy] : [])];
+
+    if (isSupabaseConfigured()) {
+      const persisted = await persistSubmission(
+        {
+          requestId,
+          idempotencyKey: getIdempotencyKey(request),
+          flow: "wire_proof",
+          personKind: "enrollment_intent",
+          workflowStatus: "pending_review",
+          wireReviewStatus: "pending",
+          email,
+          phone,
+          programSlug: programId,
+          programTitle,
+          apiRoute: route,
+          payload: {
+            name,
+            modality,
+            wireReference,
+            requiresInvoice,
+            invoiceEmail,
+            applicationId: applicationIdField,
+          },
+        },
+        route,
+      );
+      if (!persisted.ok) {
+        return jsonResponse(
+          {
+            error: "No pudimos registrar tu comprobante. Intenta de nuevo.",
+            code: "wire_proof_persist_failed",
+          },
+          502,
+          requestId,
+        );
+      }
+      submissionId = persisted.submissionId;
+      await uploadSubmissionFiles(
+        submissionId,
+        filesToStore,
+        bucketForFlow("wire_proof"),
+        route,
+      );
+    }
+
+    const enrollmentId = submissionId ?? crypto.randomUUID();
+
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const programs = await getCollection("programas");
@@ -340,11 +395,22 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "admin",
+        toEmail: adminRecipients[0] ?? senderEmail,
+        subject: `Comprobante Recibido - ${programTitle || programId}`,
+        status: adminRes.ok ? "sent" : "failed",
+        error: adminRes.ok ? undefined : `brevo_${adminRes.status}`,
+      });
+    }
+
     if (!adminRes.ok) {
-      apiLog("error", route, "brevo_admin_failed", {
+      apiLog("warn", route, "brevo_admin_failed", {
         requestId,
         programSlug: programSlug || undefined,
         enrollmentId,
+        submissionId,
         brevoStatus: adminRes.status,
       });
     }
@@ -373,11 +439,22 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "applicant",
+        toEmail: email,
+        subject: `Comprobante recibido - ${programTitle || programId}`,
+        status: userRes.ok ? "sent" : "failed",
+        error: userRes.ok ? undefined : `brevo_${userRes.status}`,
+      });
+    }
+
     if (!userRes.ok) {
-      apiLog("error", route, "brevo_user_failed", {
+      apiLog("warn", route, "brevo_user_failed", {
         requestId,
         programSlug: programSlug || undefined,
         enrollmentId,
+        submissionId,
         brevoStatus: userRes.status,
       });
     } else {
@@ -385,6 +462,7 @@ export const POST: APIRoute = async ({ request }) => {
         requestId,
         programSlug: programSlug || undefined,
         enrollmentId,
+        submissionId,
       });
     }
 
@@ -392,6 +470,7 @@ export const POST: APIRoute = async ({ request }) => {
       {
         success: true,
         enrollmentId,
+        ...(submissionId ? { submissionId } : {}),
         message: "Comprobante recibido",
       },
       200,

@@ -10,6 +10,7 @@ import {
 } from "@lib/uploads/fileValidation";
 import { validateInscriptionIdentity } from "@lib/validation/enrollment";
 import {
+  ENABLE_LARAVEL_INSCRIPTION_MIRROR,
   SMTP_FROM,
   URL_BASE_API,
 } from "astro:env/server";
@@ -22,6 +23,15 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import {
+  appendSubmissionEvent,
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -178,6 +188,40 @@ export const POST: APIRoute = async ({ request }) => {
             }
         }
 
+        let submissionId: string | undefined;
+        if (isSupabaseConfigured()) {
+            const persisted = await persistSubmission(
+                {
+                    requestId,
+                    idempotencyKey: getIdempotencyKey(request),
+                    flow: "legacy_inscription",
+                    personKind: "applicant",
+                    email: fields.email,
+                    phone: fields.telefono,
+                    programSlug: programTitle,
+                    programTitle,
+                    apiRoute: route,
+                    payload: { ...fields },
+                },
+                route,
+            );
+            if (persisted.ok) {
+                submissionId = persisted.submissionId;
+                const uploadables = Object.entries(files).map(([fieldname, file]) => ({
+                    fieldname,
+                    buffer: file.buffer,
+                    filename: file.filename,
+                    mimetype: file.mimetype,
+                }));
+                await uploadSubmissionFiles(
+                    submissionId,
+                    uploadables,
+                    bucketForFlow("legacy_inscription"),
+                    route,
+                );
+            }
+        }
+
         // 1. Generate CSV content
 
         const headers = [
@@ -294,7 +338,13 @@ export const POST: APIRoute = async ({ request }) => {
             }
         };
 
+        const mirrorLaravelEnabled = (): boolean => {
+            const raw = (ENABLE_LARAVEL_INSCRIPTION_MIRROR ?? "").trim().toLowerCase();
+            return raw === "true" || raw === "1" || raw === "yes";
+        };
+
         const sendToLaravel = async () => {
+            if (!mirrorLaravelEnabled()) return;
             try {
                 const apiUrl = URL_BASE_API;
                 if (!apiUrl) return;
@@ -372,17 +422,42 @@ export const POST: APIRoute = async ({ request }) => {
 
                 if (!apiRes.ok) {
                     console.error('Laravel API Error response:', await apiRes.text());
+                    if (submissionId) {
+                        await appendSubmissionEvent(submissionId, "laravel_mirror_failed", {
+                            status: apiRes.status,
+                        });
+                    }
                 } else {
                     console.log('Successfully saved to Laravel API');
                 }
             } catch (apiError) {
                 console.error('Failed to send data to Laravel API:', apiError);
+                if (submissionId) {
+                    await appendSubmissionEvent(submissionId, "laravel_mirror_failed", {
+                        error: apiError instanceof Error ? apiError.message : String(apiError),
+                    });
+                }
             }
         };
 
-        await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
+        await sendToBrevo();
+        if (submissionId) {
+            await recordEmailAttempt(submissionId, {
+                recipientRole: "admin",
+                toEmail: fields.email,
+                subject: `Nueva Inscripción: ${programTitle}`,
+                status: "sent",
+            });
+        }
+        await sendToLaravel();
 
-        return new Response(JSON.stringify({ message: 'Inscripción exitosa' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return new Response(
+            JSON.stringify({
+                message: 'Inscripción exitosa',
+                ...(submissionId ? { submissionId } : {}),
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
     } catch (error) {
         if (
             error &&

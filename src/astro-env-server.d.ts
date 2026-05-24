@@ -16,4 +16,7 @@ declare module "astro:env/server" {
   export const EMAIL_EDUCACION_CONTINUA: string | undefined;
   export const NOTIFY_CONTROL_ESCOLAR_ENROLLMENT: string | undefined;
   export const URL_BASE_API: string | undefined;
+  export const SUPABASE_URL: string | undefined;
+  export const SUPABASE_SERVICE_ROLE_KEY: string | undefined;
+  export const ENABLE_LARAVEL_INSCRIPTION_MIRROR: string | undefined;
 }

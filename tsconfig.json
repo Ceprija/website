@@ -8,18 +8,11 @@
     "dist"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "strict": true,
     "paths": {
-      "@components/*": [
-        "src/components/*"
-      ],
-      "@data/*": [
-        "src/data/*"
-      ],
-      "@lib/*": [
-        "src/lib/*"
-      ]
+      "@components/*": ["./src/components/*"],
+      "@data/*": ["./src/data/*"],
+      "@lib/*": ["./src/lib/*"]
     }
-  },
+  }
 }

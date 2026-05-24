@@ -20,6 +20,14 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import {
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 type UploadedFile = {
   fieldname: string;
@@ -227,6 +235,39 @@ export const POST: APIRoute = async ({ request }) => {
     const customerEmail = (fields.customerEmail ?? "").trim();
     const applicationId = (fields.applicationId ?? "").trim();
 
+    let submissionId: string | undefined;
+    if (isSupabaseConfigured()) {
+      const persisted = await persistSubmission(
+        {
+          requestId,
+          idempotencyKey: getIdempotencyKey(request),
+          flow: "fiscal_preflight",
+          personKind: "enrollment_intent",
+          email: invoiceEmail || customerEmail,
+          phone: participantPhone,
+          programSlug,
+          programTitle,
+          apiRoute: route,
+          payload: {
+            participantName,
+            modality,
+            applicationId,
+            customerEmail,
+          },
+        },
+        route,
+      );
+      if (persisted.ok) {
+        submissionId = persisted.submissionId;
+        await uploadSubmissionFiles(
+          submissionId,
+          [fiscal],
+          bucketForFlow("fiscal_preflight"),
+          route,
+        );
+      }
+    }
+
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const programs = await getCollection("programas");
@@ -273,20 +314,37 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      const recipients = programAdminRecipients(program);
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "admin",
+        toEmail: recipients[0]?.email ?? senderEmail,
+        subject: `Facturación (Stripe) — ${programTitle || programSlug}`,
+        status: adminRes.ok ? "sent" : "failed",
+        error: adminRes.ok ? undefined : `brevo_${adminRes.status}`,
+      });
+    }
+
     if (!adminRes.ok) {
-      apiLog("error", route, "brevo_send_failed", {
+      apiLog("warn", route, "brevo_send_failed", {
         requestId,
         programSlug: programSlug || undefined,
+        submissionId,
         brevoStatus: adminRes.status,
       });
     } else {
       apiLog("info", route, "preflight_ok", {
         requestId,
         programSlug: programSlug || undefined,
+        submissionId,
       });
     }
 
-    return jsonResponse({ success: true }, 200, requestId);
+    return jsonResponse(
+      { success: true, ...(submissionId ? { submissionId } : {}) },
+      200,
+      requestId,
+    );
   } catch (error) {
     if (
       error &&

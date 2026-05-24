@@ -41,6 +41,14 @@ import {
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import {
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
 /** Hard cap to bound memory when parsing indexed form fields. */
@@ -626,6 +634,43 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    let submissionId: string | undefined;
+    if (isSupabaseConfigured()) {
+      const persisted = await persistSubmission(
+        {
+          requestId,
+          idempotencyKey: getIdempotencyKey(request),
+          flow: "postgraduate_application",
+          personKind: "applicant",
+          email: emailS,
+          phone: telefonoS,
+          programSlug,
+          programTitle: programTitle || String(program?.data.title ?? ""),
+          apiRoute: "POST /api/enrollment",
+          payload: {
+            applicationId,
+            nombre: nombreS,
+            apellidos: apellidosS,
+            modality,
+            degrees,
+            selectedModule,
+            selectedDate,
+            nivel,
+          },
+        },
+        "POST /api/enrollment",
+      );
+      if (persisted.ok) {
+        submissionId = persisted.submissionId;
+        await uploadSubmissionFiles(
+          submissionId,
+          files,
+          bucketForFlow("postgraduate_application"),
+          "POST /api/enrollment",
+        );
+      }
+    }
+
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar = programAdminEmail(program);
     const adminRecipients = shouldNotifyControlEscolarOnEnrollment()
@@ -724,9 +769,14 @@ export const POST: APIRoute = async ({ request }) => {
     `
       : "";
 
+    const refLine = submissionId
+      ? `<p><strong>Referencia DB:</strong> ${escapeHtml(submissionId)}</p>`
+      : "";
+
     const adminHtml = `
       <h2>Nueva Solicitud de Admisión</h2>
       <p><strong>ID de Solicitud:</strong> ${escapeHtml(applicationId)}</p>
+      ${refLine}
       <hr />
       <h3>Programa</h3>
       <p><strong>Programa:</strong> ${safeProgramTitle}</p>
@@ -770,10 +820,21 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "admin",
+        toEmail: adminRecipients[0]?.email ?? senderEmail,
+        subject: `Nueva Solicitud de Admisión - ${programTitle}`,
+        status: adminRes.ok ? "sent" : "failed",
+        error: adminRes.ok ? undefined : `brevo_${adminRes.status}`,
+      });
+    }
+
     if (!adminRes.ok) {
-      apiLog("error", "POST /api/enrollment", "brevo_admin_failed", {
+      apiLog("warn", "POST /api/enrollment", "brevo_admin_failed", {
         requestId,
         programSlug,
+        submissionId,
         brevoStatus: adminRes.status,
       });
     }
@@ -850,10 +911,21 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "applicant",
+        toEmail: email,
+        subject: `Solicitud Recibida - ${programTitle}`,
+        status: userRes.ok ? "sent" : "failed",
+        error: userRes.ok ? undefined : `brevo_${userRes.status}`,
+      });
+    }
+
     if (!userRes.ok) {
-      apiLog("error", "POST /api/enrollment", "brevo_user_failed", {
+      apiLog("warn", "POST /api/enrollment", "brevo_user_failed", {
         requestId,
         programSlug,
+        submissionId,
         brevoStatus: userRes.status,
       });
     }
@@ -861,6 +933,7 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonResponse({
         success: true,
         applicationId,
+        ...(submissionId ? { submissionId } : {}),
         message: "Solicitud enviada exitosamente",
       }, 200, requestId);
   } catch (error) {

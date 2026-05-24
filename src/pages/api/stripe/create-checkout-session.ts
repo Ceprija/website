@@ -22,6 +22,12 @@ import { getPaymentOptions, getProgramStatus } from "@lib/programPayments";
 import { getVariantOptions } from "@lib/programVariants";
 import { hasHoneypotValue } from "@lib/server/publicEndpointGuards";
 import { getProgramPathSlug } from "@lib/programPaths";
+import {
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  linkStripeCheckoutSession,
+  persistSubmission,
+} from "@lib/db/submissions";
 
 function stripeErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
@@ -326,6 +332,36 @@ export const POST: APIRoute = async ({ request }) => {
   const successUrl = `${base}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${base}/oferta-academica/${encodeURIComponent(programSlug)}`;
 
+  let websiteSubmissionId: string | undefined;
+  if (isSupabaseConfigured()) {
+    const programTitle = String(program.data.title ?? programSlug);
+    const persisted = await persistSubmission(
+      {
+        requestId,
+        idempotencyKey: getIdempotencyKey(request),
+        flow: "stripe_checkout_intent",
+        personKind: "enrollment_intent",
+        email: customerEmail,
+        phone: participantPhone,
+        programSlug,
+        programTitle,
+        apiRoute: route,
+        payload: {
+          priceId,
+          modality,
+          participantName,
+          requiresInvoice,
+          invoiceEmail,
+          applicationId,
+          selectedModule,
+          selectedDate,
+        },
+      },
+      route,
+    );
+    if (persisted.ok) websiteSubmissionId = persisted.submissionId;
+  }
+
   const stripe = new Stripe(secret);
 
   try {
@@ -340,6 +376,9 @@ export const POST: APIRoute = async ({ request }) => {
       participantPhone: truncateMeta(participantPhone),
       modality: truncateMeta(modality),
       requiresInvoice: truncateMeta(requiresInvoice, 8),
+      ...(websiteSubmissionId
+        ? { websiteSubmissionId: truncateMeta(websiteSubmissionId, 80) }
+        : {}),
       ...(invoiceEmail
         ? { invoiceEmail: truncateMeta(invoiceEmail, 254) }
         : {}),
@@ -376,13 +415,21 @@ export const POST: APIRoute = async ({ request }) => {
         metadata: subscriptionMeta,
       });
 
+      if (websiteSubmissionId) {
+        await linkStripeCheckoutSession(websiteSubmissionId, session.id);
+      }
       apiLog("info", route, "subscription_checkout_created", {
         requestId,
         programSlug,
         sessionId: session.id,
+        websiteSubmissionId,
         paymentCycleLimit: 4,
       });
-      return jsonResponse({ url: session.url }, 200, requestId);
+      return jsonResponse(
+        { url: session.url, ...(websiteSubmissionId ? { submissionId: websiteSubmissionId } : {}) },
+        200,
+        requestId,
+      );
     }
 
     // Pago único (modo original)
@@ -415,12 +462,20 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
 
+    if (websiteSubmissionId) {
+      await linkStripeCheckoutSession(websiteSubmissionId, session.id);
+    }
     apiLog("info", route, "checkout_session_created", {
       requestId,
       programSlug,
       sessionId: session.id,
+      websiteSubmissionId,
     });
-    return jsonResponse({ url: session.url }, 200, requestId);
+    return jsonResponse(
+      { url: session.url, ...(websiteSubmissionId ? { submissionId: websiteSubmissionId } : {}) },
+      200,
+      requestId,
+    );
   } catch (e) {
     const message = stripeErrorMessage(e);
     const stripeCode =

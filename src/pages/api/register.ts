@@ -16,6 +16,14 @@ import {
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
+import {
+  bucketForFlow,
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+  uploadSubmissionFiles,
+} from "@lib/db/submissions";
 
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
@@ -86,6 +94,38 @@ export const POST: APIRoute = async ({ request }) => {
     const address = String(program?.data.address || "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500");
     const meetingLink = String((program?.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al evento");
 
+    const hasWireProof = Boolean(paymentProof?.buffer.length);
+    let submissionId: string | undefined;
+    if (isSupabaseConfigured()) {
+      const persisted = await persistSubmission(
+        {
+          requestId,
+          idempotencyKey: getIdempotencyKey(request),
+          flow: "register",
+          personKind: type === "contact" ? "potential_student" : "enrollment_intent",
+          workflowStatus: hasWireProof ? "pending_review" : "received",
+          wireReviewStatus: hasWireProof ? "pending" : null,
+          email,
+          phone,
+          programTitle,
+          apiRoute: route,
+          payload: { name, message, type, modality },
+        },
+        route,
+      );
+      if (persisted.ok) {
+        submissionId = persisted.submissionId;
+        if (paymentProof) {
+          await uploadSubmissionFiles(
+            submissionId,
+            [paymentProof],
+            bucketForFlow("register"),
+            route,
+          );
+        }
+      }
+    }
+
     const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
     const safeName = escapeHtml(name);
@@ -132,6 +172,17 @@ export const POST: APIRoute = async ({ request }) => {
         kind: "admin",
       },
     );
+    if (submissionId) {
+      const recipients = programAdminRecipients(program);
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "admin",
+        toEmail: recipients[0]?.email ?? senderEmail,
+        subject: String(adminBody.subject ?? "Registro web"),
+        status: adminRes.ok ? "sent" : "failed",
+        error: adminRes.ok ? undefined : `brevo_${adminRes.status}`,
+      });
+    }
+
     if (!adminRes.ok) {
       console.error("ERROR Brevo (admin):", adminRes.status);
     }
@@ -214,10 +265,16 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: "Recibido correctamente" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        message: "Recibido correctamente",
+        ...(submissionId ? { submissionId } : {}),
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     const code =
       error &&

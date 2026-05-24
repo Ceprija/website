@@ -15,6 +15,12 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { brochureDownloadRecipients } from "@lib/email/programAdminRecipients";
 import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
+import {
+  getIdempotencyKey,
+  isSupabaseConfigured,
+  persistSubmission,
+  recordEmailAttempt,
+} from "@lib/db/submissions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s().-]{7,24}$/;
@@ -126,9 +132,47 @@ export const POST: APIRoute = async ({ request }) => {
   const safeBrochure = escapeHtml(brochure);
   const safeMessage = escapeHtml(message || "Sin mensaje adicional");
 
+  let submissionId: string | undefined;
+  if (isSupabaseConfigured()) {
+    const persisted = await persistSubmission(
+      {
+        requestId,
+        idempotencyKey: getIdempotencyKey(request),
+        flow: "brochure_download",
+        personKind: "potential_student",
+        email,
+        phone,
+        programSlug: programSlug || null,
+        programTitle,
+        apiRoute: route,
+        payload: { name, message, brochure },
+      },
+      route,
+    );
+    if (!persisted.ok) {
+      apiLog("error", route, "brochure_persist_failed", {
+        requestId,
+        reason: persisted.reason,
+      });
+      return jsonResponse(
+        {
+          error: "No pudimos registrar tu solicitud. Intenta de nuevo más tarde.",
+          code: "brochure_persist_failed",
+        },
+        502,
+        requestId,
+      );
+    }
+    submissionId = persisted.submissionId;
+  }
+
   const emailSubject = sanitizeEmailSubjectLine(`Descarga de brochure: ${programTitle}`);
+  const refLine = submissionId
+    ? `<p><strong>Referencia:</strong> ${escapeHtml(submissionId)}</p>`
+    : "";
   const emailHtml = `
         <h2>Nueva descarga de brochure</h2>
+        ${refLine}
         <p><strong>Programa:</strong> ${safeProgram}</p>
         <p><strong>Slug:</strong> ${escapeHtml(programSlug || "N/A")}</p>
         <p><strong>Brochure:</strong> ${safeBrochure}</p>
@@ -154,12 +198,35 @@ export const POST: APIRoute = async ({ request }) => {
     },
   );
 
+  if (submissionId) {
+    await recordEmailAttempt(submissionId, {
+      recipientRole: "admin",
+      toEmail: brochureDownloadRecipients()[0] ?? senderEmail,
+      subject: emailSubject,
+      status: emailResult.ok ? "sent" : "failed",
+      error: emailResult.ok ? undefined : `brevo_${emailResult.status}`,
+    });
+  }
+
   if (!emailResult.ok) {
-    apiLog("error", route, "brochure_email_failed", {
+    apiLog("warn", route, "brochure_email_failed", {
       requestId,
       programSlug,
+      submissionId,
       brevoStatus: emailResult.status,
     });
+    if (submissionId) {
+      return jsonResponse(
+        {
+          success: true,
+          brochure,
+          submissionId,
+          warning: "email_delivery_failed",
+        },
+        200,
+        requestId,
+      );
+    }
     return jsonResponse(
       {
         error: "No pudimos registrar tu solicitud. Intenta de nuevo más tarde.",
@@ -173,7 +240,12 @@ export const POST: APIRoute = async ({ request }) => {
   apiLog("info", route, "brochure_lead_registered", {
     requestId,
     programSlug,
+    submissionId,
   });
 
-  return jsonResponse({ success: true, brochure }, 200, requestId);
+  return jsonResponse(
+    { success: true, brochure, ...(submissionId ? { submissionId } : {}) },
+    200,
+    requestId,
+  );
 };

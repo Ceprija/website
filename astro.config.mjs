@@ -79,6 +79,22 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      SUPABASE_URL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      SUPABASE_SERVICE_ROLE_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      /** Brief cutover: mirror legacy inscription to Laravel when "true". Default: off (Supabase canonical). */
+      ENABLE_LARAVEL_INSCRIPTION_MIRROR: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
   integrations: [

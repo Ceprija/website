@@ -30,6 +30,12 @@ import {
   programAdminEmail,
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
+import {
+  confirmStripePaymentBySession,
+  isSupabaseConfigured,
+  markSubmissionPaid,
+  recordEmailAttempt,
+} from "@lib/db/submissions";
 
 type ProgramPriceMatch = {
   matches: boolean;
@@ -494,6 +500,19 @@ export const POST: APIRoute = async ({ request }) => {
 
     markEnrollmentConfirmed(stripeSessionId);
 
+    let submissionId: string | null = null;
+    if (isSupabaseConfigured()) {
+      submissionId = await confirmStripePaymentBySession(stripeSessionId, piId);
+      const metaSubmissionId = session.metadata?.websiteSubmissionId?.trim();
+      if (!submissionId && metaSubmissionId) {
+        await markSubmissionPaid(metaSubmissionId, {
+          sessionId: stripeSessionId,
+          paymentIntentId: piId,
+        });
+        submissionId = metaSubmissionId;
+      }
+    }
+
     let emailWarnings: string[] = [];
 
     const userSubject = sanitizeEmailSubjectLine(
@@ -515,11 +534,22 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    if (submissionId) {
+      await recordEmailAttempt(submissionId, {
+        recipientRole: "applicant",
+        toEmail: customerEmail,
+        subject: userSubject,
+        status: userEmailResponse.ok ? "sent" : "failed",
+        error: userEmailResponse.ok ? undefined : `brevo_${userEmailResponse.status}`,
+      });
+    }
+
     if (!userEmailResponse.ok) {
       apiLog("error", route, "brevo_user_email_failed", {
         requestId,
         programSlug: programSlugLog,
         stripeSessionId,
+        submissionId: submissionId ?? undefined,
         brevoStatus: userEmailResponse.status,
       });
       emailWarnings.push("user_email_failed");
