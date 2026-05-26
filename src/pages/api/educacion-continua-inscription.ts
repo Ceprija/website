@@ -10,6 +10,8 @@ import {
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
+import { laravelApiUrl } from "@lib/server/laravelApiUrl";
 import {
   normalizeWireModality,
   validateEducacionContinuaFields,
@@ -209,6 +211,27 @@ export const POST: APIRoute = async ({ request }) => {
           requestId,
         );
       }
+      const normalized = await normalizeUploadForDelivery(
+        {
+          buffer: f.buffer,
+          filename: f.filename,
+          mimetype: f.mimetype,
+          fieldname: f.fieldname,
+        },
+        { logRoute: route, requestId },
+      );
+      if (!normalized.ok) {
+        return jsonResponse(
+          {
+            message: normalized.err.error,
+            code: normalized.err.code,
+            field: normalized.err.field ?? f.fieldname,
+          },
+          400,
+          requestId,
+        );
+      }
+      Object.assign(f, normalized.file);
     }
 
     const modalityCanonical = normalizeWireModality(fields.modality)!;
@@ -410,7 +433,7 @@ export const POST: APIRoute = async ({ request }) => {
           );
         }
 
-        const registroUrl = `${apiUrl}educacion-continua/registro`;
+        const registroUrl = laravelApiUrl(apiUrl, "educacion-continua/registro");
         apiLog("info", route, "laravel_request", {
           requestId,
           programSlug: programSlug || undefined,

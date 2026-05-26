@@ -20,9 +20,11 @@
 ## Duplicate Or Missing Emails
 
 1. Check `data/stripe-enrollment-session-ids.json`.
-2. Check `data/failed-emails.jsonl`.
+2. Check `data/failed-emails.jsonl` (look for `heic`, `admin_email_failed`, or Brevo 400).
 3. Use Stripe Session ID to confirm payment.
 4. Send manual follow-up from Control Escolar if needed.
+5. Verify `URL_BASE_API` ends with `/` when Laravel mirror is enabled.
+6. iPhone HEIC uploads are converted to JPEG on the server before Brevo; if conversion fails, the API returns 400 with `heic_convert_failed`.
 
 ## Rollback
 

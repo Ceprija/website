@@ -11,6 +11,7 @@ import {
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
 import { validateWireProofFields } from "@lib/validation/enrollment";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import {
@@ -239,6 +240,27 @@ export const POST: APIRoute = async ({ request }) => {
         requestId,
       );
     }
+    const paymentNormalized = await normalizeUploadForDelivery(
+      {
+        buffer: paymentProof.buffer,
+        filename: paymentProof.filename,
+        mimetype: paymentProof.mimetype,
+        fieldname: paymentProof.fieldname,
+      },
+      { logRoute: route, requestId },
+    );
+    if (!paymentNormalized.ok) {
+      return jsonResponse(
+        {
+          error: paymentNormalized.err.error,
+          code: paymentNormalized.err.code,
+          ...(paymentNormalized.err.field && { field: paymentNormalized.err.field }),
+        },
+        400,
+        requestId,
+      );
+    }
+    Object.assign(paymentProof, paymentNormalized.file);
 
     const fiscalConstancy = files.find((f) =>
       ["fiscalConstancy", "rfcDocument", "csf"].includes(f.fieldname),
@@ -270,6 +292,27 @@ export const POST: APIRoute = async ({ request }) => {
           { status: 400, headers: { "Content-Type": "application/json" } },
         );
       }
+      const fiscalNormalized = await normalizeUploadForDelivery(
+        {
+          buffer: fiscalConstancy.buffer,
+          filename: fiscalConstancy.filename,
+          mimetype: fiscalConstancy.mimetype,
+          fieldname: fiscalConstancy.fieldname,
+        },
+        { logRoute: route, requestId },
+      );
+      if (!fiscalNormalized.ok) {
+        return jsonResponse(
+          {
+            error: fiscalNormalized.err.error,
+            code: fiscalNormalized.err.code,
+            ...(fiscalNormalized.err.field && { field: fiscalNormalized.err.field }),
+          },
+          400,
+          requestId,
+        );
+      }
+      Object.assign(fiscalConstancy, fiscalNormalized.file);
     }
 
     const senderEmail =

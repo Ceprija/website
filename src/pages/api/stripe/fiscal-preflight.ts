@@ -10,6 +10,7 @@ import {
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
 import { validateStripeFiscalPreflightFields } from "@lib/validation/enrollment";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import {
@@ -217,6 +218,28 @@ export const POST: APIRoute = async ({ request }) => {
         requestId,
       );
     }
+
+    const normalized = await normalizeUploadForDelivery(
+      {
+        buffer: fiscal.buffer,
+        filename: fiscal.filename,
+        mimetype: fiscal.mimetype,
+        fieldname: fiscal.fieldname,
+      },
+      { logRoute: route, requestId },
+    );
+    if (!normalized.ok) {
+      return jsonResponse(
+        {
+          error: normalized.err.error,
+          code: normalized.err.code,
+          field: normalized.err.field ?? fiscal.fieldname,
+        },
+        400,
+        requestId,
+      );
+    }
+    Object.assign(fiscal, normalized.file);
 
     const invoiceEmail = (fields.invoiceEmail ?? "").trim();
     const programSlug = (fields.programSlug ?? "").trim();

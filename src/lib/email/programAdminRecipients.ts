@@ -3,6 +3,8 @@ import {
   CONTACT_EMAIL,
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_EDUCACION_CONTINUA,
+  EMAIL_SOPORTE_WEB,
+  ADMIN_EMAIL,
 } from "astro:env/server";
 import { getProgramStatus } from "@lib/programPayments";
 
@@ -10,8 +12,8 @@ type ProgramEntry = CollectionEntry<"programas">;
 
 const EDUCACION_CONTINUA_FALLBACK = "educacioncontinua@ceprija.edu.mx";
 const CONTROL_ESCOLAR_FALLBACK = "controlescolar@ceprija.edu.mx";
-const ADMIN_EMAIL = "admin@ceprija.edu.mx";
-const SOPORTE_WEB_EMAIL = "desarrolloweb@ceprija.edu.mx";
+const ADMIN_EMAIL_FALLBACK = "admin@ceprija.edu.mx";
+const SOPORTE_WEB_FALLBACK = "desarrolloweb@ceprija.edu.mx";
 
 function cleanEmail(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
@@ -42,7 +44,11 @@ export function programAdminEmail(program: ProgramEntry | undefined): string {
 export function programAdminRecipients(
   program: ProgramEntry | undefined,
 ): Array<{ email: string }> {
-  const emails = new Set([programAdminEmail(program), ADMIN_EMAIL, SOPORTE_WEB_EMAIL]);
+  const emails = new Set([
+    programAdminEmail(program),
+    cleanEmail(ADMIN_EMAIL, ADMIN_EMAIL_FALLBACK),
+    cleanEmail(EMAIL_SOPORTE_WEB, SOPORTE_WEB_FALLBACK),
+  ]);
   return [...emails].map((email) => ({ email }));
 }
 
@@ -51,6 +57,10 @@ export function brochureDownloadRecipients(): Array<{ email: string }> {
     EMAIL_EDUCACION_CONTINUA,
     EDUCACION_CONTINUA_FALLBACK,
   );
-  const emails = new Set([educacionContinua, ADMIN_EMAIL, SOPORTE_WEB_EMAIL]);
+  const emails = new Set([
+    educacionContinua,
+    cleanEmail(ADMIN_EMAIL, ADMIN_EMAIL_FALLBACK),
+    cleanEmail(EMAIL_SOPORTE_WEB, SOPORTE_WEB_FALLBACK),
+  ]);
   return [...emails].map((email) => ({ email }));
 }
