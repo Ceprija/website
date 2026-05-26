@@ -13,6 +13,7 @@ declare module "astro:env/server" {
   export const EMAIL_SOPORTE_WEB: string | undefined;
   export const SMTP_FROM: string | undefined;
   export const CONTACT_EMAIL: string | undefined;
+  export const ADMIN_EMAIL: string | undefined;
   export const EMAIL_EDUCACION_CONTINUA: string | undefined;
   export const NOTIFY_CONTROL_ESCOLAR_ENROLLMENT: string | undefined;
   export const URL_BASE_API: string | undefined;

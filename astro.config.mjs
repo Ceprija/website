@@ -63,6 +63,11 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      ADMIN_EMAIL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       EMAIL_EDUCACION_CONTINUA: envField.string({
         context: 'server',
         access: 'secret',

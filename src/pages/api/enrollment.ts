@@ -9,6 +9,7 @@ import {
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
 import {
   DEGREE_LEVELS,
   validateMinimumDegrees,
@@ -565,6 +566,23 @@ export const POST: APIRoute = async ({ request }) => {
             field: v.err.field ?? file.fieldname,
           }, 400, requestId, programSlug);
       }
+      const normalized = await normalizeUploadForDelivery(
+        {
+          buffer: file.buffer,
+          filename: file.filename,
+          mimetype: file.mimetype,
+          fieldname: file.fieldname,
+        },
+        { logRoute: "POST /api/enrollment", requestId },
+      );
+      if (!normalized.ok) {
+        return enrollmentRespond({
+            error: normalized.err.error,
+            code: normalized.err.code,
+            field: normalized.err.field ?? file.fieldname,
+          }, 400, requestId, programSlug);
+      }
+      Object.assign(file, normalized.file);
     }
 
     // Per-nivel minimum degree check (e.g. Doctorado needs Licenciatura + Maestría).
@@ -776,6 +794,18 @@ export const POST: APIRoute = async ({ request }) => {
         programSlug,
         brevoStatus: adminRes.status,
       });
+      return enrollmentRespond(
+        {
+          error:
+            "Recibimos tu solicitud pero no pudimos notificar al equipo. Por favor contacta a Control Escolar.",
+          code: "admin_email_failed",
+          applicationId,
+          ...(submissionId ? { submissionId } : {}),
+        },
+        502,
+        requestId,
+        programSlug,
+      );
     }
 
     const applicationOnlyNivel =

@@ -5,6 +5,7 @@ import { getCollection } from "astro:content";
 import { parseWireRegistrationMultipart } from "@lib/multipart/parseWireRegistration";
 import { escapeHtml } from "@lib/htmlEscape";
 import { validateUploadBuffer } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
 import { SMTP_FROM } from "astro:env/server";
 import { getProgramStatus } from "@lib/programPayments";
@@ -65,6 +66,26 @@ export const POST: APIRoute = async ({ request }) => {
           { status: 400, headers: { "Content-Type": "application/json" } },
         );
       }
+      const normalized = await normalizeUploadForDelivery(
+        {
+          buffer: paymentProof.buffer,
+          filename: paymentProof.filename,
+          mimetype: paymentProof.mimetype,
+          fieldname: "paymentProof",
+        },
+        { logRoute: route, requestId },
+      );
+      if (!normalized.ok) {
+        return new Response(
+          JSON.stringify({
+            message: normalized.err.error,
+            code: normalized.err.code,
+            ...(normalized.err.field && { field: normalized.err.field }),
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      Object.assign(paymentProof, normalized.file);
     }
 
     // Get program details from content collection

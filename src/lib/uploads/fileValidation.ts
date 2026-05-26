@@ -23,10 +23,11 @@ export type UploadValidationError = {
  * HEIC/HEIF files follow the ISO Base Media File Format (like MP4): a variable-length
  * `ftyp` box whose brand (bytes 8-11) identifies the concrete format. iPhone photos
  * use `heic` (stills) or `mif1`; we also allow common HEIF-family brands. HEIF variants
- * are normalized to `image/heic` because downstream consumers (Brevo attachments, admin
- * review) treat them interchangeably.
+ * are normalized to `image/heic` at upload time; `normalizeUploadForDelivery` converts
+ * them to JPEG before Brevo, Laravel, or Supabase Storage.
  */
 const HEIC_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "mif1", "msf1", "heim", "heis"]);
+const HEIF_MIME_TYPES = new Set(["image/heic", "image/heif"]);
 
 function detectMimeFromMagic(buf: Buffer): string | null {
   if (buf.length >= 4 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
@@ -59,6 +60,14 @@ function detectMimeFromMagic(buf: Buffer): string | null {
     return "application/pdf";
   }
   return null;
+}
+
+/** True when the buffer or declared MIME is HEIC/HEIF (needs server-side JPEG conversion). */
+export function isHeifUpload(buffer: Buffer, clientMime: string): boolean {
+  const normalizedMime = (clientMime || "").split(";")[0].trim().toLowerCase();
+  if (HEIF_MIME_TYPES.has(normalizedMime)) return true;
+  const magic = detectMimeFromMagic(buffer);
+  return magic === "image/heic";
 }
 
 /**

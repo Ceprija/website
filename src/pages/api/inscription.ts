@@ -8,6 +8,8 @@ import {
   MAX_UPLOAD_BYTES,
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
+import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
+import { laravelApiUrl } from "@lib/server/laravelApiUrl";
 import { validateInscriptionIdentity } from "@lib/validation/enrollment";
 import {
   SMTP_FROM,
@@ -169,6 +171,26 @@ export const POST: APIRoute = async ({ request }) => {
                     { status: 400, headers: { "Content-Type": "application/json" } },
                 );
             }
+            const normalized = await normalizeUploadForDelivery(
+                {
+                    buffer: file.buffer,
+                    filename: file.filename,
+                    mimetype: file.mimetype,
+                    fieldname: field,
+                },
+                { logRoute: route, requestId },
+            );
+            if (!normalized.ok) {
+                return new Response(
+                    JSON.stringify({
+                        message: normalized.err.error,
+                        code: normalized.err.code,
+                        field: normalized.err.field ?? field,
+                    }),
+                    { status: 400, headers: { "Content-Type": "application/json" } },
+                );
+            }
+            files[field] = { ...file, ...normalized.file };
         }
 
         for (const key of Object.keys(files)) {
@@ -284,14 +306,11 @@ export const POST: APIRoute = async ({ request }) => {
         };
 
         const sendToBrevo = async () => {
-            const brevoRes = await sendBrevoEmail(adminBody, {
+            return sendBrevoEmail(adminBody, {
                 route,
                 requestId,
                 kind: "admin",
             });
-            if (!brevoRes.ok) {
-                console.error('Brevo Error:', brevoRes.status);
-            }
         };
 
         const sendToLaravel = async () => {
@@ -363,8 +382,9 @@ export const POST: APIRoute = async ({ request }) => {
                 appendFile('ine_doc', files.ineDoc);
                 appendFile('cedula_doc', files.cedulaDoc);
 
-                console.log(`Sending FAST Multipart formData to API: ${apiUrl}prospectos/registro`);
-                const apiRes = await fetch(`${apiUrl}prospectos/registro`, {
+                const registroUrl = laravelApiUrl(apiUrl, "prospectos/registro");
+                console.log(`Sending FAST Multipart formData to API: ${registroUrl}`);
+                const apiRes = await fetch(registroUrl, {
                     method: 'POST',
                     headers: { 'Accept': 'application/json' }, // We don't set Content-Type here, let fetch generate the 'multipart/form-data; boundary=...'
                     body: formPayload
@@ -380,9 +400,24 @@ export const POST: APIRoute = async ({ request }) => {
             }
         };
 
-        await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
+        const brevoRes = await sendToBrevo();
+        await sendToLaravel();
 
-        return new Response(JSON.stringify({ message: 'Inscripción exitosa' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        if (!brevoRes.ok) {
+            return new Response(
+                JSON.stringify({
+                    message:
+                        "Recibimos tu solicitud pero no pudimos notificar al equipo. Por favor contacta a Control Escolar.",
+                    code: "admin_email_failed",
+                }),
+                { status: 502, headers: { 'Content-Type': 'application/json' } },
+            );
+        }
+
+        return new Response(JSON.stringify({ message: 'Inscripción exitosa' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
     } catch (error) {
         if (
             error &&
