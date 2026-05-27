@@ -84,6 +84,22 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      SCHOOL_HUB_SUBMISSIONS_URL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      SCHOOL_HUB_SUBMISSIONS_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      /** Si está definido, todos los avisos admin (brochure, inscripción, wire, etc.) van solo a este correo. */
+      EMAIL_ADMIN_ONLY_RECIPIENT: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
   integrations: [
