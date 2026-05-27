@@ -60,9 +60,18 @@ export const POST: APIRoute = async ({ request }) => {
   const email = clean(body?.email, 254).toLowerCase();
   const phone = clean(body?.phone, 30);
   const message = clean(body?.message, 800);
+  const trackingRequestId = clean(body?.trackingRequestId, 80);
   const programTitle = clean(body?.programTitle, 180);
   const programSlug = clean(body?.programSlug, 120);
   const brochure = clean(body?.brochure, 240);
+
+  if (!trackingRequestId) {
+    return jsonResponse(
+      { error: "Solicitud inválida.", code: "missing_tracking_request_id" },
+      400,
+      requestId,
+    );
+  }
 
   if (!name || !EMAIL_RE.test(email) || !PHONE_RE.test(phone) || !programTitle) {
     return jsonResponse(
@@ -143,7 +152,7 @@ export const POST: APIRoute = async ({ request }) => {
   // Persist submission to School Hub BEFORE sending email
   const submission = await persistSubmission(
     {
-      requestId,
+      requestId: trackingRequestId,
       flow: "brochure_download",
       personKind: "lead",
       email,
@@ -215,5 +224,16 @@ export const POST: APIRoute = async ({ request }) => {
     submissionId,
   });
 
-  return jsonResponse({ success: true, brochure }, 200, requestId);
+  return jsonResponse(
+    {
+      success: true,
+      brochure,
+      tracking: {
+        ok: submission.ok,
+        requestId,
+      },
+    },
+    200,
+    requestId,
+  );
 };

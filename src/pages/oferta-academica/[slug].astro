@@ -1406,25 +1406,31 @@ const heroObjectPosition =
 
             const formData = new FormData(brochureForm);
             const brochure = brochureForm.dataset.brochure ?? "";
+            const trackingRequestId =
+                (globalThis.crypto?.randomUUID?.() ??
+                    `${Date.now()}-${Math.random().toString(16).slice(2)}`) as string;
             if (brochureSubmit) {
                 brochureSubmit.disabled = true;
                 brochureSubmit.textContent = "Enviando...";
             }
 
             try {
+                const payload = {
+                    trackingRequestId,
+                    name: String(formData.get("name") ?? ""),
+                    email: String(formData.get("email") ?? ""),
+                    phone: String(formData.get("phone") ?? ""),
+                    message: String(formData.get("message") ?? ""),
+                    website: String(formData.get("website") ?? ""),
+                    programTitle: brochureForm.dataset.programTitle ?? "",
+                    programSlug: brochureForm.dataset.programSlug ?? "",
+                    brochure,
+                };
+
                 const response = await fetch("/api/brochure-download", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name: String(formData.get("name") ?? ""),
-                        email: String(formData.get("email") ?? ""),
-                        phone: String(formData.get("phone") ?? ""),
-                        message: String(formData.get("message") ?? ""),
-                        website: String(formData.get("website") ?? ""),
-                        programTitle: brochureForm.dataset.programTitle ?? "",
-                        programSlug: brochureForm.dataset.programSlug ?? "",
-                        brochure,
-                    }),
+                    body: JSON.stringify(payload),
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) {
@@ -1440,6 +1446,54 @@ const heroObjectPosition =
                     "Gracias. Iniciaremos la descarga del brochure.",
                 );
                 downloadBrochure(String(data.brochure || brochure));
+
+                // If School Hub persistence timed out, retry in the background.
+                if (data?.tracking?.ok === false) {
+                    const retryDelaysMs = [500, 2000, 5000, 10000, 30000];
+                    let stopped = false;
+
+                    const attempt = async () => {
+                        try {
+                            const res = await fetch("/api/brochure-track", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload),
+                            });
+                            const r = await res.json().catch(() => ({}));
+                            return !!(res.ok && r && r.ok === true);
+                        } catch {
+                            return false;
+                        }
+                    };
+
+                    const runRetries = async () => {
+                        for (const delay of retryDelaysMs) {
+                            if (stopped) return;
+                            const ok = await attempt();
+                            if (ok) return;
+                            await new Promise((r) => window.setTimeout(r, delay));
+                        }
+                    };
+
+                    void runRetries();
+
+                    window.addEventListener(
+                        "pagehide",
+                        () => {
+                            stopped = true;
+                            try {
+                                const blob = new Blob([JSON.stringify(payload)], {
+                                    type: "application/json",
+                                });
+                                navigator.sendBeacon("/api/brochure-track", blob);
+                            } catch {
+                                // ignore
+                            }
+                        },
+                        { once: true },
+                    );
+                }
+
                 brochureForm.reset();
                 window.setTimeout(() => setBrochureModalOpen(false), 900);
             } catch (error) {
