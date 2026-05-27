@@ -156,6 +156,7 @@ export const POST: APIRoute = async ({ request }) => {
       userAgent: request.headers.get("user-agent") || undefined,
     },
     route,
+    { timeoutMs: 2500 },
   );
 
   const submissionId = submission.ok ? submission.submissionId : null;
@@ -214,5 +215,5 @@ export const POST: APIRoute = async ({ request }) => {
     submissionId,
   });
 
-  return jsonResponse({ success: true, brochure, submissionId }, 200, requestId);
+  return jsonResponse({ success: true, brochure }, 200, requestId);
 };

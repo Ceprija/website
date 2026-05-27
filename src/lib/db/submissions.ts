@@ -95,7 +95,7 @@ export type CreateSubmissionInput = {
 // HTTP CLIENT
 // ============================================================================
 
-const REQUEST_TIMEOUT_MS = 8000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
 
 function getEndpointConfig(): { url: string; token: string } | null {
   const url = SCHOOL_HUB_SUBMISSIONS_URL?.trim();
@@ -108,6 +108,7 @@ async function callSchoolHub<T>(
   scope: string,
   body: Record<string, unknown>,
   context: Record<string, unknown>,
+  opts?: { timeoutMs?: number },
 ): Promise<T | null> {
   const cfg = getEndpointConfig();
   if (!cfg) {
@@ -115,8 +116,13 @@ async function callSchoolHub<T>(
     return null;
   }
 
+  const timeoutMs =
+    typeof opts?.timeoutMs === "number" && Number.isFinite(opts.timeoutMs)
+      ? Math.max(250, Math.min(30_000, Math.floor(opts.timeoutMs)))
+      : DEFAULT_REQUEST_TIMEOUT_MS;
+
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   
   try {
     const res = await fetch(cfg.url, {
@@ -161,6 +167,7 @@ export type PersistSubmissionResult =
 export async function persistSubmission(
   input: CreateSubmissionInput,
   logRoute: string,
+  opts?: { timeoutMs?: number },
 ): Promise<PersistSubmissionResult> {
   const body = {
     op: "insert" as const,
@@ -182,6 +189,7 @@ export async function persistSubmission(
     logRoute,
     body,
     { flow: input.flow, requestId: input.requestId },
+    opts,
   );
 
   if (!result?.id) {
