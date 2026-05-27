@@ -3,7 +3,7 @@ slug: "rectora-ceprija-recibe-doctorado-honoris-causa"
 title: "Rectora de CEPRIJA, recibe Doctorado Honoris Causa"
 excerpt: "Un reconocimiento que refleja el compromiso de nuestra institución con el liderazgo académico, la formación integral y el impacto positivo en la sociedad."
 date: "2026-04-23"
-image: "/images/revista/honorisCausa1.jpg"
+image: "/images/revista/honorisCausa1.webp"
 category: "Evento"
 author: "Redacción CEPRIJA"
 ---
@@ -13,7 +13,7 @@ author: "Redacción CEPRIJA"
 <p class="mb-4">La Dra. Verónica Elizabeth Ucaranza Sánchez, rectora del Centro de Preparación Integral en Materia Jurídica y Administrativa (CEPRIJA), recibió el grado de Doctor Honoris Causa otorgado por el Claustro Doctoral Liceo de Lideratos, en reconocimiento a su trayectoria profesional, liderazgo académico y contribución social.</p>
 
 <figure class="my-8">
-  <img src="/images/revista/honorisCausa2.jpg" alt="Doctorado Honoris Causa" class="w-[60%] mx-auto rounded-xl" style="box-shadow: 0 0.25px 16px rgba(0, 40, 85, 0.35);" />
+  <img src="/images/revista/honorisCausa2.webp" alt="Doctorado Honoris Causa" class="w-[60%] mx-auto rounded-xl" style="box-shadow: 0 0.25px 16px rgba(0, 40, 85, 0.35);" />
 </figure>
 
 <p class="mb-4">Esta distinción representa uno de los máximos reconocimientos honoríficos otorgados a personalidades cuya labor ha generado impacto en distintos ámbitos de la sociedad, destacando su compromiso con la educación, la formación profesional y el desarrollo humano.</p>

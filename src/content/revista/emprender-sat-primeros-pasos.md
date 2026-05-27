@@ -3,7 +3,7 @@ slug: "emprender-sat-primeros-pasos-2026"
 title: "¿Vas a Emprender? Esto es lo Primero que Debes Saber del SAT"
 excerpt: "Conoce los pasos básicos para darte de alta ante el SAT, elegir tu régimen fiscal y evitar multas al iniciar tu emprendimiento en México."
 date: "2026-05-22"
-image: "/images/revista/articulo-sat.png"
+image: "/images/revista/articulo-sat.webp"
 category: "Artículo"
 author: "Dra. Erika Vanesa García Rico"
 ---

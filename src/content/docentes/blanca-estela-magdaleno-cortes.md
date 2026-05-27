@@ -5,7 +5,7 @@ bio: "Especialista en litigación penal con perspectiva de género y derechos hu
 position_laboral: "Abogada postulante en materia penal en el despacho jurídico García Gutiérrez Abogados."
 experience_institutional:
   - "CEPRIJA - Imparte la materia de Salidas Alternas y Terminación Anticipada en la Maestría en Derecho Penal."
-image: "/images/faculty/blancaMagdaleno/blanca_estela_magdaleno_cortes_noBackground.png"
+image: "/images/faculty/blancaMagdaleno/blanca_estela_magdaleno_cortes_noBackground.webp"
 order: 8
 ---
 

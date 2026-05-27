@@ -5,7 +5,7 @@ bio: "Magistrada Presidenta de la Novena Sala Civil y especialista en Derechos H
 position_laboral: "Magistrada y Presidenta de la Novena Sala Civil del Supremo Tribunal de Justicia del Estado de Jalisco. y Presidenta de la Comisión Transitoria de Igualdad de Género y Derechos Humanos del mismo Poder Judicial."
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Introducción al Juicio Oral Familiar."
-image: "/images/faculty/veronicaUcaranza/veronica_ucaranza_sanchez_noBackground.png"
+image: "/images/faculty/veronicaUcaranza/veronica_ucaranza_sanchez_noBackground.webp"
 order: 14
 ---
 

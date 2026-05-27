@@ -7,7 +7,7 @@ position_laboral: "Secretario Relator en la Sala del Supremo Tribunal de Justici
 #   - "UNIVER - Materia de Derecho Procesal Penal."
 #   - "CUCSH - Materia de Amparo Penal."
 #   - "CEPRIJA - Maestría en Derecho Penal y Litigación Oral Avanzada."
-image: "/images/faculty/manuelEspinoza/manuel_espinoza_paredes_noBackground.png"
+image: "/images/faculty/manuelEspinoza/manuel_espinoza_paredes_noBackground.webp"
 order: 1
 ---
 
