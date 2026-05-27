@@ -7,7 +7,7 @@ area_especialidad: "Especialista en derecho fiscal, defensa fiscal, litigio trib
 hito_profesional: "Cuenta con una amplia trayectoria como asesor, conferencista y catedrático a nivel nacional, participando en instituciones como Universidad Panamericana, ITESO y la Universidad de Guadalajara, además de colaborar con firmas internacionales como KPMG México y organismos empresariales y jurídicos de relevancia nacional."
 trayectoria_titulo: "Trayectoria"
 image: "/images/faculty/alfonsoFabian/alfonso_fabian_barajas_noBackground.png"
-order: 9
+order: 5
 draft: false
 ---
 

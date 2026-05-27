@@ -4,6 +4,7 @@
  */
 export const PROGRAMA_NIVELES = [
   "curso",
+  "webinar",
   "taller",
   "diplomado",
   "maestria",

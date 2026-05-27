@@ -43,7 +43,7 @@ export function programAdminEmail(program: ProgramEntry | undefined): string {
     if (status === "active" && program.data.escuela === "juridica") {
       return controlEscolar;
     }
-    if (["curso", "taller", "diplomado"].includes(program.data.nivel)) {
+    if (["curso", "webinar", "taller", "diplomado"].includes(program.data.nivel)) {
       return educacionContinua;
     }
   }

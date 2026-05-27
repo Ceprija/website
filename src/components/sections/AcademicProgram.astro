@@ -16,6 +16,7 @@ const programas = filterPublishedPrograms(await getCollection("programas"));
 const nivelesLabel: Record<string, string> = {
   taller: "Talleres",
   curso: "Cursos",
+  webinar: "Webinars",
   seminario: "Seminarios",
   diplomado: "Diplomados",
   especialidad: "Especialidades",
@@ -26,6 +27,7 @@ const nivelesLabel: Record<string, string> = {
 const nivelesOrder = [
   "taller",
   "curso",
+  "webinar",
   "seminario",
   "diplomado",
   "especialidad",

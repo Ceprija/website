@@ -6,7 +6,7 @@ position_laboral: "Magistrada y Presidenta de la Novena Sala Civil del Supremo T
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Introducción al Juicio Oral Familiar."
 image: "/images/faculty/veronicaUcaranza/veronica_ucaranza_sanchez_noBackground.png"
-order: 16
+order: 14
 ---
 
 Es Doctora en Derecho Penal y especialista en Administración de Justicia, Derechos Humanos, Perspectiva de Género e Igualdad Sustantiva. Cuenta con más de 20 años de experiencia en el Poder Judicial.
