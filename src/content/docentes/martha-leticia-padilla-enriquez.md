@@ -5,7 +5,7 @@ bio: "Magistrada del Supremo Tribunal de Justicia con especialidad en Derecho Ci
 position_laboral: "Magistrada de la 4ta Sala del Supremo Tribunal de Justicia del Estado de Jalisco."
 # experience_institutional:
 #   - "CEPRIJA - Imparte la materia de Formas de Terminación de la Investigación en la Maestría en Derecho Penal y Litigación Oral Avanzada."
-image: "/images/faculty/marthaPadilla/martha_leticia_padilla_noBackground.png"
+image: "/images/faculty/marthaPadilla/martha_leticia_padilla_noBackground.webp"
 order: 12
 ---
 

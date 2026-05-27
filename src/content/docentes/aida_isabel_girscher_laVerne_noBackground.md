@@ -6,7 +6,7 @@ cargo_intro: "Directora de Desarrollo Organizacional y Consultora Titular en A.G
 area_especialidad: "Especialista en administración y desarrollo de recursos humanos, cultura organizacional, capacitación, clima laboral y psicología educativa."
 hito_profesional: "Cuenta con una sólida trayectoria liderando áreas estratégicas de recursos humanos y desarrollo organizacional, además de colaborar como docente y conferencista en instituciones como ITESM, Universidad de Guadalajara y Universidad Autónoma de Guadalajara."
 trayectoria_titulo: "Trayectoria Profesional"
-image: "/images/faculty/aidaGirscher/aida_isabel_girscher_laVerne_noBackground.png"
+image: "/images/faculty/aidaGirscher/aida_isabel_girscher_laVerne_noBackground.webp"
 order: 13
 draft: false
 ---
