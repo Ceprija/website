@@ -42,7 +42,7 @@ import {
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
-import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
@@ -1013,11 +1013,44 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    return jsonResponse({
+    // Prepare response to send immediately
+    const response = jsonResponse({
         success: true,
         applicationId,
         message: "Solicitud enviada exitosamente",
       }, 200, requestId);
+
+    // Upload files in background (void - no await)
+    if (submission.ok && files.length > 0) {
+      void (async () => {
+        for (const file of files) {
+          const uploadResult = await uploadSubmissionFiles({
+            submissionId: submission.submissionId,
+            flow: "postgraduate_application",
+            files: [{
+              field_name: file.fieldname,
+              original_filename: file.filename,
+              mime_type: file.mimetype,
+              content_base64: file.buffer.toString("base64"),
+            }],
+            timeoutMs: 20000,
+          });
+
+          if (!uploadResult.ok) {
+            logPersistenceFailure({
+              route,
+              requestId: applicationId,
+              flow: "postgraduate_application",
+              reason: "file_upload_failed",
+              error: uploadResult.reason,
+              email,
+            });
+          }
+        }
+      })();
+    }
+
+    return response;
   } catch (error) {
     if (
       error &&

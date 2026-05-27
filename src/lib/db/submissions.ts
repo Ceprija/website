@@ -233,26 +233,47 @@ export async function appendSubmissionEvent(
   );
 }
 
-export async function uploadSubmissionFiles(
-  submissionId: string,
-  files: UploadedFileInput[],
-  bucket: StorageBucket,
-  logRoute: string,
-): Promise<{ ok: boolean; count: number }> {
-  if (files.length === 0) return { ok: true, count: 0 };
+export type UploadSubmissionFilesResult =
+  | { ok: true; file_ids: string[]; count: number; duplicate?: boolean }
+  | { ok: false; reason: string };
 
-  // We still need direct Supabase access for file uploads
-  // The Edge Function only records metadata, actual upload needs service role
-  // TODO: Consider moving file upload to Edge Function as well for full isolation
-  
-  apiLog("warn", logRoute, "file_upload_not_implemented", {
-    submissionId,
-    count: files.length,
-    bucket,
-    message: "File upload to Storage requires direct Supabase client or Edge Function enhancement",
-  });
+export async function uploadSubmissionFiles(input: {
+  submissionId: string;
+  flow: SubmissionFlow;
+  files: [{
+    field_name: string;
+    original_filename: string;
+    mime_type: string;
+    content_base64: string;
+  }];
+  timeoutMs?: number;
+}): Promise<UploadSubmissionFilesResult> {
+  const result = await callSchoolHub<{ 
+    file_ids?: string[]; 
+    count?: number; 
+    duplicate?: boolean 
+  }>(
+    "uploadSubmissionFiles",
+    {
+      op: "upload_files",
+      submission_id: input.submissionId,
+      flow: input.flow,
+      files: input.files,
+    },
+    { route: "uploadSubmissionFiles", submissionId: input.submissionId },
+    { timeoutMs: input.timeoutMs ?? 20000 }
+  );
 
-  return { ok: false, count: 0 };
+  if (!result) {
+    return { ok: false, reason: "edge_function_failed" };
+  }
+
+  return {
+    ok: true,
+    file_ids: result.file_ids ?? [],
+    count: result.count ?? 1,
+    duplicate: result.duplicate ?? false,
+  };
 }
 
 export async function recordEmailAttempt(

@@ -21,7 +21,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
-import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 function sanitizeFilename(name: string): string {
@@ -359,6 +359,34 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         const submissionId = submission.ok ? submission.submissionId : null;
+
+        // 2.5 Upload files to Storage (if persistence succeeded)
+        if (submission.ok) {
+            for (const [fieldname, file] of Object.entries(files)) {
+                const uploadResult = await uploadSubmissionFiles({
+                    submissionId: submission.submissionId,
+                    flow: "legacy_inscription",
+                    files: [{
+                        field_name: fieldname,
+                        original_filename: file.filename,
+                        mime_type: file.mimetype,
+                        content_base64: file.buffer.toString("base64"),
+                    }],
+                    timeoutMs: 20000,
+                });
+
+                if (!uploadResult.ok) {
+                    logPersistenceFailure({
+                        route,
+                        requestId: submissionRequestId,
+                        flow: "legacy_inscription",
+                        reason: "file_upload_failed",
+                        error: uploadResult.reason,
+                        email: fields.email,
+                    });
+                }
+            }
+        }
 
         // 3. Send Emails
         const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
