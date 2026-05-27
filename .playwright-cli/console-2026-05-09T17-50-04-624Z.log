@@ -1,0 +1,297 @@
+[1416469026ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1416483376ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1416878818ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1416881123ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1416881189ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/branding/logos/favicon.svg:0
+[1416881237ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.setAppStatus (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:440:22)
+    at http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:302:18
+    at Array.forEach (<anonymous>)
+    at AstroDevToolbar.connectedCallback (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:301:15)
+    at HTMLDocument.<anonymous> (http://localhost:4321/@id/astro/runtime/client/dev-toolbar/entrypoint.js:236:17) @ http://localhost:4321/@vite/client:1542
+[1416881243ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.setAppStatus (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:440:22)
+    at http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:302:18
+    at Array.forEach (<anonymous>)
+    at AstroDevToolbar.connectedCallback (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:301:15)
+    at HTMLDocument.<anonymous> (http://localhost:4321/@id/astro/runtime/client/dev-toolbar/entrypoint.js:236:17) @ http://localhost:4321/@vite/client:1542
+[1416881243ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.setAppStatus (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:440:22)
+    at http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:302:18
+    at Array.forEach (<anonymous>)
+    at AstroDevToolbar.connectedCallback (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:301:15)
+    at HTMLDocument.<anonymous> (http://localhost:4321/@id/astro/runtime/client/dev-toolbar/entrypoint.js:236:17) @ http://localhost:4321/@vite/client:1542
+[1416881243ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.setAppStatus (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:440:22)
+    at http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:302:18
+    at Array.forEach (<anonymous>)
+    at AstroDevToolbar.connectedCallback (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:301:15)
+    at HTMLDocument.<anonymous> (http://localhost:4321/@id/astro/runtime/client/dev-toolbar/entrypoint.js:236:17) @ http://localhost:4321/@vite/client:1542
+[1416881243ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.setAppStatus (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:440:22)
+    at http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:302:18
+    at Array.forEach (<anonymous>)
+    at AstroDevToolbar.connectedCallback (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:301:15)
+    at HTMLDocument.<anonymous> (http://localhost:4321/@id/astro/runtime/client/dev-toolbar/entrypoint.js:236:17) @ http://localhost:4321/@vite/client:1542
+[1416881289ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.initApp (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:355:25) @ http://localhost:4321/@vite/client:1542
+[1416881289ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.initApp (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:355:25) @ http://localhost:4321/@vite/client:1542
+[1416881289ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.initApp (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:355:25) @ http://localhost:4321/@vite/client:1542
+[1416881289ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.initApp (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:355:25) @ http://localhost:4321/@vite/client:1542
+[1416881309ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/~partytown/debug/partytown-sandbox-sw.js?v=0.11.2:0
+[1416881311ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/branding/logos/logo-ceprija-web.svg:0
+[1416881311ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881312ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomado-derecho-civil-y-familiar.webp:0
+[1416881312ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881312ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_1.png:0
+[1416881312ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881313ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_2.png:0
+[1416881313ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881314ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_3.png:0
+[1416881314ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881314ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_4.png:0
+[1416881314ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881315ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_5.png:0
+[1416881315ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881315ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_6.png:0
+[1416881315ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881315ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_7.png:0
+[1416881315ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881316ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_8.png:0
+[1416881316ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881316ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4321/images/programs/diplomadoDerechoCivil/gallery/temarioDiplomadoCivilFamiliar_9.png:0
+[1416881316ms] [ERROR] %cAstro background: linear-gradient(66.77deg, #D83333 0%, #F041FF 100%); color: white; padding-inline: 4px; border-radius: 2px; font-family: monospace; Error while running audit's match function: TypeError: Failed to fetch @ http://localhost:4321/node_modules/.vite/deps/chunk-LEX3GG7N.js?v=98999b3a:22
+[1416881316ms] [ERROR] [vite] Error: send was called before connect
+    at Object.send (http://localhost:4321/@vite/client:395:15)
+    at HMRClient.send (http://localhost:4321/@vite/client:157:18)
+    at HMRContext.send (http://localhost:4321/@vite/client:119:18)
+    at AstroDevToolbar.initApp (http://localhost:4321/node_modules/.vite/deps/toolbar-2H5PSQQU.js?v=98999b3a:355:25) @ http://localhost:4321/@vite/client:1542
+[1416887405ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417048405ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417052302ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417060861ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417061971ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417083244ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417088981ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417209086ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417215054ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417279855ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417282411ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417285927ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1417403720ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1417412946ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1418096406ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1418102813ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1418469934ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1418471995ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1418618483ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1418678790ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1419327703ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331591:0
+[1419327920ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328302ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331594:0
+[1419328303ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328309ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331597:0
+[1419328312ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328348ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331600:0
+[1419328351ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328357ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331603:0
+[1419328358ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328361ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331606:0
+[1419328361ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328365ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331609:0
+[1419328365ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328369ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331612:0
+[1419328369ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328377ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331615:0
+[1419328378ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328381ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331733:0
+[1419328382ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328387ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331737:0
+[1419328388ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328392ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331741:0
+[1419328392ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328400ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331756:0
+[1419328401ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328409ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331762:0
+[1419328410ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328413ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331766:0
+[1419328413ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328414ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331772:0
+[1419328415ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328417ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331786:0
+[1419328417ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328421ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331790:0
+[1419328421ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328423ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331794:0
+[1419328423ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328424ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331798:0
+[1419328425ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419328429ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768331822:0
+[1419328429ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332112ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336172:0
+[1419332116ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332273ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336176:0
+[1419332273ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332311ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336195:0
+[1419332312ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332360ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336168:0
+[1419332360ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332386ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336171:0
+[1419332395ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332515ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336175:0
+[1419332522ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332524ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336179:0
+[1419332524ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332551ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336182:0
+[1419332552ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332571ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336185:0
+[1419332571ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332743ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336188:0
+[1419332743ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332759ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336191:0
+[1419332759ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332773ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336194:0
+[1419332773ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332778ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336551:0
+[1419332779ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332906ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336558:0
+[1419332934ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332939ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336578:0
+[1419332939ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332968ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336590:0
+[1419332968ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332970ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336604:0
+[1419332973ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332974ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336632:0
+[1419332974ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332979ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336646:0
+[1419332979ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332985ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336650:0
+[1419332985ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419332987ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/node_modules/@astrojs/tailwind/base.css?t=1779768336660:0
+[1419332987ms] [ERROR] [vite] Failed to reload /node_modules/@astrojs/tailwind/base.css. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:4321/@vite/client:1542
+[1419492625ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426271986ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426491547ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426493807ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426514508ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426515141ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426527055ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426527725ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426530968ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426535104ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426542354ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426609014ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426724310ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426725806ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1426874493ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1426875530ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1427020040ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1427021004ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1427099746ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1427101056ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1427132681ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1427137744ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1428251774ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1428253586ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1463089009ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1463091072ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1484988159ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1484990335ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1495599568ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1495645700ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1943:41
+    at receiveMessageFromSandboxToWorker (http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1970:19) @ http://localhost:4321/~partytown/debug/partytown-ww-sw.js?v=0.11.2:1960
+[1495661420ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4321/@vite/client:1598
+[1495679657ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/oferta-academica/diplomado-en-derecho-civil-y-familiar:0
+[1495679709ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4321/favicon.ico:0

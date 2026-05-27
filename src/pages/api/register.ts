@@ -17,6 +17,11 @@ import {
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
+import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
+import crypto from "node:crypto";
+import { apiLog } from "@lib/server/apiRequestLog";
 
 export const POST: APIRoute = async ({ request }) => {
   const requestId = getRequestId(request);
@@ -107,6 +112,56 @@ export const POST: APIRoute = async ({ request }) => {
     const address = String(program?.data.address || "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500");
     const meetingLink = String((program?.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al evento");
 
+    // Persist to Database
+    const submissionRequestId = crypto.randomUUID();
+    const submission = await persistSubmission(
+      {
+        requestId: submissionRequestId,
+        flow: "wire_proof",
+        personKind: "enrollment_intent",
+        workflowStatus: "received",
+        wireReviewStatus: type === "registration" ? "pending" : null,
+        email: email.trim(),
+        phone: phone.trim(),
+        programSlug: program ? getProgramPathSlug(program) : programTitle,
+        programTitle,
+        apiRoute: route,
+        payload: {
+          name,
+          email,
+          phone,
+          message,
+          type,
+          modality,
+          paymentProofFile: paymentProof ? {
+            filename: paymentProof.filename,
+            mimetype: paymentProof.mimetype,
+            size: paymentProof.buffer.length,
+          } : null,
+        },
+      },
+      route,
+      { timeoutMs: 2500 }
+    );
+
+    if (!submission.ok) {
+      apiLog("warn", route, "db_persistence_failed", {
+        requestId,
+        reason: submission.reason,
+        email: email.slice(0, 3) + "***",
+      });
+      logPersistenceFailure({
+        route,
+        requestId: submissionRequestId,
+        flow: "wire_proof",
+        reason: submission.reason,
+        email: email,
+        error: submission.error,
+      });
+    }
+
+    const submissionId = submission.ok ? submission.submissionId : null;
+
     const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
     const safeName = escapeHtml(name);
@@ -153,6 +208,23 @@ export const POST: APIRoute = async ({ request }) => {
         kind: "admin",
       },
     );
+
+    // Log admin email attempt
+    if (submissionId) {
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "admin",
+        recipients: programAdminRecipients(program).map(r => r.email),
+        subject: `Nuevo ${type === "registration" ? "Registro" : "Mensaje"}: ${programTitle || "General"}`,
+        status: adminRes.ok ? "sent" : "failed",
+        brevoMessageId: undefined,
+        failureReason: adminRes.ok ? undefined : `brevo_status_${adminRes.status}`,
+        idempotencyKey: `${submissionRequestId}_admin`,
+        brevoStatusCode: adminRes.ok ? undefined : adminRes.status,
+      });
+    }
+
     if (!adminRes.ok) {
       console.error("ERROR Brevo (admin):", adminRes.status);
     }
@@ -230,6 +302,23 @@ export const POST: APIRoute = async ({ request }) => {
         requestId,
         kind: "participant",
       });
+
+      // Log user email attempt
+      if (submissionId) {
+        await logEmailAttempt({
+          submissionId,
+          route,
+          kind: "participant",
+          recipients: [email],
+          subject: emailSubject,
+          status: userRes.ok ? "sent" : "failed",
+          brevoMessageId: undefined,
+          failureReason: userRes.ok ? undefined : `brevo_status_${userRes.status}`,
+          idempotencyKey: `${submissionRequestId}_user`,
+          brevoStatusCode: userRes.ok ? undefined : userRes.status,
+        });
+      }
+
       if (!userRes.ok) {
         console.error("ERROR Brevo (user):", userRes.status);
       }

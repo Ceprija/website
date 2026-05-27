@@ -42,6 +42,8 @@ import {
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
 /** Hard cap to bound memory when parsing indexed form fields. */
@@ -644,6 +646,97 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    // Persist to Database
+    const submission = await persistSubmission(
+      {
+        requestId: applicationId,
+        flow: "postgraduate_application",
+        personKind: nivel === "maestria" || nivel === "doctorado" || nivel === "especialidad" 
+          ? "applicant" 
+          : "interested",
+        email: emailS,
+        phone: telefonoS,
+        programSlug,
+        programTitle: programTitle || program?.data.title || "",
+        apiRoute: route,
+        payload: {
+          nombre: nombreS,
+          apellidos: apellidosS,
+          email: emailS,
+          telefono: telefonoS,
+          modality,
+          degrees: degrees.map(d => ({
+            grado: d.grado,
+            carrera: d.carrera,
+            institucion: d.institucion,
+            cedulaNum: d.cedulaNum,
+          })),
+          extendedProfile: needsExtendedProfile ? {
+            genero: generoS,
+            fechaNacimiento: fechaNacimientoS,
+            curp: curpS,
+            nacionalidad: nacionalidadS,
+            estadoCivil: estadoCivilS,
+            entidadNacimiento: entidadNacimientoS,
+            ocupacion: ocupacionS,
+            lenguaIndigena: lenguaIndigenaS,
+            origen: origenS,
+            calle: calleS,
+            colonia: coloniaS,
+            cp: cpS,
+            ciudad: ciudadS,
+            estadoDireccion: estadoDireccionS,
+            contactoEmergencia: contactoEmergenciaS,
+            parentesco: parentescoS,
+            telEmergencia: telEmergenciaS,
+            capacidadDif: capacidadDifS,
+            detalleCapacidad: detalleCapacidadS,
+            enfCronica: enfCronicaS,
+            detalleEnf: detalleEnfS,
+            alergia: alergiaS,
+            detalleAlergia: detalleAlergiaS,
+            tratamiento: tratamientoS,
+            detalleTratamiento: detalleTratamientoS,
+          } : null,
+          variants: {
+            selectedModule,
+            selectedDate,
+            selectedModuleLabel,
+            selectedDateLabel,
+          },
+          files: files.map(f => ({
+            fieldname: f.fieldname,
+            filename: f.filename,
+            mimetype: f.mimetype,
+            size: f.buffer.length,
+          })),
+          fileCount: files.length,
+          hasCV: files.some(f => f.fieldname === "cv"),
+          skipAcademicDegrees,
+        },
+      },
+      route,
+      { timeoutMs: 8000 }  // Increased timeout for critical enrollment form
+    );
+
+    if (!submission.ok) {
+      apiLog("warn", route, "db_persistence_failed", {
+        requestId,
+        reason: submission.reason,
+        email: emailS.slice(0, 3) + "***",
+      });
+      logPersistenceFailure({
+        route,
+        requestId: applicationId,
+        flow: "postgraduate_application",
+        reason: submission.reason,
+        email: emailS,
+        error: submission.error,
+      });
+    }
+
+    const submissionId = submission.ok ? submission.submissionId : null;
+
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar = programAdminEmail(program);
     const adminRecipients = shouldNotifyControlEscolarOnEnrollment()
@@ -788,6 +881,22 @@ export const POST: APIRoute = async ({ request }) => {
       },
     );
 
+    // Log admin email attempt
+    if (submissionId) {
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "admin",
+        recipients: adminRecipients.map(r => r.email),
+        subject: `Nueva Solicitud de Admisión - ${programTitle} - ${nombreS} ${apellidosS}`,
+        status: adminRes.ok ? "sent" : "failed",
+        brevoMessageId: undefined,
+        failureReason: adminRes.ok ? undefined : `brevo_status_${adminRes.status}`,
+        idempotencyKey: `${applicationId}_admin`,
+        brevoStatusCode: adminRes.ok ? undefined : adminRes.status,
+      });
+    }
+
     if (!adminRes.ok) {
       apiLog("error", "POST /api/enrollment", "brevo_admin_failed", {
         requestId,
@@ -879,6 +988,22 @@ export const POST: APIRoute = async ({ request }) => {
         programSlug,
       },
     );
+
+    // Log user email attempt
+    if (submissionId) {
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "participant",
+        recipients: [email],
+        subject: `Solicitud Recibida - ${programTitle}`,
+        status: userRes.ok ? "sent" : "failed",
+        brevoMessageId: undefined,
+        failureReason: userRes.ok ? undefined : `brevo_status_${userRes.status}`,
+        idempotencyKey: `${applicationId}_user`,
+        brevoStatusCode: userRes.ok ? undefined : userRes.status,
+      });
+    }
 
     if (!userRes.ok) {
       apiLog("error", "POST /api/enrollment", "brevo_user_failed", {

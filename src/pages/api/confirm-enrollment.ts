@@ -30,6 +30,8 @@ import {
   programAdminEmail,
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
+import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 type ProgramPriceMatch = {
   matches: boolean;
@@ -494,6 +496,58 @@ export const POST: APIRoute = async ({ request }) => {
 
     markEnrollmentConfirmed(stripeSessionId);
 
+    // Persist to Database
+    const submission = await persistSubmission(
+      {
+        requestId: stripeSessionId,
+        flow: "stripe_paid_confirmation",
+        personKind: "enrolled",
+        workflowStatus: "paid",
+        email: customerEmail,
+        phone: participantPhone || null,
+        programSlug: programSlugMeta,
+        programTitle,
+        stripeCheckoutSessionId: stripeSessionId,
+        stripePaymentIntentId: piId,
+        stripeCustomerId: session.customer ? String(session.customer) : null,
+        apiRoute: route,
+        payload: {
+          participantName,
+          customerEmail,
+          participantPhone,
+          modalityLabel,
+          requiresVerification,
+          stripeCustomerId: session.customer ? String(session.customer) : null,
+          amountPaid: session.amount_total || 0,
+          currency: session.currency || "mxn",
+          linePriceId,
+          programSlug: programSlugMeta,
+          selectedModule: session.metadata?.selectedModule?.trim() || null,
+          selectedDate: session.metadata?.selectedDate?.trim() || null,
+        },
+      },
+      route,
+      { timeoutMs: 2500 }
+    );
+
+    if (!submission.ok) {
+      apiLog("warn", route, "db_persistence_failed", {
+        requestId,
+        reason: submission.reason,
+        email: customerEmail.slice(0, 3) + "***",
+      });
+      logPersistenceFailure({
+        route,
+        requestId: stripeSessionId,
+        flow: "stripe_paid_confirmation",
+        reason: submission.reason,
+        email: customerEmail,
+        error: submission.error,
+      });
+    }
+
+    const submissionId = submission.ok ? submission.submissionId : null;
+
     let emailWarnings: string[] = [];
 
     const userSubject = sanitizeEmailSubjectLine(
@@ -514,6 +568,23 @@ export const POST: APIRoute = async ({ request }) => {
         stripeSessionId,
       },
     );
+
+    // Log user email attempt
+    if (submissionId) {
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "participant",
+        recipients: [customerEmail],
+        subject: userSubject,
+        status: userEmailResponse.ok ? "sent" : "failed",
+        brevoMessageId: undefined,
+        failureReason: userEmailResponse.ok ? undefined : `brevo_status_${userEmailResponse.status}`,
+        idempotencyKey: `${stripeSessionId}_user`,
+        brevoStatusCode: userEmailResponse.ok ? undefined : userEmailResponse.status,
+        stripeSessionId,
+      });
+    }
 
     if (!userEmailResponse.ok) {
       apiLog("error", route, "brevo_user_email_failed", {
@@ -565,6 +636,24 @@ export const POST: APIRoute = async ({ request }) => {
         stripeSessionId,
       },
     );
+
+    // Log admin email attempt
+    if (submissionId) {
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "admin",
+        recipients: adminNotificationRecipients.map(r => r.email),
+        subject: adminSubject,
+        status: adminEmailResponse.ok ? "sent" : "failed",
+        brevoMessageId: undefined,
+        failureReason: adminEmailResponse.ok ? undefined : `brevo_status_${adminEmailResponse.status}`,
+        idempotencyKey: `${stripeSessionId}_admin`,
+        brevoStatusCode: adminEmailResponse.ok ? undefined : adminEmailResponse.status,
+        stripeSessionId,
+        programSlug: programSlugLog,
+      });
+    }
 
     if (!adminEmailResponse.ok) {
       apiLog("error", route, "brevo_admin_email_failed", {

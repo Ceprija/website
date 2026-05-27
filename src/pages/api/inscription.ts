@@ -9,13 +9,10 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
-import { laravelApiUrl } from "@lib/server/laravelApiUrl";
 import { validateInscriptionIdentity } from "@lib/validation/enrollment";
-import {
-  SMTP_FROM,
-  URL_BASE_API,
-} from "astro:env/server";
-import { getRequestId } from "@lib/server/apiRequestLog";
+import { SMTP_FROM } from "astro:env/server";
+import { apiLog, getRequestId } from "@lib/server/apiRequestLog";
+import crypto from "node:crypto";
 import {
   guardPublicPost,
   hasHoneypotValue,
@@ -24,6 +21,8 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -134,6 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
             return honeypotResponse(route, requestId);
         }
         const { programTitle } = fields;
+        const submissionRequestId = crypto.randomUUID();
 
         const identityErr = validateInscriptionIdentity(fields);
         if (identityErr) {
@@ -273,14 +273,95 @@ export const POST: APIRoute = async ({ request }) => {
             return `"${processed.replace(/"/g, '""')}"`;
         }).join(',');
 
-        // 2. Send Emails
-        const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
+        // 2. Persist to Database
         const programs = await getCollection("programas");
         const program = programs.find(
             (entry) =>
                 getProgramPathSlug(entry) === programTitle ||
                 String(entry.data.title ?? "") === programTitle,
         );
+        const programSlug = program ? getProgramPathSlug(program) : programTitle;
+
+        const submission = await persistSubmission(
+            {
+                requestId: submissionRequestId,
+                flow: "legacy_inscription",
+                personKind: "enrolled",
+                email: fields.email?.trim() || "",
+                phone: fields.telefono?.trim() || "",
+                programSlug,
+                programTitle,
+                apiRoute: route,
+                payload: {
+                    nombre: fields.nombre,
+                    apellidos: fields.apellidos,
+                    genero: fields.genero,
+                    telefono: fields.telefono,
+                    email: fields.email,
+                    fechaNacimiento: fields.fechaNacimiento,
+                    curp: fields.curp,
+                    nacionalidad: fields.nacionalidad,
+                    entidadNacimiento: fields.entidadNacimiento,
+                    estadoCivil: fields.estadoCivil,
+                    calle: fields.calle,
+                    colonia: fields.colonia,
+                    cp: fields.cp,
+                    ciudad: fields.ciudad,
+                    estadoDireccion: fields.estadoDireccion,
+                    modalidadEstudio: fields.modalidadEstudio,
+                    ultimoGrado: fields.ultimoGrado,
+                    carrera: fields.carrera,
+                    institucion: fields.institucion,
+                    fechaInicioLic: fields.fechaInicioLic,
+                    fechaFinLic: fields.fechaFinLic,
+                    estadoLic: fields.estadoLic,
+                    cedulaNum: fields.cedulaNum,
+                    capacidadDif: fields.capacidadDif,
+                    detalleCapacidad: fields.detalleCapacidad,
+                    enfCronica: fields.enfCronica,
+                    detalleEnf: fields.detalleEnf,
+                    alergia: fields.alergia,
+                    detalleAlergia: fields.detalleAlergia,
+                    tratamiento: fields.tratamiento,
+                    detalleTratamiento: fields.detalleTratamiento,
+                    contactoEmergencia: fields.contactoEmergencia,
+                    parentesco: fields.parentesco,
+                    telEmergencia: fields.telEmergencia,
+                    lenguaIndigena: fields.lenguaIndigena,
+                    ocupacion: fields.ocupacion,
+                    origen: fields.origen,
+                    files: Object.entries(files).map(([fieldname, file]) => ({
+                        fieldname,
+                        filename: file.filename,
+                        mimetype: file.mimetype,
+                        size: file.buffer.length,
+                    })),
+                },
+            },
+            route,
+            { timeoutMs: 8000 }  // Increased timeout for critical enrollment form
+        );
+
+        if (!submission.ok) {
+            apiLog("warn", route, "db_persistence_failed", {
+                requestId,
+                reason: submission.reason,
+                email: fields.email?.slice(0, 3) + "***",
+            });
+            logPersistenceFailure({
+                route,
+                requestId: submissionRequestId,
+                flow: "legacy_inscription",
+                reason: submission.reason,
+                email: fields.email,
+                error: submission.error,
+            });
+        }
+
+        const submissionId = submission.ok ? submission.submissionId : null;
+
+        // 3. Send Emails
+        const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
         // Create CSV in memory
         const csvContent = headers.join(',') + '\n' + row + '\n';
@@ -305,103 +386,28 @@ export const POST: APIRoute = async ({ request }) => {
             attachment: attachments
         };
 
-        const sendToBrevo = async () => {
-            return sendBrevoEmail(adminBody, {
+        const brevoRes = await sendBrevoEmail(adminBody, {
+            route,
+            requestId,
+            kind: "admin",
+            programSlug,
+        });
+
+        // Log email attempt
+        if (submissionId) {
+            await logEmailAttempt({
+                submissionId,
                 route,
-                requestId,
                 kind: "admin",
+                recipients: programAdminRecipients(program).map(r => r.email),
+                subject: `Nueva Inscripción: ${programTitle}`,
+                status: brevoRes.ok ? "sent" : "failed",
+                brevoMessageId: brevoRes.ok ? undefined : undefined,
+                failureReason: brevoRes.ok ? undefined : `brevo_status_${brevoRes.status}`,
+                idempotencyKey: `${submissionRequestId}_admin`,
+                brevoStatusCode: brevoRes.ok ? undefined : brevoRes.status,
             });
-        };
-
-        const sendToLaravel = async () => {
-            try {
-                const apiUrl = URL_BASE_API;
-                if (!apiUrl) return;
-
-                const formPayload = new FormData();
-                const isTrue = (val: string) => val === 'Sí' || val === 'Si' || val === 'true' || val === '1' ? '1' : '0';
-
-                // Text fields
-                const appendIfExists = (key: string, val: any) => { if (val) formPayload.append(key, val); };
-
-                appendIfExists('programa_interes', programTitle);
-                appendIfExists('nombre', fields.nombre);
-                appendIfExists('apellidos', fields.apellidos);
-                appendIfExists('genero', fields.genero || 'Otro');
-                appendIfExists('telefono', fields.telefono);
-                appendIfExists('email', fields.email);
-                appendIfExists('fecha_nacimiento', fields.fechaNacimiento);
-                appendIfExists('curp', fields.curp);
-                appendIfExists('nacionalidad', fields.nacionalidad || 'Mexicana');
-                appendIfExists('entidad_nacimiento', fields.entidadNacimiento);
-                appendIfExists('estado_civil', fields.estadoCivil);
-
-                appendIfExists('calle', fields.calle);
-                appendIfExists('colonia', fields.colonia);
-                appendIfExists('codigo_postal', fields.cp);
-                appendIfExists('ciudad', fields.ciudad);
-                appendIfExists('estado_direccion', fields.estadoDireccion);
-
-                appendIfExists('modalidad_estudio', fields.modalidadEstudio);
-                appendIfExists('ultimo_grado', fields.ultimoGrado);
-                appendIfExists('carrera_previa', fields.carrera);
-                appendIfExists('institucion_egreso', fields.institucion);
-                appendIfExists('fecha_inicio_lic', fields.fechaInicioLic);
-                appendIfExists('fecha_fin_lic', fields.fechaFinLic);
-                appendIfExists('estado_licenciatura', fields.estadoLic);
-                appendIfExists('cedula_numero', fields.cedulaNum);
-
-                appendIfExists('capacidad_diferente', isTrue(fields.capacidadDif));
-                appendIfExists('detalle_capacidad', fields.detalleCapacidad);
-                appendIfExists('enfermedad_cronica', isTrue(fields.enfCronica));
-                appendIfExists('detalle_enfermedad', fields.detalleEnf);
-                appendIfExists('alergia', isTrue(fields.alergia));
-                appendIfExists('detalle_alergia', fields.detalleAlergia);
-                appendIfExists('tratamiento_medico', isTrue(fields.tratamiento));
-                appendIfExists('detalle_tratamiento', fields.detalleTratamiento);
-
-                appendIfExists('nombre_contacto', fields.contactoEmergencia);
-                appendIfExists('parentesco', fields.parentesco);
-                appendIfExists('telefono_contacto', fields.telEmergencia);
-                appendIfExists('lengua_indigena', isTrue(fields.lenguaIndigena));
-                appendIfExists('ocupacion', fields.ocupacion);
-                appendIfExists('plantel', '01km1cdp5ee1tcw6phg5mm8sp8');
-
-                appendIfExists('origen', fields.origen || 'Web');
-
-                // Files (Native multipart, NO Base64 needed!)
-                const appendFile = (key: string, fileObj: any) => {
-                    if (fileObj && fileObj.buffer) {
-                        formPayload.append(key, new Blob([fileObj.buffer], { type: fileObj.mimetype }), fileObj.filename);
-                    }
-                };
-
-                appendFile('acta_nacimiento_doc', files.actaNacimiento);
-                appendFile('curp_doc', files.curpDoc);
-                appendFile('comprobante_dom_doc', files.comprobanteDom);
-                appendFile('ine_doc', files.ineDoc);
-                appendFile('cedula_doc', files.cedulaDoc);
-
-                const registroUrl = laravelApiUrl(apiUrl, "prospectos/registro");
-                console.log(`Sending FAST Multipart formData to API: ${registroUrl}`);
-                const apiRes = await fetch(registroUrl, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json' }, // We don't set Content-Type here, let fetch generate the 'multipart/form-data; boundary=...'
-                    body: formPayload
-                });
-
-                if (!apiRes.ok) {
-                    console.error('Laravel API Error response:', await apiRes.text());
-                } else {
-                    console.log('Successfully saved to Laravel API');
-                }
-            } catch (apiError) {
-                console.error('Failed to send data to Laravel API:', apiError);
-            }
-        };
-
-        const brevoRes = await sendToBrevo();
-        await sendToLaravel();
+        }
 
         if (!brevoRes.ok) {
             return new Response(

@@ -7,7 +7,6 @@ import {
   STRIPE_ALLOWED_PRICE_IDS,
   STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET,
-  URL_BASE_API,
 } from "astro:env/server";
 import { parseStripeAllowedPriceIds } from "@lib/stripeAllowedPrices";
 
@@ -72,16 +71,6 @@ export function validateProductionEnv(): ProductionEnvCheck {
     }
     if (!hasValue(EMAIL_SOPORTE_WEB)) {
       errors.push("EMAIL_SOPORTE_WEB is required.");
-    }
-
-    const laravelHost = urlHost(URL_BASE_API);
-    if (laravelHost === "") {
-      errors.push("URL_BASE_API must be a valid URL when configured.");
-    } else if (
-      laravelHost &&
-      !laravelHost.endsWith("ceprija.edu.mx")
-    ) {
-      errors.push("URL_BASE_API must point to an allowed ceprija.edu.mx host.");
     }
   } else if (parseStripeAllowedPriceIds(STRIPE_ALLOWED_PRICE_IDS).size === 0) {
     warnings.push("STRIPE_ALLOWED_PRICE_IDS is empty; only content validation applies.");
