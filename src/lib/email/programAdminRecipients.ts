@@ -1,6 +1,7 @@
 import type { CollectionEntry } from "astro:content";
 import {
   CONTACT_EMAIL,
+  EMAIL_ADMIN_ONLY_RECIPIENT,
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_EDUCACION_CONTINUA,
   EMAIL_SOPORTE_WEB,
@@ -20,7 +21,16 @@ function cleanEmail(value: string | undefined, fallback: string): string {
   return trimmed || fallback;
 }
 
+/** Temporal: un solo destino para todos los correos admin del sitio. */
+function adminOnlyRecipient(): Array<{ email: string }> | null {
+  const only = EMAIL_ADMIN_ONLY_RECIPIENT?.trim();
+  if (!only) return null;
+  return [{ email: only }];
+}
+
 export function programAdminEmail(program: ProgramEntry | undefined): string {
+  const only = EMAIL_ADMIN_ONLY_RECIPIENT?.trim();
+  if (only) return only;
   const educacionContinua = cleanEmail(
     EMAIL_EDUCACION_CONTINUA,
     EDUCACION_CONTINUA_FALLBACK,
@@ -44,6 +54,9 @@ export function programAdminEmail(program: ProgramEntry | undefined): string {
 export function programAdminRecipients(
   program: ProgramEntry | undefined,
 ): Array<{ email: string }> {
+  const override = adminOnlyRecipient();
+  if (override) return override;
+
   const emails = new Set([
     programAdminEmail(program),
     cleanEmail(ADMIN_EMAIL, ADMIN_EMAIL_FALLBACK),
@@ -52,15 +65,9 @@ export function programAdminRecipients(
   return [...emails].map((email) => ({ email }));
 }
 
-export function brochureDownloadRecipients(): Array<{ email: string }> {
-  const educacionContinua = cleanEmail(
-    EMAIL_EDUCACION_CONTINUA,
-    EDUCACION_CONTINUA_FALLBACK,
-  );
-  const emails = new Set([
-    educacionContinua,
-    cleanEmail(ADMIN_EMAIL, ADMIN_EMAIL_FALLBACK),
-    cleanEmail(EMAIL_SOPORTE_WEB, SOPORTE_WEB_FALLBACK),
-  ]);
-  return [...emails].map((email) => ({ email }));
+/** @deprecated Use programAdminRecipients(program) so routing matches the program school/level. */
+export function brochureDownloadRecipients(
+  program: ProgramEntry | undefined,
+): Array<{ email: string }> {
+  return programAdminRecipients(program);
 }

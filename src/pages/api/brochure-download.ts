@@ -13,8 +13,9 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
-import { brochureDownloadRecipients } from "@lib/email/programAdminRecipients";
+import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
+import { persistSubmission, recordEmailAttempt } from "@lib/db/submissions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s().-]{7,24}$/;
@@ -59,9 +60,18 @@ export const POST: APIRoute = async ({ request }) => {
   const email = clean(body?.email, 254).toLowerCase();
   const phone = clean(body?.phone, 30);
   const message = clean(body?.message, 800);
+  const trackingRequestId = clean(body?.trackingRequestId, 80);
   const programTitle = clean(body?.programTitle, 180);
   const programSlug = clean(body?.programSlug, 120);
   const brochure = clean(body?.brochure, 240);
+
+  if (!trackingRequestId) {
+    return jsonResponse(
+      { error: "Solicitud inválida.", code: "missing_tracking_request_id" },
+      400,
+      requestId,
+    );
+  }
 
   if (!name || !EMAIL_RE.test(email) || !PHONE_RE.test(phone) || !programTitle) {
     return jsonResponse(
@@ -139,10 +149,33 @@ export const POST: APIRoute = async ({ request }) => {
         <p><strong>Mensaje:</strong> ${safeMessage}</p>
       `;
 
+  // Persist submission to School Hub BEFORE sending email
+  const submission = await persistSubmission(
+    {
+      requestId: trackingRequestId,
+      flow: "brochure_download",
+      personKind: "lead",
+      email,
+      phone,
+      programSlug,
+      programTitle,
+      apiRoute: route,
+      payload: { name, message: message || null, brochure },
+      ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined,
+      userAgent: request.headers.get("user-agent") || undefined,
+    },
+    route,
+    { timeoutMs: 2500 },
+  );
+
+  const submissionId = submission.ok ? submission.submissionId : null;
+
+  const adminRecipients = programAdminRecipients(program);
+
   const emailResult = await sendBrevoEmail(
     {
       sender: { email: senderEmail, name: "CEPRIJA Web" },
-      to: brochureDownloadRecipients(),
+      to: adminRecipients,
       subject: emailSubject,
       htmlContent: emailHtml,
     },
@@ -154,10 +187,25 @@ export const POST: APIRoute = async ({ request }) => {
     },
   );
 
+  // Log email attempt to School Hub
+  if (submissionId) {
+    await recordEmailAttempt(submissionId, {
+      route,
+      recipientRole: "admin",
+      recipients: adminRecipients.map((r) => r.email),
+      subject: emailSubject,
+      status: emailResult.ok ? "sent" : "failed",
+      brevoStatusCode: emailResult.ok ? undefined : emailResult.status,
+      error: emailResult.ok ? undefined : emailResult.reason,
+      programSlug,
+    });
+  }
+
   if (!emailResult.ok) {
     apiLog("error", route, "brochure_email_failed", {
       requestId,
       programSlug,
+      submissionId,
       brevoStatus: emailResult.status,
     });
     return jsonResponse(
@@ -173,7 +221,19 @@ export const POST: APIRoute = async ({ request }) => {
   apiLog("info", route, "brochure_lead_registered", {
     requestId,
     programSlug,
+    submissionId,
   });
 
-  return jsonResponse({ success: true, brochure }, 200, requestId);
+  return jsonResponse(
+    {
+      success: true,
+      brochure,
+      tracking: {
+        ok: submission.ok,
+        requestId,
+      },
+    },
+    200,
+    requestId,
+  );
 };
