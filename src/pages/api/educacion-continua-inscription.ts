@@ -29,7 +29,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
-import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 function sanitizeFilename(name: string): string {
@@ -338,140 +338,151 @@ export const POST: APIRoute = async ({ request }) => {
 
     const submissionId = submission.ok ? submission.submissionId : null;
 
+    // Upload files to Storage (if persistence succeeded)
+    if (submission.ok && nonEmptyFiles.length > 0) {
+      for (const file of nonEmptyFiles) {
+        const uploadResult = await uploadSubmissionFiles({
+          submissionId: submission.submissionId,
+          flow: "educacion_continua",
+          files: [{
+            field_name: file.fieldname,
+            original_filename: file.filename,
+            mime_type: file.mimetype,
+            content_base64: file.buffer.toString("base64"),
+          }],
+          timeoutMs: 20000,
+        });
+
+        if (!uploadResult.ok) {
+          logPersistenceFailure({
+            route,
+            requestId: submissionRequestId,
+            flow: "educacion_continua",
+            reason: "file_upload_failed",
+            error: uploadResult.reason,
+            email,
+          });
+        }
+      }
+    }
+
     const senderEmail =
       (SMTP_FROM ?? CONTACT_EMAIL ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const adminTo = programAdminRecipients(program);
 
-    const sendToBrevo = async () => {
-      try {
-        const safeProgramTitle = escapeHtml(programTitle);
-        const safeName = escapeHtml(name);
-        const safeEmail = escapeHtml(email);
-        const safePhone = escapeHtml(phone);
-        const safeModality = escapeHtml(modalityCanonical);
-        const safeInvoiceEmail = escapeHtml(invoiceEmail || "");
+    // Send admin email
+    const safeProgramTitle = escapeHtml(programTitle);
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = escapeHtml(phone);
+    const safeModality = escapeHtml(modalityCanonical);
+    const safeInvoiceEmail = escapeHtml(invoiceEmail || "");
 
-        const adminHtml = `
-                    <h2>Nueva Inscripción Educación Continua</h2>
-                    <p><strong>Programa:</strong> ${safeProgramTitle}</p>
-                    <p><strong>Participante:</strong> ${safeName}</p>
-                    <p><strong>Email:</strong> ${safeEmail}</p>
-                    <p><strong>Teléfono:</strong> ${safePhone}</p>
-                    <p><strong>Modalidad:</strong> ${safeModality}</p>
-                    <p><strong>¿Factura?:</strong> ${escapeHtml(requiresInvoice)}</p>
-                    ${
-                      requiresInvoice === "Sí"
-                        ? `<p><strong>Email Factura:</strong> ${safeInvoiceEmail}</p>`
-                        : ""
-                    }
-                `;
+    const adminHtml = `
+      <h2>Nueva Inscripción Educación Continua</h2>
+      <p><strong>Programa:</strong> ${safeProgramTitle}</p>
+      <p><strong>Participante:</strong> ${safeName}</p>
+      <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Teléfono:</strong> ${safePhone}</p>
+      <p><strong>Modalidad:</strong> ${safeModality}</p>
+      <p><strong>¿Factura?:</strong> ${escapeHtml(requiresInvoice)}</p>
+      ${requiresInvoice === "Sí" ? `<p><strong>Email Factura:</strong> ${safeInvoiceEmail}</p>` : ""}
+    `;
 
-        const adminBody: Record<string, unknown> = {
-          sender: { email: senderEmail, name: "CEPRIJA Web" },
-          to: adminTo,
-          subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
-          htmlContent: adminHtml,
-          attachment: [] as Array<{ name: string; content: string }>,
-        };
-
-        const attachments = adminBody.attachment as Array<{ name: string; content: string }>;
-
-        for (const f of nonEmptyFiles) {
-          attachments.push({
-            name: f.filename,
-            content: f.buffer.toString("base64"),
-          });
-        }
-
-        const csvBase64 = Buffer.from(csvContent).toString("base64");
-        attachments.push({
-          name: `${sanitizeFilename(programTitle || "ec-general")}.csv`,
-          content: csvBase64,
-        });
-
-        await sendBrevoEmail(adminBody as Parameters<typeof sendBrevoEmail>[0], {
-          route,
-          requestId,
-          kind: "admin",
-          programSlug: programSlug || undefined,
-        });
-
-        const templateSet =
-          (emailTemplates as Record<string, unknown>)[programId] ||
-          (emailTemplates as { default: unknown }).default;
-        const modalityKey = modalityCanonical === "En línea" ? "en_linea" : "presencial";
-        const templateSetTyped = templateSet as Record<string, { body: string; subject: string }>;
-        const template =
-          templateSetTyped[modalityKey] ||
-          (emailTemplates as { default: Record<string, { body: string; subject: string }> }).default[
-            modalityKey
-          ];
-
-                const templateData = {
-                    name: name,
-                    programTitle: programTitle,
-                    startDate: programDetails.startDate,
-                    schedule: programDetails.schedule,
-                    instructor: programDetails.instructor,
-                    address: programDetails.address,
-                    meetingLink: programDetails.meetingLink,
-                };
-
-        const userHtml = replacePlaceholders(template.body, templateData);
-        const userSubject = replacePlaceholders(template.subject, templateData);
-
-        await sendBrevoEmail(
-          {
-            sender: { email: senderEmail, name: "Equipo CEPRIJA" },
-            to: [{ email }],
-            subject: userSubject,
-            htmlContent: userHtml,
-          },
-          {
-            route,
-            requestId,
-            kind: "participant",
-            programSlug: programSlug || undefined,
-          },
-        );
-      } catch (err) {
-        apiLog("error", route, "brevo_send_failed", {
-          requestId,
-          programSlug: programSlug || undefined,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
+    const adminBody: Record<string, unknown> = {
+      sender: { email: senderEmail, name: "CEPRIJA Web" },
+      to: adminTo,
+      subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
+      htmlContent: adminHtml,
+      attachment: [] as Array<{ name: string; content: string }>,
     };
 
-    // Log admin email attempt
-    const logAdminEmail = async () => {
-      if (!submissionId) return;
+    const attachments = adminBody.attachment as Array<{ name: string; content: string }>;
+
+    for (const f of nonEmptyFiles) {
+      attachments.push({
+        name: f.filename,
+        content: f.buffer.toString("base64"),
+      });
+    }
+
+    const csvBase64 = Buffer.from(csvContent).toString("base64");
+    attachments.push({
+      name: `${sanitizeFilename(programTitle || "ec-general")}.csv`,
+      content: csvBase64,
+    });
+
+    const adminRes = await sendBrevoEmail(adminBody as Parameters<typeof sendBrevoEmail>[0], {
+      route,
+      requestId,
+      kind: "admin",
+      programSlug: programSlug || undefined,
+    });
+
+    // Send user email
+    const templateSet =
+      (emailTemplates as Record<string, unknown>)[programId] ||
+      (emailTemplates as { default: unknown }).default;
+    const modalityKey = modalityCanonical === "En línea" ? "en_linea" : "presencial";
+    const templateSetTyped = templateSet as Record<string, { body: string; subject: string }>;
+    const template =
+      templateSetTyped[modalityKey] ||
+      (emailTemplates as { default: Record<string, { body: string; subject: string }> }).default[modalityKey];
+
+    const templateData = {
+      name: name,
+      programTitle: programTitle,
+      startDate: programDetails.startDate,
+      schedule: programDetails.schedule,
+      instructor: programDetails.instructor,
+      address: programDetails.address,
+      meetingLink: programDetails.meetingLink,
+    };
+
+    const userHtml = replacePlaceholders(template.body, templateData);
+    const userSubject = replacePlaceholders(template.subject, templateData);
+
+    const userRes = await sendBrevoEmail(
+      {
+        sender: { email: senderEmail, name: "Equipo CEPRIJA" },
+        to: [{ email }],
+        subject: userSubject,
+        htmlContent: userHtml,
+      },
+      {
+        route,
+        requestId,
+        kind: "participant",
+        programSlug: programSlug || undefined,
+      },
+    );
+
+    // Log email attempts with real status
+    if (submissionId) {
       await logEmailAttempt({
         submissionId,
         route,
         kind: "admin",
         recipients: adminTo.map(r => r.email),
         subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
-        status: "sent",
+        status: adminRes.ok ? "sent" : "failed",
+        brevoStatusCode: adminRes.ok ? undefined : adminRes.status,
+        failureReason: adminRes.ok ? undefined : adminRes.reason,
         idempotencyKey: `${submissionRequestId}_admin`,
       });
-    };
 
-    // Log user email attempt  
-    const logUserEmail = async () => {
-      if (!submissionId) return;
       await logEmailAttempt({
         submissionId,
         route,
         kind: "participant",
         recipients: [email],
-        subject: `Inscripción confirmada: ${programTitle}`,
-        status: "sent",
+        subject: userSubject,
+        status: userRes.ok ? "sent" : "failed",
+        brevoStatusCode: userRes.ok ? undefined : userRes.status,
+        failureReason: userRes.ok ? undefined : userRes.reason,
         idempotencyKey: `${submissionRequestId}_user`,
       });
-    };
-
-    await Promise.allSettled([sendToBrevo(), logAdminEmail(), logUserEmail()]);
+    }
 
     apiLog("info", route, "inscription_accepted", {
       requestId,

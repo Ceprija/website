@@ -22,6 +22,8 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, uploadSubmissionFiles } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 type UploadedFile = {
   fieldname: string;
@@ -313,6 +315,118 @@ export const POST: APIRoute = async ({ request }) => {
         );
       }
       Object.assign(fiscalConstancy, fiscalNormalized.file);
+    }
+
+    // Persist submission to database
+    const submissionRequestId = getRequestId(request);
+    const submission = await persistSubmission(
+      {
+        requestId: submissionRequestId,
+        flow: "wire_proof",
+        personKind: "enrollment_intent",
+        workflowStatus: "received",
+        wireReviewStatus: "pending",
+        email,
+        phone,
+        programSlug: programId,
+        apiRoute: route,
+        payload: {
+          enrollmentId,
+          name,
+          email,
+          phone,
+          programTitle,
+          programId,
+          modality,
+          wireReference,
+          requiresInvoice,
+          invoiceEmail: requiresInvoice ? invoiceEmail : null,
+          applicationId: applicationIdField || null,
+          paymentProofFile: {
+            fieldname: paymentProof.fieldname,
+            filename: paymentProof.filename,
+            mimetype: paymentProof.mimetype,
+            size: paymentProof.buffer.length,
+          },
+          fiscalConstancyFile: fiscalConstancy
+            ? {
+                fieldname: fiscalConstancy.fieldname,
+                filename: fiscalConstancy.filename,
+                mimetype: fiscalConstancy.mimetype,
+                size: fiscalConstancy.buffer.length,
+              }
+            : null,
+        },
+      },
+      route,
+      { timeoutMs: 8000 },
+    );
+
+    if (!submission.ok) {
+      logPersistenceFailure({
+        route,
+        requestId: submissionRequestId,
+        flow: "wire_proof",
+        reason: submission.reason,
+        email,
+      });
+    }
+
+    // Upload files to Storage (if persistence succeeded)
+    if (submission.ok) {
+      // Upload payment proof
+      const paymentUpload = await uploadSubmissionFiles({
+        submissionId: submission.submissionId,
+        flow: "wire_proof",
+        files: [
+          {
+            field_name: paymentProof.fieldname,
+            original_filename: paymentProof.filename,
+            mime_type: paymentProof.mimetype,
+            content_base64: paymentProof.buffer.toString("base64"),
+          },
+        ],
+        timeoutMs: 20000,
+      });
+
+      if (!paymentUpload.ok) {
+        logPersistenceFailure({
+          route,
+          requestId: submissionRequestId,
+          flow: "wire_proof",
+          reason: "file_upload_failed",
+          error: paymentUpload.reason,
+          email,
+        });
+      }
+
+      // Upload fiscal constancy if present
+      if (fiscalConstancy) {
+        const fiscalUpload = await uploadSubmissionFiles({
+          submissionId: submission.submissionId,
+          flow: "wire_proof",
+          files: [
+            {
+              field_name: fiscalConstancy.fieldname,
+              original_filename: fiscalConstancy.filename,
+              mime_type: fiscalConstancy.mimetype,
+              content_base64: fiscalConstancy.buffer.toString("base64"),
+            },
+          ],
+          timeoutMs: 20000,
+        });
+
+        if (!fiscalUpload.ok) {
+          logPersistenceFailure({
+            route,
+            requestId: submissionRequestId,
+            flow: "wire_proof",
+            reason: "file_upload_failed",
+            error: fiscalUpload.reason,
+            email,
+          });
+        }
+      }
     }
 
     const senderEmail =

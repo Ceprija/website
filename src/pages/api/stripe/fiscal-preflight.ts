@@ -21,6 +21,8 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, uploadSubmissionFiles } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 type UploadedFile = {
   fieldname: string;
@@ -249,6 +251,76 @@ export const POST: APIRoute = async ({ request }) => {
     const modality = (fields.modality ?? "").trim();
     const customerEmail = (fields.customerEmail ?? "").trim();
     const applicationId = (fields.applicationId ?? "").trim();
+
+    // Persist submission to database
+    const submission = await persistSubmission(
+      {
+        requestId,
+        flow: "fiscal_preflight",
+        personKind: "enrollment_intent",
+        workflowStatus: "received",
+        email: invoiceEmail,
+        phone: participantPhone,
+        programSlug,
+        apiRoute: route,
+        payload: {
+          invoiceEmail,
+          programSlug,
+          programTitle,
+          participantName,
+          participantPhone,
+          modality,
+          customerEmail,
+          applicationId: applicationId || null,
+          fiscalConstancyFile: {
+            fieldname: fiscal.fieldname,
+            filename: fiscal.filename,
+            mimetype: fiscal.mimetype,
+            size: fiscal.buffer.length,
+          },
+        },
+      },
+      route,
+      { timeoutMs: 8000 },
+    );
+
+    if (!submission.ok) {
+      logPersistenceFailure({
+        route,
+        requestId,
+        flow: "fiscal_preflight",
+        reason: submission.reason,
+        email: invoiceEmail,
+      });
+    }
+
+    // Upload file to Storage (if persistence succeeded)
+    if (submission.ok) {
+      const uploadResult = await uploadSubmissionFiles({
+        submissionId: submission.submissionId,
+        flow: "fiscal_preflight",
+        files: [
+          {
+            field_name: fiscal.fieldname,
+            original_filename: fiscal.filename,
+            mime_type: fiscal.mimetype,
+            content_base64: fiscal.buffer.toString("base64"),
+          },
+        ],
+        timeoutMs: 20000,
+      });
+
+      if (!uploadResult.ok) {
+        logPersistenceFailure({
+          route,
+          requestId,
+          flow: "fiscal_preflight",
+          reason: "file_upload_failed",
+          error: uploadResult.reason,
+          email: invoiceEmail,
+        });
+      }
+    }
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";

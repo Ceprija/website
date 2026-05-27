@@ -18,7 +18,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
-import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 import crypto from "node:crypto";
 import { apiLog } from "@lib/server/apiRequestLog";
@@ -161,6 +161,32 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const submissionId = submission.ok ? submission.submissionId : null;
+
+    // Upload payment proof to Storage (if present and persistence succeeded)
+    if (submission.ok && paymentProof?.buffer.length) {
+      const uploadResult = await uploadSubmissionFiles({
+        submissionId: submission.submissionId,
+        flow: "wire_proof",
+        files: [{
+          field_name: "paymentProof",
+          original_filename: paymentProof.filename,
+          mime_type: paymentProof.mimetype,
+          content_base64: paymentProof.buffer.toString("base64"),
+        }],
+        timeoutMs: 20000,
+      });
+
+      if (!uploadResult.ok) {
+        logPersistenceFailure({
+          route,
+          requestId: submissionRequestId,
+          flow: "wire_proof",
+          reason: "file_upload_failed",
+          error: uploadResult.reason,
+          email,
+        });
+      }
+    }
 
     const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
 
