@@ -23,7 +23,15 @@ const slides = [
     subtitle: "Únete a una comunidad de egresados exitosos en el sector público y privado.",
     cta: "Inscríbete Hoy",
     link: "/admisiones"
-  }
+  },
+  {
+    image: "images/hero/reforma-laboral.png",
+    alt: "Reforma Laboral",
+    imageOnly: true,
+    cta: "Regístrate al webinar",
+    link: "/oferta-academica/webinar-reforma-laboral",
+    ctaPosition: { left: 11.5, top: 69 },
+  },
 ];
 ---
 
@@ -33,29 +41,62 @@ const slides = [
     <div class={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'} slide-item`} data-index={index}>
       <!-- Background Image with Overlay -->
       <div class="absolute inset-0">
-        <img src={slide.image} alt={slide.title} class="w-full h-full object-cover" />
-        <div class="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40"></div>
+        {slide.imageOnly ? (
+          <div class="flex h-full w-full items-center justify-center bg-gray-900">
+            <div
+              class="relative aspect-video w-[min(100%,calc(100vh*16/9))] h-[min(100%,calc(100vw*9/16))]"
+            >
+              <img
+                src={slide.image}
+                alt={slide.alt ?? ''}
+                class="h-full w-full object-cover"
+              />
+              {slide.cta && slide.ctaPosition && slide.link && (
+                <div
+                  class="absolute z-20"
+                  style={`left: ${slide.ctaPosition.left}%; top: ${slide.ctaPosition.top}%`}
+                >
+                  <Button
+                    href={slide.link}
+                    variant="secondary"
+                    size="lg"
+                    class="transform shadow-lg hover:scale-105"
+                  >
+                    {slide.cta}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <img
+              src={slide.image}
+              alt={slide.alt ?? slide.title ?? ''}
+              class="h-full w-full object-cover"
+            />
+            <div class="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40"></div>
+          </>
+        )}
       </div>
       
-      <!-- Content -->
-      <div class={heroContainer}>
-        <div class="max-w-3xl text-white" data-animate="fade-up">
-          <h1 class="text-5xl md:text-7xl font-semi-bold mb-6 font-serif leading-tight">
-            {slide.title}
-          </h1>
-          <p class="text-xl md:text-2xl mb-8 text-gray-200 font-light">
-            {slide.subtitle}
-          </p>
-            <div class="flex flex-col sm:flex-row gap-4">
-              <Button href={slide.link} variant="secondary" size="lg" class="w-full sm:w-auto transform hover:scale-105 shadow-lg">
-                {slide.cta}
-              </Button>
-              {/* <Button href="/contacto" variant="outline" size="lg" class="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary hover:border-white">
-                Contáctanos
-              </Button> */}
-            </div>
+      {!slide.imageOnly && (
+        <div class={heroContainer}>
+          <div class="max-w-3xl text-white" data-animate="fade-up">
+            <h1 class="text-5xl md:text-7xl font-semi-bold mb-6 font-serif leading-tight">
+              {slide.title}
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 text-gray-200 font-light">
+              {slide.subtitle}
+            </p>
+              <div class="flex flex-col sm:flex-row gap-4">
+                <Button href={slide.link} variant="secondary" size="lg" class="w-full sm:w-auto transform hover:scale-105 shadow-lg">
+                  {slide.cta}
+                </Button>
+              </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   ))}
 

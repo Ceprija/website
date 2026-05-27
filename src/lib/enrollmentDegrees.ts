@@ -6,7 +6,7 @@
  * Rules (as of May 2026):
  * - `diplomado`, `maestria` and `especialidad`: at least 1 Licenciatura
  * - `doctorado`: at least 1 Licenciatura AND at least 1 Maestría
- * - Other niveles (`curso`, `taller`): no prerequisites; these programs
+ * - Other niveles (`curso`, `webinar`, `taller`): no prerequisites; these programs
  *   don't use the application flow, but we return an empty list as a safe default.
  *
  * Users can always add more degrees on top of the initial list.

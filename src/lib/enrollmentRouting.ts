@@ -3,7 +3,7 @@ import type { CollectionEntry } from "astro:content";
 /**
  * Determines which enrollment flow a program should use.
  *
- * - **inline** (`ContinuousEducationForm` en la ficha del programa): cursos, talleres y
+ * - **inline** (`ContinuousEducationForm` en la ficha del programa): cursos, webinars, talleres y
  *   cualquier programa cuyo registro sea “directo”.
  * - **application** (`/enrollment/[slug]`): maestría, doctorado, especialidad por defecto,
  *   diplomados, o override explícito (p. ej. taller con `variantOptions` para módulo/fecha y Stripe).

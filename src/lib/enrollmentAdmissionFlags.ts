@@ -1,8 +1,8 @@
 import type { ProgramaNivel } from "./programNiveles";
 
-/** Talleres con flujo de solicitud no requieren grados académicos ni títulos/cédulas. */
+/** Cursos, webinars y talleres no requieren grados académicos ni títulos/cédulas. */
 export function requiresAcademicDegreeSteps(nivel: ProgramaNivel): boolean {
-  return nivel !== "taller";
+  return nivel !== "taller" && nivel !== "curso" && nivel !== "webinar";
 }
 
 /**
