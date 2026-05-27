@@ -79,11 +79,6 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
-      URL_BASE_API: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
       SCHOOL_HUB_SUBMISSIONS_URL: envField.string({
         context: 'server',
         access: 'secret',

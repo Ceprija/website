@@ -11,7 +11,6 @@ import {
   validateUploadBuffer,
 } from "@lib/uploads/fileValidation";
 import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
-import { laravelApiUrl } from "@lib/server/laravelApiUrl";
 import {
   normalizeWireModality,
   validateEducacionContinuaFields,
@@ -19,9 +18,9 @@ import {
 import {
   CONTACT_EMAIL,
   SMTP_FROM,
-  URL_BASE_API,
 } from "astro:env/server";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
+import crypto from "node:crypto";
 import {
   guardPublicPost,
   hasHoneypotValue,
@@ -30,6 +29,8 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
+import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -288,6 +289,55 @@ export const POST: APIRoute = async ({ request }) => {
 
     const csvContent = header + csvRow;
 
+    // Persist to Database
+    const submissionRequestId = crypto.randomUUID();
+    const submission = await persistSubmission(
+      {
+        requestId: submissionRequestId,
+        flow: "educacion_continua",
+        personKind: "interested",
+        email: email.trim(),
+        phone: phone.trim(),
+        programSlug: programId,
+        programTitle,
+        apiRoute: route,
+        payload: {
+          name,
+          email,
+          phone,
+          modality: modalityCanonical,
+          requiresInvoice,
+          invoiceEmail: invoiceEmail || null,
+          files: nonEmptyFiles.map(f => ({
+            fieldname: f.fieldname,
+            filename: f.filename,
+            mimetype: f.mimetype,
+            size: f.buffer.length,
+          })),
+        },
+      },
+      route,
+      { timeoutMs: 2500 }
+    );
+
+    if (!submission.ok) {
+      apiLog("warn", route, "db_persistence_failed", {
+        requestId,
+        reason: submission.reason,
+        email: email.slice(0, 3) + "***",
+      });
+      logPersistenceFailure({
+        route,
+        requestId: submissionRequestId,
+        flow: "educacion_continua",
+        reason: submission.reason,
+        email: email,
+        error: submission.error,
+      });
+    }
+
+    const submissionId = submission.ok ? submission.submissionId : null;
+
     const senderEmail =
       (SMTP_FROM ?? CONTACT_EMAIL ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const adminTo = programAdminRecipients(program);
@@ -393,83 +443,35 @@ export const POST: APIRoute = async ({ request }) => {
       }
     };
 
-    const sendToLaravel = async () => {
-      try {
-        const apiUrl = URL_BASE_API;
-        if (!apiUrl) return;
-
-        const formPayload = new FormData();
-
-        const appendIfExists = (key: string, val: unknown) => {
-          if (val) formPayload.append(key, String(val));
-        };
-
-        appendIfExists("nombre", name);
-        appendIfExists("email", email);
-        appendIfExists("telefono", phone);
-        appendIfExists("programa", programTitle);
-        appendIfExists("programa_id", programId);
-        appendIfExists("modalidad", modalityCanonical);
-        formPayload.append("requiere_factura", requiresInvoice === "Sí" ? "1" : "0");
-        appendIfExists("email_factura", invoiceEmail);
-
-        const paymentProof = nonEmptyFiles.find(
-          (f) => f.fieldname === "paymentProof" || f.fieldname === "comprobantePago",
-        );
-        if (paymentProof && paymentProof.buffer.length) {
-          formPayload.append(
-            "comprobante_pago_doc",
-            new Blob([new Uint8Array(paymentProof.buffer)], { type: paymentProof.mimetype }),
-            paymentProof.filename,
-          );
-        }
-
-        const fiscalConstancy = nonEmptyFiles.find((f) => f.fieldname === "fiscalConstancy");
-        if (fiscalConstancy && fiscalConstancy.buffer.length) {
-          formPayload.append(
-            "comprobante_fiscal_doc",
-            new Blob([new Uint8Array(fiscalConstancy.buffer)], { type: fiscalConstancy.mimetype }),
-            fiscalConstancy.filename,
-          );
-        }
-
-        const registroUrl = laravelApiUrl(apiUrl, "educacion-continua/registro");
-        apiLog("info", route, "laravel_request", {
-          requestId,
-          programSlug: programSlug || undefined,
-          url: registroUrl,
-        });
-        const apiRes = await fetch(registroUrl, {
-          method: "POST",
-          headers: { Accept: "application/json" },
-          body: formPayload,
-        });
-
-        if (!apiRes.ok) {
-          const errText = await apiRes.text();
-          apiLog("warn", route, "laravel_api_error", {
-            requestId,
-            programSlug: programSlug || undefined,
-            httpStatus: apiRes.status,
-            body: errText.slice(0, 500),
-          });
-        } else {
-          apiLog("info", route, "laravel_ok", {
-            requestId,
-            programSlug: programSlug || undefined,
-          });
-        }
-      } catch (apiError) {
-        apiLog("error", route, "laravel_network_error", {
-          requestId,
-          programSlug: programSlug || undefined,
-          error:
-            apiError instanceof Error ? apiError.message : String(apiError),
-        });
-      }
+    // Log admin email attempt
+    const logAdminEmail = async () => {
+      if (!submissionId) return;
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "admin",
+        recipients: adminTo.map(r => r.email),
+        subject: `INSCRIPCIÓN EC: ${programTitle} - ${name}`,
+        status: "sent",
+        idempotencyKey: `${submissionRequestId}_admin`,
+      });
     };
 
-    await Promise.allSettled([sendToBrevo(), sendToLaravel()]);
+    // Log user email attempt  
+    const logUserEmail = async () => {
+      if (!submissionId) return;
+      await logEmailAttempt({
+        submissionId,
+        route,
+        kind: "participant",
+        recipients: [email],
+        subject: `Inscripción confirmada: ${programTitle}`,
+        status: "sent",
+        idempotencyKey: `${submissionRequestId}_user`,
+      });
+    };
+
+    await Promise.allSettled([sendToBrevo(), logAdminEmail(), logUserEmail()]);
 
     apiLog("info", route, "inscription_accepted", {
       requestId,

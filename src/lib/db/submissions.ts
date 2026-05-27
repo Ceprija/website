@@ -85,6 +85,10 @@ export type CreateSubmissionInput = {
   phone?: string | null;
   programSlug?: string | null;
   programTitle?: string | null;
+  stripeCheckoutSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeEventId?: string | null;
   apiRoute: string;
   payload: Record<string, unknown>;
   ip?: string;
@@ -174,10 +178,15 @@ export async function persistSubmission(
     request_id: input.requestId,
     flow: input.flow,
     person_kind: input.personKind,
+    workflow_status: input.workflowStatus ?? "received",
     email: input.email ?? null,
     phone: input.phone ?? null,
     program_slug: input.programSlug ?? null,
     program_title: input.programTitle ?? null,
+    stripe_checkout_session_id: input.stripeCheckoutSessionId ?? null,
+    stripe_payment_intent_id: input.stripePaymentIntentId ?? null,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_event_id: input.stripeEventId ?? null,
     wire_review_status: input.wireReviewStatus ?? null,
     payload: input.payload,
     api_route: input.apiRoute,
@@ -185,7 +194,7 @@ export async function persistSubmission(
     user_agent: input.userAgent ?? null,
   };
 
-  const result = await callSchoolHub<{ id: string }>(
+  const result = await callSchoolHub<{ id: string; duplicate?: boolean }>(
     logRoute,
     body,
     { flow: input.flow, requestId: input.requestId },
@@ -196,7 +205,11 @@ export async function persistSubmission(
     return { ok: false, reason: "endpoint_error" };
   }
 
-  return { ok: true, submissionId: result.id };
+  return {
+    ok: true,
+    submissionId: result.id,
+    ...(result.duplicate ? { duplicate: true } : {}),
+  };
 }
 
 export async function appendSubmissionEvent(
@@ -255,6 +268,7 @@ export async function recordEmailAttempt(
     brevoStatusCode?: number;
     programSlug?: string;
     stripeSessionId?: string;
+    idempotencyKey?: string;
   },
 ): Promise<void> {
   await callSchoolHub(
@@ -262,6 +276,7 @@ export async function recordEmailAttempt(
     {
       op: "log_email",
       submission_id: submissionId,
+      idempotency_key: opts.idempotencyKey ?? null,
       route: opts.route,
       kind: opts.recipientRole === "admin" ? "admin" : "participant",
       recipients: opts.recipients,
@@ -275,6 +290,38 @@ export async function recordEmailAttempt(
     },
     { submissionId, status: opts.status },
   );
+}
+
+/** Route-friendly wrapper around recordEmailAttempt (stable idempotency keys). */
+export async function logEmailAttempt(opts: {
+  submissionId: string;
+  route: string;
+  kind: "admin" | "participant" | "other";
+  recipients: string[];
+  subject: string;
+  status: "sent" | "failed";
+  brevoMessageId?: string;
+  brevoStatusCode?: number;
+  failureReason?: string;
+  idempotencyKey: string;
+  programSlug?: string;
+  stripeSessionId?: string;
+}): Promise<void> {
+  const recipientRole =
+    opts.kind === "admin" ? "admin" : ("applicant" as const);
+  await recordEmailAttempt(opts.submissionId, {
+    route: opts.route,
+    recipientRole,
+    recipients: opts.recipients,
+    subject: opts.subject,
+    status: opts.status,
+    brevoMessageId: opts.brevoMessageId,
+    brevoStatusCode: opts.brevoStatusCode,
+    error: opts.failureReason,
+    programSlug: opts.programSlug,
+    stripeSessionId: opts.stripeSessionId,
+    idempotencyKey: opts.idempotencyKey,
+  });
 }
 
 export async function linkStripeCheckoutSession(
