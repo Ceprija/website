@@ -1,6 +1,6 @@
 ---
 slug: "diplomado-en-derecho-civil-y-familiar"
-title: "Diplomado Civil y Familiar"
+title: "Diplomado Civil y Familiar: Adaptación Transversal a la Oralidad"
 description: "Adaptación transversal a la oralidad en materia civil y familiar: CNPCyF, audiencias, pruebas, medios alternos de solución de controversias, sucesiones y ejecución. Aprende con especialistas que operan el nuevo sistema civil y familiar a nivel nacional. Modalidad híbrida y en línea; calendario intensivo viernes y sábado."
 excerpt: "Oralidad civil y familiar con CNPCyF: audiencias, pruebas, familia, sucesiones, mediación y conciliación, y ejecución, con práctica aplicada al litigio real."
 image: "/images/programs/diplomado-derecho-civil-y-familiar.webp"
