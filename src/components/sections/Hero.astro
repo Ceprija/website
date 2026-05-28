@@ -2,71 +2,48 @@
 import Button from '../ui/Button.astro';
 import { heroContainer } from '@lib/landingSectionStyles';
 
-/** Image-only hero slides (full artwork + optional CTA). */
-type HeroImageOnlySlide = {
-  image: string;
-  /** Optional smaller/cropped asset for narrow viewports (<picture>). */
-  imageMobile?: string;
-  alt?: string;
-  imageOnly: true;
-  /** object-position on md+ when using object-cover (e.g. "50% 30%"). */
-  objectPosition?: string;
-  /** object-position below md when using object-contain. */
-  objectPositionMobile?: string;
-  cta?: string;
-  link?: string;
-  /** Desktop/tablet: CTA placed on the artwork (percent of slide). */
-  ctaPosition?: { left: number; top: number };
-};
-
 type HeroTextSlide = {
   image: string;
+  ctaHeader?: string;
   title: string;
   subtitle: string;
+  /** Optional small line rendered above the CTA button. */
+  ctaNote?: string;
   cta: string;
   link: string;
-  imageOnly?: false;
 };
 
-type HeroSlide = HeroTextSlide | HeroImageOnlySlide;
-
-function isImageOnlySlide(slide: HeroSlide): slide is HeroImageOnlySlide {
-  return slide.imageOnly === true;
-}
-
-const slides: HeroSlide[] = [
+const slides: HeroTextSlide[] = [
   {
-    image: "images/branding/site/ceprija_02.webp",
-    title: "Formando Líderes con Excelencia",
-    subtitle: "Licenciaturas, Maestrías y Doctorados con validez oficial. Tu futuro comienza aquí.",
+    image: "images/hero/reforma-laboral.webp",
+    ctaHeader: "Webinar | Julio 2026",
+    title: "Reforma Laboral en México",
+    subtitle: "Jornada de 40 horas, implementación estratégica y desafíos empresariales.",
+    ctaNote: "Anticípate a los cambios laborales en México",
+    cta: "Inscríbete Hoy",
+    link: "/oferta-academica/webinar-reforma-laboral",
+  },
+  {
+    image: "images/hero/diplomado-civil-familiar.webp",
+    title: "Diplomado Civil y Familiar: Adaptación Transversal a la Oralidad",
+    subtitle: "Especialización jurídica para afrontar los retos del nuevo modelo de oralidad",
+    cta: "Inscríbete Hoy",
+    link: "/oferta-academica/diplomado-en-derecho-civil-y-familiar"
+  },
+  {
+    image: "images/hero/site-1.webp",
+    title: "Alcanza tus Metas Profesionales",
+    subtitle: "Únete a una comunidad de egresados exitosos en el sector público y privado.",
     cta: "Ver Oferta Académica",
     link: "/oferta-academica"
   },
   {
-    image: "images/branding/site/ceprija_01.webp",
+    image: "images/hero/site-2.webp",
     title: "Educación Flexible y Moderna",
     subtitle: "Estudia a tu ritmo con nuestros modelos presenciales y en línea.",
     cta: "Conoce Más",
     link: "/nosotros"
-  },
-  {
-    image: "images/branding/site/ceprija_03.webp",
-    title: "Alcanza tus Metas Profesionales",
-    subtitle: "Únete a una comunidad de egresados exitosos en el sector público y privado.",
-    cta: "Inscríbete Hoy",
-    link: "/admisiones"
-  },
-  {
-    image: "images/hero/reforma-laboral.webp",
-    imageMobile: "images/hero/reforma-laboral-mobile.webp",
-    alt: "Webinar Reforma Laboral en México — CEPRIJA",
-    imageOnly: true,
-    objectPosition: "42% 48%",
-    objectPositionMobile: "center",
-    cta: "Regístrate al webinar",
-    link: "/oferta-academica/webinar-reforma-laboral",
-    ctaPosition: { left: 4.5, top: 69 },
-  },
+  }
 ];
 ---
 
@@ -76,79 +53,40 @@ const slides: HeroSlide[] = [
     <div class={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'} slide-item`} data-index={index}>
       <!-- Background Image with Overlay -->
       <div class="absolute inset-0">
-        {isImageOnlySlide(slide) ? (
-          <>
-            <picture class="hero-image-only-picture block h-full w-full">
-              {slide.imageMobile && (
-                <source media="(max-width: 767px)" srcset={slide.imageMobile} />
-              )}
-              <img
-                src={slide.image}
-                alt={slide.alt ?? ''}
-                class="hero-image-only-img h-full w-full"
-                style={{
-                  '--hero-object-pos': slide.objectPosition ?? 'center',
-                  '--hero-object-pos-mobile': slide.objectPositionMobile ?? 'center',
-                }}
-              />
-            </picture>
-            {slide.cta && slide.link && slide.ctaPosition && (
-              <div
-                class="absolute z-20 hidden md:block"
-                style={`left: ${slide.ctaPosition.left}%; top: ${slide.ctaPosition.top}%`}
-              >
-                <Button
-                  href={slide.link}
-                  variant="secondary"
-                  size="lg"
-                  class="transform shadow-lg hover:scale-105"
-                >
-                  {slide.cta}
-                </Button>
-              </div>
-            )}
-            {slide.cta && slide.link && (
-              <div class="absolute bottom-24 left-0 right-0 z-20 flex justify-center px-6 md:hidden">
-                <Button
-                  href={slide.link}
-                  variant="secondary"
-                  size="lg"
-                  class="w-full max-w-sm shadow-lg"
-                >
-                  {slide.cta}
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <img
-              src={slide.image}
-              alt={slide.title}
-              class="h-full w-full object-cover"
-            />
-            <div class="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40"></div>
-          </>
-        )}
+        <img
+          src={slide.image}
+          alt={slide.title}
+          class="h-full w-full object-cover"
+        />
       </div>
       
-      {!isImageOnlySlide(slide) && (
-        <div class={heroContainer}>
-          <div class="max-w-3xl text-white" data-animate="fade-up">
-            <h1 class="text-5xl md:text-7xl font-semi-bold mb-6 font-serif leading-tight">
+      <div class={heroContainer}>
+        <div class="max-w-3xl text-white" data-animate="fade-up">
+          <div class="flex flex-col space-y-4 md:space-y-6">
+            {slide.ctaHeader && (
+              <p class="inline-flex w-fit rounded-full px-4 py-2 text-sm font-semibold" style="background:#202c35;color:#de0405;">
+                {slide.ctaHeader}
+              </p>
+            )}
+            <h1 class="text-5xl font-semi-bold font-serif leading-tight md:text-7xl">
               {slide.title}
             </h1>
-            <p class="text-xl md:text-2xl mb-8 text-gray-200 font-light">
+            <p class="text-xl font-light text-gray-200 md:text-2xl">
               {slide.subtitle}
             </p>
-              <div class="flex flex-col sm:flex-row gap-4">
-                <Button href={slide.link} variant="secondary" size="lg" class="w-full sm:w-auto transform hover:scale-105 shadow-lg">
-                  {slide.cta}
-                </Button>
-              </div>
+            <div class="flex flex-col space-y-3 sm:items-start">
+              <Button href={slide.link} variant="secondary" size="lg" class="w-full sm:w-auto transform hover:scale-105 shadow-lg">
+                {slide.cta}
+              </Button>
+              {slide.ctaNote && (
+                <p class="text-sm font-medium md:text-base" style="color:#c09418;">
+                  {slide.ctaNote}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   ))}
 
@@ -175,24 +113,6 @@ const slides: HeroSlide[] = [
     </svg>
   </button>
 </div>
-
-<style>
-  /*
-   * Image-only slides: marketing artwork is 16:9. On phones, object-cover crops
-   * text/CTAs; object-contain shows the full graphic. Desktop uses cover + focal point.
-   */
-  .hero-image-only-img {
-    object-fit: contain;
-    object-position: var(--hero-object-pos-mobile, center);
-  }
-
-  @media (min-width: 768px) {
-    .hero-image-only-img {
-      object-fit: cover;
-      object-position: var(--hero-object-pos, center);
-    }
-  }
-</style>
 
 <script>
   const slider = document.getElementById('hero-slider');

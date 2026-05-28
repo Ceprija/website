@@ -1,7 +1,7 @@
 ---
 slug: "webinar-reforma-laboral"
-title: "Webinar: Reforma Laboral en México"
-description: "Webinar sobre la reforma laboral en México: jornada de 40 horas, implementación estratégica y desafíos empresariales. Con ponente internacional Mtro. Francisco Peña, presidente de la Asociación de Empresarios Mexicanos, Capítulo McAllen, y secretario general de la AEM Binacional."
+title: "Reforma Laboral en México"
+description: "Jornada de 40 horas, implementación estratégica y desafíos empresariales. Con el Mtro. Francisco Peña, ponente internacional, presidente de la Asociación de Empresarios Mexicanos, Capítulo McAllen, y secretario general de la AEM Binacional."
 excerpt: "Jornada de 40 horas, implementación estratégica y desafíos empresariales de la reforma laboral en México."
 image: "/images/programs/reforma-laboral.webp"
 brochure: "/brochures/webinarReformaLaboral.pdf"
@@ -35,7 +35,7 @@ paymentOptions:
   - id: "webinar"
     label: "Webinar: Reforma Laboral"
     price: 295
-    stripePriceId: "REPLACE_WITH_STRIPE_PRICE_ID"
+    stripePriceId: "price_1Tbu7t3s3evyMWrakhZuRK7s"
     type: "online"
 galleryFolder: "/images/programs/webinarReformeLaboral/gallery"
 ---
