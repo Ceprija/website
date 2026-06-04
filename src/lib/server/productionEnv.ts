@@ -1,4 +1,5 @@
 import {
+  EMAIL_ADMIN_ONLY_RECIPIENT,
   EMAIL_CONTROL_ESCOLAR,
   EMAIL_EDUCACION_CONTINUA,
   EMAIL_SOPORTE_WEB,
@@ -71,6 +72,11 @@ export function validateProductionEnv(): ProductionEnvCheck {
     }
     if (!hasValue(EMAIL_SOPORTE_WEB)) {
       errors.push("EMAIL_SOPORTE_WEB is required.");
+    }
+    if (hasValue(EMAIL_ADMIN_ONLY_RECIPIENT)) {
+      warnings.push(
+        "EMAIL_ADMIN_ONLY_RECIPIENT is set: all admin notifications (inscripción, brochure, wire, etc.) go only to that address. Unset in .env and run `pm2 delete <app> && pm2 start` (not only restart) if you removed it from .env but PM2 still shows the variable.",
+      );
     }
   } else if (parseStripeAllowedPriceIds(STRIPE_ALLOWED_PRICE_IDS).size === 0) {
     warnings.push("STRIPE_ALLOWED_PRICE_IDS is empty; only content validation applies.");
