@@ -6,7 +6,7 @@ position_laboral: "Abogada postulante en materia penal en el despacho jurídico 
 experience_institutional:
   - "CEPRIJA - Imparte la materia de Salidas Alternas y Terminación Anticipada en la Maestría en Derecho Penal."
 image: "/images/faculty/blancaMagdaleno/blanca_estela_magdaleno_cortes_noBackground.webp"
-order: 8
+order: 9
 ---
 
 Especialista en Sistema Penal Acusatorio, Derecho Penal, Violencia de Género, Feminicidio y Derechos Humanos de las Mujeres. Cuenta con más de 10 años de experiencia en la Fiscalía Estatal de Jalisco.

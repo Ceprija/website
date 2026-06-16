@@ -7,7 +7,7 @@ area_especialidad: "Especialista en administración y desarrollo de recursos hum
 hito_profesional: "Cuenta con una sólida trayectoria liderando áreas estratégicas de recursos humanos y desarrollo organizacional, además de colaborar como docente y conferencista en instituciones como ITESM, Universidad de Guadalajara y Universidad Autónoma de Guadalajara."
 trayectoria_titulo: "Trayectoria Profesional"
 image: "/images/faculty/aidaGirscher/aida_isabel_girscher_laVerne_noBackground.webp"
-order: 13
+order: 11
 draft: false
 ---
 

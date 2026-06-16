@@ -6,7 +6,7 @@ position_laboral: "Magistrado de Circuito en el Primer Tribunal Colegiado del Vi
 experience_institutional:
   - "CEPRIJA - Imparte la materia de Paradigmas Constitucionales del Derecho Familiar."
 image: "/images/branding/logos/logo-ceprija-web.svg"
-order: 12
+order: 993
 draft: true
 ---
 

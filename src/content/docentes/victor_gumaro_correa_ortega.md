@@ -6,7 +6,7 @@ cargo_intro: "Socio Director de Correa & Correa Abogados, firma especializada en
 area_especialidad: "Especialista en derecho fiscal, litigio fiscal, tributación internacional, compliance penal y corporativo."
 hito_profesional: "Cuenta con una sólida trayectoria académica y profesional en materia tributaria y defensa fiscal, destacando como docente de posgrado en el Instituto de Especialización para Ejecutivos (IEE) durante más de 15 años."
 image: "/images/faculty/victorCorrea/victor_gumaro_correa_ortega_noBackground.webp"
-order: 11
+order: 12
 draft: false
 ---
 

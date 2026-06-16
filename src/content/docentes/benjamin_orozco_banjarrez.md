@@ -6,7 +6,7 @@ cargo_intro: "Abogado litigante en materia penal fiscal y extradición internaci
 area_especialidad: "Especialista en derecho penal fiscal, delitos financieros, litigación oral y extradición internacional."
 hito_profesional: "Ha ocupado cargos de alta relevancia dentro de la Procuraduría General de la República y el Servicio de Administración Tributaria, destacando como Titular de la Unidad Especializada en Investigación de Delitos Fiscales y Financieros y como Administrador Central de Asuntos Penales y Especiales."
 image: "/images/faculty/benjaminManjarrez/benjamin_Orozco_Majarrez_noBackground.webp"
-order: 9
+order: 10
 draft: false
 ---
 

@@ -1,0 +1,31 @@
+---
+slug: "curso-ingles-a-tu-ritmo"
+title: "Inglés a Tu Ritmo"
+description: "Aprende inglés con un programa flexible adaptado a tu ritmo y horarios. Clases grupales o individuales entre semana y fines de semana para impulsar tus oportunidades académicas y profesionales."
+excerpt: "Curso flexible de inglés con horarios matutinos, vespertinos y fines de semana. Modalidad grupal o individual para fines académicos, laborales y personales."
+image: "/images/programs/curso-ingles-a-tu-ritmo.webp"
+escuela: "integral"
+nivel: "curso"
+status: "disabled"
+horario: "Horarios matutinos y vespertinos; opciones entre semana y fines de semana. 2 horas por sesión, 2 veces por semana o modalidad intensiva de 4 horas en un solo día."
+startDate: "Convocatoria abierta"
+duracion: "Según nivel y modalidad elegida"
+modalidad: "En línea / Presencial / Híbrida"
+featured: false
+date: ""
+address: ""
+requiresVerification: false
+instructor: "Por confirmar"
+schedule: ""
+meetingLink: ""
+enrollmentFlow: "inline"
+profileAudience: "Estudiantes, profesionistas y público en general interesado en mejorar su nivel de inglés para fines académicos, laborales o personales."
+fieldOfWork: "Desarrollo académico, profesional y comunicación internacional."
+includes:
+  - "Evaluación diagnóstica de nivel"
+  - "Material digital de apoyo"
+  - "Clases dinámicas y prácticas"
+  - "Modalidad grupal o individual"
+  - "Horarios flexibles"
+  - "Constancia de participación"
+---

@@ -6,7 +6,7 @@ position_laboral: "Juez Sexto de lo Familiar del Distrito Judicial de Puebla."
 experience_institutional:
   - "CEPRIJA - Imparte la materia de Aspectos Procesales en el Juicio Oral Familiar en la Maestría Derecho Civil y Familiar."
 image: "/images/branding/logos/logo-ceprija-web.svg"
-order: 11
+order: 991
 draft: true
 ---
 
