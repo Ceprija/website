@@ -13,12 +13,36 @@ function querySelect(form: HTMLFormElement, selector: string): HTMLSelectElement
   return el instanceof HTMLSelectElement ? el : null;
 }
 
-export function initSeptember2026Form(
-  allowedPrograms: readonly string[],
-  startCycle: string,
-): void {
+function readFormConfig(form: HTMLFormElement): {
+  allowedPrograms: readonly string[];
+  startCycle: string;
+} | null {
+  const startCycle = form.dataset.startCycle?.trim() ?? "";
+  const rawPrograms = form.dataset.allowedPrograms;
+  if (!startCycle || !rawPrograms) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(rawPrograms);
+    if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string")) {
+      return null;
+    }
+    return { allowedPrograms: parsed, startCycle };
+  } catch {
+    return null;
+  }
+}
+
+export function initSeptember2026Form(): void {
   const form = document.getElementById("septiembre-2026-form");
   if (!(form instanceof HTMLFormElement)) return;
+
+  const config = readFormConfig(form);
+  if (!config) {
+    console.error("September 2026 form: missing or invalid data attributes");
+    return;
+  }
+
+  const { allowedPrograms, startCycle } = config;
 
   const statusDiv = document.getElementById("septiembre-2026-status");
   const submitBtn = document.getElementById("septiembre-2026-submit");

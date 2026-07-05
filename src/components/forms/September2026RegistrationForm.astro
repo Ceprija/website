@@ -28,7 +28,12 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
     continuar tu proceso de inscripción al ciclo de septiembre 2026.
   </p>
 
-  <form id="septiembre-2026-form" class="space-y-6">
+  <form
+    id="septiembre-2026-form"
+    class="space-y-6"
+    data-start-cycle={START_CYCLE}
+    data-allowed-programs={JSON.stringify([...programs])}
+  >
     <input
       type="text"
       name="website"
@@ -134,8 +139,8 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
   </form>
 </div>
 
-<script define:vars={{ allowedPrograms: [...programs], startCycle: START_CYCLE }}>
+<script>
   import { initSeptember2026Form } from "@lib/client/septiembre2026Form";
 
-  initSeptember2026Form(allowedPrograms, startCycle);
+  initSeptember2026Form();
 </script>
