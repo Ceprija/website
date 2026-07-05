@@ -1,0 +1,53 @@
+---
+import Layout from "../layouts/Layout.astro";
+import September2026RegistrationForm from "../components/forms/September2026RegistrationForm.astro";
+---
+
+<Layout
+  title="Inscripciones Septiembre 2026 | CEPRIJA"
+  description="Registro inicial de interés para maestrías, especialidad y doctorado con inicio en septiembre 2026."
+>
+  <div
+    class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-50 to-white -z-10"
+  >
+  </div>
+
+  <main class="container mx-auto px-4 py-16 md:py-24">
+    <div class="max-w-3xl mx-auto text-center mb-12">
+      <p
+        class="inline-flex rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary mb-6"
+        data-animate="fade-up"
+      >
+        Ciclo Septiembre 2026
+      </p>
+      <h1
+        class="text-4xl md:text-5xl font-bold text-primary font-serif mb-6 leading-tight"
+        data-animate="fade-up"
+        data-delay="100"
+      >
+        Inscripciones Septiembre 2026
+      </h1>
+      <p
+        class="text-lg text-gray-600 leading-relaxed"
+        data-animate="fade-up"
+        data-delay="200"
+      >
+        Registra tu interés en nuestros programas de posgrado. Este formulario es
+        el primer paso para recibir información y acompañamiento en tu proceso de
+        inscripción.
+      </p>
+    </div>
+
+    <div class="max-w-2xl mx-auto" data-animate="fade-up" data-delay="300">
+      <September2026RegistrationForm />
+    </div>
+
+    <p class="max-w-2xl mx-auto mt-8 text-center text-sm text-gray-500">
+      Al enviar este formulario, aceptas que CEPRIJA utilice tus datos para
+      contactarte con fines académicos y administrativos, conforme a nuestro
+      <a href="/aviso-de-privacidad" class="text-primary hover:underline"
+        >Aviso de Privacidad</a
+      >.
+    </p>
+  </main>
+</Layout>

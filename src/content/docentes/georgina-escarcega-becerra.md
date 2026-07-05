@@ -6,7 +6,7 @@ cargo_intro: "Facilitadora certificada y especialista en mecanismos alternos de 
 area_especialidad: "Mediación, conciliación, justicia restaurativa, cultura de paz y mecanismos alternos de solución de conflictos (MASC)."
 hito_profesional: "Autora y coautora de publicaciones internacionales en mediación y cultura de paz, además de contar con certificaciones avaladas por la Suprema Corte de Justicia de la Nación y participación en congresos internacionales en Argentina y Colombia."
 image: "/images/faculty/georginaEscarcega/georgina_escarcega_becerra_noBackground.webp"
-order: 26
+order: 27
 draft: false
 ---
 
