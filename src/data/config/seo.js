@@ -8,8 +8,9 @@ export const seoConfig = {
     },
     pages: {
         home: {
-            title: "CEPRIJA",
-            description: "CEPRIJA forma líderes en el ámbito jurídico y administrativo con programas de excelencia académica y enfoque práctico.",
+            title: "CEPRIJA | Posgrados y Educación Continua · Guadalajara",
+            description:
+                "CEPRIJA en Guadalajara, Jalisco, ofrece maestrías, doctorados, especialidades y diplomados, así como cursos, talleres, seminarios y webinars en derecho y administración, con modalidad presencial y en línea.",
         },
         about: {
             title: "Nosotros | CEPRIJA",

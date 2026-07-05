@@ -1,0 +1,146 @@
+---
+import Button from "../ui/Button.astro";
+import {
+  MAX_FULL_NAME_LEN,
+  TEXT_MAX_LENGTH_BY_NAME,
+} from "@lib/validation/formFieldLimits";
+
+const programs = [
+  "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico",
+  "Especialidad en Criminalística y Ciencias Forenses",
+  "Maestría en Derecho Civil y Familiar",
+  "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
+] as const;
+
+const START_CYCLE = "Septiembre 2026";
+
+const fieldClass =
+  "w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all";
+const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
+---
+
+<div class="bg-white rounded-2xl shadow-lg p-8 md:p-10 border-t-4 border-secondary">
+  <h2 class="text-2xl md:text-3xl font-bold text-primary mb-2 font-serif">
+    Formulario de registro inicial
+  </h2>
+  <p class="text-gray-600 mb-8 text-sm md:text-base">
+    Completa tus datos y un asesor de CEPRIJA se pondrá en contacto contigo para
+    continuar tu proceso de inscripción al ciclo de septiembre 2026.
+  </p>
+
+  <form
+    id="septiembre-2026-form"
+    class="space-y-6"
+    data-start-cycle={START_CYCLE}
+    data-allowed-programs={JSON.stringify([...programs])}
+  >
+    <input
+      type="text"
+      name="website"
+      autocomplete="off"
+      tabindex="-1"
+      class="sr-only"
+      aria-hidden="true"
+    />
+    <div>
+      <label for="program" class:list={[labelClass]}>Deseo ingresar a *</label>
+      <select id="program" name="program" required class:list={[fieldClass]}>
+        <option value="" disabled selected>Selecciona un programa</option>
+        {
+          programs.map((title) => (
+            <option value={title}>{title}</option>
+          ))
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="name" class:list={[labelClass]}>Nombre completo *</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        autocomplete="name"
+        maxlength={MAX_FULL_NAME_LEN}
+        class:list={[fieldClass]}
+        placeholder="Nombre y apellidos"
+      />
+    </div>
+
+    <div>
+      <label for="startCycle" class:list={[labelClass]}>Ciclo de inicio *</label>
+      <select id="startCycle" name="startCycle" required class:list={[fieldClass]}>
+        <option value={START_CYCLE} selected>{START_CYCLE}</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="email" class:list={[labelClass]}>Correo electrónico *</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        autocomplete="email"
+        maxlength={TEXT_MAX_LENGTH_BY_NAME.email}
+        class:list={[fieldClass]}
+        placeholder="tu@email.com"
+      />
+    </div>
+
+    <div>
+      <label for="phone" class:list={[labelClass]}>Número de contacto *</label>
+      <input
+        type="tel"
+        id="phone"
+        name="phone"
+        required
+        autocomplete="tel"
+        maxlength={TEXT_MAX_LENGTH_BY_NAME.phone}
+        inputmode="tel"
+        class:list={[fieldClass]}
+        placeholder="33 1234 5678"
+      />
+    </div>
+
+    <div id="septiembre-2026-status" class="hidden p-3 rounded-lg text-sm"></div>
+
+    <Button
+      type="submit"
+      id="septiembre-2026-submit"
+      variant="secondary"
+      size="lg"
+      class="w-full flex justify-center items-center gap-2"
+    >
+      <span>Enviar registro</span>
+      <svg
+        class="animate-spin h-5 w-5 text-primary hidden"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        id="septiembre-2026-spinner"
+        aria-hidden="true"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </Button>
+  </form>
+</div>
+
+<script>
+  import { initSeptember2026Form } from "@lib/client/septiembre2026Form";
+
+  initSeptember2026Form();
+</script>
