@@ -21,6 +21,7 @@ import {
   validateEmail,
   validateParticipantName,
 } from "@lib/validation/enrollment";
+import { MAX_FULL_NAME_LEN } from "@lib/validation/formFieldLimits";
 import { isValidPhone } from "@lib/validation/phone";
 import crypto from "node:crypto";
 
@@ -61,13 +62,13 @@ export const POST: APIRoute = async ({ request }) => {
     return honeypotResponse(route, requestId);
   }
 
-  const name = clean(body?.name, 120);
+  const name = clean(body?.name, MAX_FULL_NAME_LEN);
   const email = clean(body?.email, 254).toLowerCase();
   const phone = clean(body?.phone, 30);
   const programTitle = clean(body?.program, 180);
   const startCycle = clean(body?.startCycle, 40) || START_CYCLE;
 
-  const nameErr = validateParticipantName(name, "name");
+  const nameErr = validateParticipantName(name, "name", MAX_FULL_NAME_LEN);
   if (nameErr) {
     return jsonResponse(
       { message: nameErr.error, code: nameErr.code, field: nameErr.field },

@@ -2,10 +2,15 @@
  * Límites de texto en formularios (cliente + referencia para maxlength en HTML).
  * Claves = atributo `name` del control.
  */
+/** Nombre completo en formularios simples (registro de interés, contacto). */
+export const MAX_FULL_NAME_LEN = 120;
+
 export const TEXT_MAX_LENGTH_BY_NAME: Record<string, number> = {
   nombre: 100,
   apellidos: 100,
   name: 200,
+  email: 254,
+  phone: 30,
   calle: 200,
   colonia: 120,
   ciudad: 120,

@@ -1,5 +1,9 @@
 ---
 import Button from "../ui/Button.astro";
+import {
+  MAX_FULL_NAME_LEN,
+  TEXT_MAX_LENGTH_BY_NAME,
+} from "@lib/validation/formFieldLimits";
 
 const programs = [
   "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico",
@@ -7,6 +11,8 @@ const programs = [
   "Maestría en Derecho Civil y Familiar",
   "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
 ] as const;
+
+const START_CYCLE = "Septiembre 2026";
 
 const fieldClass =
   "w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all";
@@ -51,6 +57,7 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
         name="name"
         required
         autocomplete="name"
+        maxlength={MAX_FULL_NAME_LEN}
         class:list={[fieldClass]}
         placeholder="Nombre y apellidos"
       />
@@ -59,7 +66,7 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
     <div>
       <label for="startCycle" class:list={[labelClass]}>Ciclo de inicio *</label>
       <select id="startCycle" name="startCycle" required class:list={[fieldClass]}>
-        <option value="Septiembre 2026" selected>Septiembre 2026</option>
+        <option value={START_CYCLE} selected>{START_CYCLE}</option>
       </select>
     </div>
 
@@ -71,6 +78,7 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
         name="email"
         required
         autocomplete="email"
+        maxlength={TEXT_MAX_LENGTH_BY_NAME.email}
         class:list={[fieldClass]}
         placeholder="tu@email.com"
       />
@@ -84,6 +92,8 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
         name="phone"
         required
         autocomplete="tel"
+        maxlength={TEXT_MAX_LENGTH_BY_NAME.phone}
+        inputmode="tel"
         class:list={[fieldClass]}
         placeholder="33 1234 5678"
       />
@@ -124,10 +134,10 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
   </form>
 </div>
 
-<script>
+<script define:vars={{ allowedPrograms: [...programs], startCycle: START_CYCLE }}>
   import {
-    validateRequiredFieldsInContainer,
     reportStepValidationFailure,
+    validateStepSection,
   } from "@lib/client/multiStepFormValidation";
 
   const form = document.getElementById(
@@ -144,22 +154,38 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const stepCheck = validateRequiredFieldsInContainer(form);
+      const stepCheck = validateStepSection(form);
       if (!stepCheck.ok) {
         reportStepValidationFailure("Registro septiembre 2026", stepCheck);
         return;
       }
 
-      const startCycle = (
+      const startCycleValue = (
         form.querySelector("#startCycle") as HTMLSelectElement | null
       )?.value?.trim();
       const program = (
         form.querySelector("#program") as HTMLSelectElement | null
       )?.value?.trim();
       const name = (form.querySelector("#name") as HTMLInputElement | null)?.value?.trim();
-      const email = (form.querySelector("#email") as HTMLInputElement | null)?.value?.trim();
+      const email = (form.querySelector("#email") as HTMLInputElement | null)?.value?.trim().toLowerCase();
       const phone = (form.querySelector("#phone") as HTMLInputElement | null)?.value?.trim();
       const website = (form.querySelector('input[name="website"]') as HTMLInputElement | null)?.value?.trim() ?? "";
+
+      if (
+        !program ||
+        !allowedPrograms.includes(program) ||
+        startCycleValue !== startCycle
+      ) {
+        reportStepValidationFailure("Registro septiembre 2026", {
+          ok: false,
+          missingLabels: ["Selecciona un programa y ciclo válidos"],
+          highlightTargets: [
+            form.querySelector("#program"),
+            form.querySelector("#startCycle"),
+          ].filter(Boolean) as HTMLElement[],
+        });
+        return;
+      }
 
       if (statusDiv) {
         statusDiv.className = "hidden p-3 rounded-lg text-sm";
@@ -181,12 +207,13 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
             email,
             phone,
             program,
-            startCycle,
+            startCycle: startCycleValue,
             website,
           }),
         });
         const result = (await response.json().catch(() => null)) as {
           message?: string;
+          error?: string;
           code?: string;
         } | null;
 
@@ -208,15 +235,18 @@ const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
           ) as HTMLSelectElement | null;
           if (programSelect) programSelect.selectedIndex = 0;
         } else {
+          const serverMessage = result?.message || result?.error;
           throw new Error(
-            [result?.message, result?.code].filter(Boolean).join(" — ") ||
+            [serverMessage, result?.code].filter(Boolean).join(" — ") ||
               "Error al enviar el formulario",
           );
         }
       } catch (error) {
         if (statusDiv) {
           statusDiv.textContent =
-            "Hubo un error al enviar tu registro. Por favor intenta nuevamente o contáctanos por teléfono.";
+            error instanceof Error && error.message
+              ? error.message
+              : "Hubo un error al enviar tu registro. Por favor intenta nuevamente o contáctanos por teléfono.";
           statusDiv.classList.remove("hidden");
           statusDiv.classList.add(
             "bg-red-100",
