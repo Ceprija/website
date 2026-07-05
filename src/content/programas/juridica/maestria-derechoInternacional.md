@@ -1,27 +1,65 @@
 ---
 slug: "maestria-en-derecho-internacional-derechos-humanos-y-litigio-estrategico"
 title: "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico"
-description: "Formación avanzada en estándares internacionales de derechos humanos, mecanismos de protección y litigio estratégico ante instancias nacionales e internacionales."
+description: "Formar especialistas con una sólida preparación en Derecho Internacional, capaces de comprender, analizar y aplicar sus principios y normas en casos reales y simulados, desarrollando habilidades para el litigio estratégico ante instancias nacionales e internacionales, con especial énfasis en el Sistema Interamericano de Derechos Humanos."
 excerpt: "Derechos humanos y litigio estratégico: estándares interamericanos, mecanismos de protección y litigio ante instancias nacionales e internacionales."
 image: "/images/programs/maestria-derecho-internacional.webp"
 escuela: "juridica"
 nivel: "maestria"
-status: "waitlist"
+status: "active"
 rvoe: "ESM142024140"
-horario: ""
-startDate: ""
+horario: "Por confirmar"
+startDate: "Septiembre 2026"
 duracion: "6 cuatrimestres"
-modalidad: "Híbrida / En línea"
+modalidad: "Presencial / En línea"
+galleryFolder: "/images/programs/maestriaDerechosHumanos/gallery"
+brochure: "/brochures/maestriaDerechosHumanos.pdf"
 featured: true
 date: ""
 address: ""
-requiresVerification: false
+requiresVerification: true
 instructor: ""
 schedule: ""
 meetingLink: ""
-profileAudience: "Abogados, defensores públicos, activistas, servidores públicos y profesionistas vinculados a la promoción y defensa de derechos humanos."
-fieldOfWork: "ONG, organismos públicos, organismos internacionales, litigio estratégico y docencia."
+enrollmentFlow: "application"
+curriculumTitle: "Plan de Estudios por Cuatrimestre"
+curriculum:
+  - period: "01 Cuatrimestre — Fundamentos teóricos y sistemas de protección"
+    subjects:
+      - "Introducción al Derecho Internacional de los Derechos Humanos"
+      - "Teoría y Filosofía de los Derechos Humanos"
+      - "Sistemas de Protección Interamericano de los Derechos Humanos I"
+  - period: "02 Cuatrimestre — Litigio estratégico y contextos de conflicto"
+    subjects:
+      - "Derechos Humanos y Derecho Humanitario en Contextos de Violencia"
+      - "Métodos de Investigación en Litigio Estratégico"
+      - "Litigio Estratégico y Derechos Civiles y Políticos"
+  - period: "03 Cuatrimestre — Derechos específicos y justicia penal internacional"
+    subjects:
+      - "Derechos Económicos, Sociales y Culturales (DESC)"
+      - "Perspectivas de Género y Derechos Humanos"
+      - "Derecho Penal Internacional y Justicia Universal"
+  - period: "04 Cuatrimestre — Poblaciones vulnerables y actores no estatales"
+    subjects:
+      - "Derechos Humanos y Medio Ambiente"
+      - "Derechos Humanos y Migración"
+      - "El Rol de las ONG y la Sociedad Civil en el Litigio Estratégico"
+  - period: "05 Cuatrimestre — Temas emergentes y mecanismos de reparación"
+    subjects:
+      - "Derechos Humanos y Tecnologías de la Información"
+      - "Derechos Humanos y Empresas"
+      - "Mecanismos de Reparación y Restitución de Derechos"
+  - period: "06 Cuatrimestre — Integración práctica y cierre académico"
+    subjects:
+      - "Seminario de Casos Prácticos de Litigio Estratégico"
+      - "Proyecto de Investigación Final"
+      - "Ética y Responsabilidad en el Litigio de Derechos Humanos"
+profile: "Profesionales con competencias para litigar ante la Comisión Interamericana de Derechos Humanos y la Corte Interamericana de Derechos Humanos, investigar en materia de derechos humanos, diseñar estrategias de litigio, trabajar con ONG y sociedad civil, y abordar temas especializados como género, migración, medio ambiente y derecho penal internacional."
+profileAudience: "Licenciados en Derecho u áreas afines con interés en derechos humanos y litigio internacional."
+fieldOfWork: "Litigio estratégico ante instancias interamericanas, ONG, organismos públicos, investigación en derechos humanos y docencia especializada."
 includes:
+  - "Plan de estudios de 18 asignaturas en 6 cuatrimestres"
+  - "Impartido por doctores nacionales e internacionales"
   - "Proceso de admisión en línea"
   - "Plan de estudios y materiales según modalidad"
 ---
