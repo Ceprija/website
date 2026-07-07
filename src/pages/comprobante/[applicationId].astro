@@ -1,0 +1,408 @@
+---
+export const prerender = false;
+
+import Layout from "../../layouts/Layout.astro";
+import {
+    SCHOOL_HUB_SUBMISSIONS_URL,
+} from "astro:env/server";
+
+const { applicationId } = Astro.params;
+
+if (!applicationId || !/^[0-9a-f-]{36}$/i.test(applicationId)) {
+    return new Response(null, { status: 404 });
+}
+
+// Check inscription status server-side — block the form unless approved
+let inscriptionStatus: string | null = null;
+let statusCheckFailed = false;
+const prefill = {
+    name: "",
+    email: "",
+    phone: "",
+    program: "",
+    programId: "",
+    modality: "Presencial",
+};
+try {
+    const baseUrl = (SCHOOL_HUB_SUBMISSIONS_URL ?? "").replace(/\/$/, "");
+    if (baseUrl) {
+        const res = await fetch(`${baseUrl}?id=${applicationId}`, { method: "GET" });
+        if (res.ok) {
+            const data = await res.json() as {
+                workflow_status?: string;
+                prefill?: {
+                    name?: string;
+                    email?: string;
+                    phone?: string;
+                    program?: string;
+                    programId?: string;
+                    modality?: string;
+                };
+            };
+            inscriptionStatus = data.workflow_status ?? null;
+            if (data.prefill) {
+                prefill.name = data.prefill.name ?? "";
+                prefill.email = data.prefill.email ?? "";
+                prefill.phone = data.prefill.phone ?? "";
+                prefill.program = data.prefill.program ?? "";
+                prefill.programId = data.prefill.programId ?? "";
+                prefill.modality = data.prefill.modality || "Presencial";
+            }
+        } else {
+            statusCheckFailed = true;
+        }
+    } else {
+        statusCheckFailed = true;
+    }
+} catch {
+    statusCheckFailed = true;
+}
+
+const isFormAllowed = inscriptionStatus === "approved";
+const hasServerPrefill = Boolean(prefill.name || prefill.email);
+---
+
+<Layout title="Subir comprobante de pago — CEPRIJA">
+    <main class="min-h-screen bg-gray-50 py-12 px-4">
+        <div class="max-w-xl mx-auto">
+            <div class="mb-8 text-center">
+                <p class="text-sm font-semibold text-primary uppercase tracking-widest mb-2">CEPRIJA</p>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Subir comprobante de transferencia</h1>
+                <p class="text-sm text-gray-600">
+                    Una vez que hayas realizado tu transferencia bancaria, completa el formulario y adjunta el comprobante.
+                    Nuestro equipo lo revisará y te confirmará la inscripción.
+                </p>
+            </div>
+
+            <!-- Revoked / not approved state -->
+            {!isFormAllowed && (
+                <div class="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                    <div class="text-4xl mb-4">⛔</div>
+                    <h2 class="text-xl font-bold text-red-900 mb-2">Enlace no disponible</h2>
+                    <p class="text-sm text-red-800">
+                        {statusCheckFailed
+                            ? "No pudimos verificar tu enlace en este momento. Intenta de nuevo más tarde o contáctanos."
+                            : "Este enlace ya no está activo. Es posible que la solicitud haya sido cancelada o que ya hayas subido tu comprobante. Si crees que es un error, contáctanos."}
+                    </p>
+                </div>
+            )}
+
+            <!-- Success state (hidden by default) -->
+            <div id="success-card" class="hidden bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
+                <div class="text-4xl mb-4">✅</div>
+                <h2 class="text-xl font-bold text-green-900 mb-2">¡Comprobante recibido!</h2>
+                <p class="text-sm text-green-800">
+                    Hemos recibido tu comprobante de pago. Te enviaremos una confirmación por correo cuando sea revisado.
+                    Si tienes dudas, contáctanos.
+                </p>
+            </div>
+
+            <!-- Upload form -->
+            <form
+                id="comprobante-form"
+                data-prefilled={hasServerPrefill ? "true" : "false"}
+                class:list={["bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 shadow-sm", { hidden: !isFormAllowed }]}
+                novalidate
+            >
+                <input type="hidden" name="applicationId" value={applicationId} />
+
+                <!-- Personal data: shown as read-only summary if pre-filled, editable if not -->
+                {hasServerPrefill ? (
+                    <div class="p-6">
+                        <h2 class="text-base font-semibold text-gray-900 mb-3">Tus datos</h2>
+                        <div class="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
+                            {prefill.name && <p><span class="font-medium text-gray-500">Nombre:</span> <span class="text-gray-900">{prefill.name}</span></p>}
+                            {prefill.email && <p><span class="font-medium text-gray-500">Correo:</span> <span class="text-gray-900">{prefill.email}</span></p>}
+                            {prefill.phone && <p><span class="font-medium text-gray-500">Teléfono:</span> <span class="text-gray-900">{prefill.phone}</span></p>}
+                            {prefill.program && <p><span class="font-medium text-gray-500">Programa:</span> <span class="text-gray-900">{prefill.program}</span></p>}
+                        </div>
+                        <input type="hidden" name="name" value={prefill.name.slice(0, 200)} />
+                        <input type="hidden" name="email" value={prefill.email.slice(0, 254)} />
+                        <input type="hidden" name="phone" value={prefill.phone.slice(0, 40)} />
+                        <input type="hidden" name="programTitle" value={prefill.program.slice(0, 240)} />
+                        <input type="hidden" name="programId" value={prefill.programId.slice(0, 160)} />
+                        <input type="hidden" name="modality" value={prefill.modality || "Presencial"} />
+                    </div>
+                ) : (
+                    <>
+                        <div class="p-6 space-y-4">
+                            <h2 class="text-base font-semibold text-gray-900">Tus datos</h2>
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre completo <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="name" name="name" required autocomplete="name"
+                                    placeholder="Nombre y apellidos"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Correo electrónico <span class="text-red-500">*</span>
+                                </label>
+                                <input type="email" id="email" name="email" required autocomplete="email"
+                                    placeholder="correo@ejemplo.com"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Teléfono <span class="text-red-500">*</span>
+                                </label>
+                                <input type="tel" id="phone" name="phone" required autocomplete="tel"
+                                    placeholder="10 dígitos"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <h2 class="text-base font-semibold text-gray-900">Programa</h2>
+                            <div>
+                                <label for="programTitle" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre del programa <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="programTitle" name="programTitle" required
+                                    placeholder="Ej. Maestría en Derecho Fiscal"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                            </div>
+                            <div>
+                                <label for="modality" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Modalidad <span class="text-red-500">*</span>
+                                </label>
+                                <select id="modality" name="modality" required
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white">
+                                    <option value="">Selecciona una modalidad</option>
+                                    <option value="Presencial">Presencial</option>
+                                    <option value="En línea">En línea</option>
+                                    <option value="Mixto">Mixto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <!-- Wire reference (always shown) -->
+                <div class="p-6">
+                    <label for="wireReference" class="block text-sm font-medium text-gray-700 mb-1">
+                        Referencia de transferencia
+                        <span class="text-gray-400 font-normal ml-1">(opcional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="wireReference"
+                        name="wireReference"
+                        placeholder="Número de operación, referencia o folio"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                </div>
+
+                <!-- File upload -->
+                <div class="p-6 space-y-4">
+                    <h2 class="text-base font-semibold text-gray-900">Comprobante</h2>
+
+                    <div>
+                        <label for="paymentProof" class="block text-sm font-medium text-gray-700 mb-1">
+                            Archivo del comprobante <span class="text-red-500">*</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mb-2">
+                            Imagen o PDF. Máximo 10 MB.
+                        </p>
+                        <input
+                            type="file"
+                            id="paymentProof"
+                            name="paymentProof"
+                            required
+                            accept=".pdf,image/*"
+                            class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                        />
+                    </div>
+                </div>
+
+                <!-- Invoice section -->
+                <div class="p-6 space-y-4">
+                    <h2 class="text-base font-semibold text-gray-900">Facturación</h2>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700 mb-2">¿Requieres factura? <span class="text-red-500">*</span></p>
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="requiresInvoice" value="Sí" class="w-4 h-4 text-primary" />
+                                <span class="text-sm">Sí</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="requiresInvoice" value="No" checked class="w-4 h-4 text-primary" />
+                                <span class="text-sm">No</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="invoice-fields" class="hidden space-y-3 pt-1">
+                        <p class="text-xs text-gray-500">
+                            Adjunta tu <strong>Constancia de Situación Fiscal (CSF)</strong> y el correo para la factura.
+                        </p>
+                        <div>
+                            <label for="invoiceEmail" class="block text-sm font-medium text-gray-700 mb-1">
+                                Correo para factura <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                id="invoiceEmail"
+                                name="invoiceEmail"
+                                placeholder="correo@empresa.com"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            />
+                        </div>
+                        <div>
+                            <label for="fiscalConstancy" class="block text-sm font-medium text-gray-700 mb-1">
+                                Constancia de Situación Fiscal (CSF) <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="file"
+                                id="fiscalConstancy"
+                                name="fiscalConstancy"
+                                accept=".pdf,image/*"
+                                class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Honeypot -->
+                <div class="hidden" aria-hidden="true">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" />
+                </div>
+
+                <!-- Submit -->
+                <div class="p-6">
+                    <div id="form-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+                    <button
+                        type="submit"
+                        id="submit-btn"
+                        class="w-full bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Enviar comprobante
+                    </button>
+                    <p class="text-xs text-gray-400 text-center mt-3">
+                        Al enviar confirmas que los datos proporcionados son verídicos.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </main>
+</Layout>
+
+<script>
+    const form = document.getElementById("comprobante-form") as HTMLFormElement | null;
+    const successCard = document.getElementById("success-card");
+    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
+    const errorDiv = document.getElementById("form-error");
+    const invoiceFields = document.getElementById("invoice-fields");
+
+    // When data is pre-filled, personal/program fields are hidden inputs — detect this
+    const isPrefilled = form?.dataset.prefilled === "true";
+
+    // Helper: get a field value by name attribute (works for both visible and hidden inputs)
+    function fieldVal(name: string): string {
+        return ((form?.querySelector(`[name="${name}"]`) as HTMLInputElement | null)?.value ?? "").trim();
+    }
+
+    // Show/hide invoice fields
+    form?.querySelectorAll('input[name="requiresInvoice"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+            const needsInvoice =
+                (form.querySelector('input[name="requiresInvoice"]:checked') as HTMLInputElement | null)
+                    ?.value === "Sí";
+            invoiceFields?.classList.toggle("hidden", !needsInvoice);
+        });
+    });
+
+    function showError(msg: string) {
+        if (!errorDiv) return;
+        errorDiv.textContent = msg;
+        errorDiv.classList.remove("hidden");
+        errorDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function clearError() {
+        if (!errorDiv) return;
+        errorDiv.classList.add("hidden");
+        errorDiv.textContent = "";
+    }
+
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearError();
+        if (!form) return;
+
+        const name = fieldVal("name");
+        const email = fieldVal("email");
+        const phone = fieldVal("phone");
+        const programTitle = fieldVal("programTitle");
+        const modality = fieldVal("modality");
+        const paymentProofInput = form.querySelector('[name="paymentProof"]') as HTMLInputElement;
+        const needsInvoice =
+            (form.querySelector('input[name="requiresInvoice"]:checked') as HTMLInputElement | null)
+                ?.value === "Sí";
+
+        // Only validate personal/program fields if not pre-filled by server
+        if (!isPrefilled) {
+            if (!name) { showError("El nombre es obligatorio."); return; }
+            if (!email || !email.includes("@")) { showError("Ingresa un correo válido."); return; }
+            if (!phone || phone.replace(/\D/g, "").length < 10) {
+                showError("Ingresa un teléfono de 10 dígitos.");
+                return;
+            }
+            if (!programTitle) { showError("El nombre del programa es obligatorio."); return; }
+            if (!modality) { showError("Selecciona la modalidad."); return; }
+        }
+
+        if (!paymentProofInput?.files?.length) {
+            showError("Adjunta el comprobante de transferencia.");
+            return;
+        }
+
+        // File size check (10 MB) — catches it before upload
+        const file = paymentProofInput.files[0];
+        if (file && file.size > 10 * 1024 * 1024) {
+            showError("El archivo es demasiado grande (máx. 10 MB).");
+            return;
+        }
+
+        if (needsInvoice) {
+            const invoiceEmail = fieldVal("invoiceEmail");
+            const fiscalInput = form.querySelector('[name="fiscalConstancy"]') as HTMLInputElement;
+            if (!invoiceEmail) { showError("Ingresa el correo para la factura."); return; }
+            if (!fiscalInput?.files?.length) {
+                showError("Adjunta la Constancia de Situación Fiscal (CSF).");
+                return;
+            }
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitBtn) submitBtn.textContent = "Enviando…";
+
+        try {
+            const fd = new FormData(form);
+            const res = await fetch("/api/payments/wire-proof", {
+                method: "POST",
+                body: fd,
+            });
+            const data: { error?: string } = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(
+                    typeof data.error === "string" ? data.error : "Error al enviar el comprobante."
+                );
+            }
+
+            // Prevent re-submission: replace form with success card permanently
+            form.remove();
+            successCard?.classList.remove("hidden");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (err) {
+            showError(
+                err instanceof Error ? err.message : "No se pudo enviar el comprobante. Intenta de nuevo."
+            );
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Enviar comprobante";
+            }
+        }
+    });
+</script>

@@ -64,6 +64,7 @@ export function initSeptember2026Form(): void {
     const name = queryInput(form, "#name")?.value.trim();
     const email = queryInput(form, "#email")?.value.trim().toLowerCase();
     const phone = queryInput(form, "#phone")?.value.trim();
+    const carrera = queryInput(form, "#carrera")?.value.trim() ?? "";
     const website =
       queryInput(form, 'input[name="website"]')?.value.trim() ?? "";
 
@@ -104,6 +105,7 @@ export function initSeptember2026Form(): void {
           name,
           email,
           phone,
+          carrera,
           program,
           startCycle: startCycleValue,
           website,

@@ -29,6 +29,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -308,6 +309,7 @@ export const POST: APIRoute = async ({ request }) => {
           modality: modalityCanonical,
           requiresInvoice,
           invoiceEmail: invoiceEmail || null,
+          ...programSubmissionMeta(program),
           files: nonEmptyFiles.map(f => ({
             fieldname: f.fieldname,
             filename: f.filename,

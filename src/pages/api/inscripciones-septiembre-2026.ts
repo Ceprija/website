@@ -17,11 +17,12 @@ import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import {
   validateEmail,
   validateParticipantName,
 } from "@lib/validation/enrollment";
-import { MAX_FULL_NAME_LEN } from "@lib/validation/formFieldLimits";
+import { MAX_FULL_NAME_LEN, TEXT_MAX_LENGTH_BY_NAME } from "@lib/validation/formFieldLimits";
 import { isValidPhone } from "@lib/validation/phone";
 import crypto from "node:crypto";
 
@@ -65,6 +66,7 @@ export const POST: APIRoute = async ({ request }) => {
   const name = clean(body?.name, MAX_FULL_NAME_LEN);
   const email = clean(body?.email, 254).toLowerCase();
   const phone = clean(body?.phone, 30);
+  const carrera = clean(body?.carrera, TEXT_MAX_LENGTH_BY_NAME.carrera ?? 150);
   const programTitle = clean(body?.program, 180);
   const startCycle = clean(body?.startCycle, 40) || START_CYCLE;
 
@@ -94,6 +96,14 @@ export const POST: APIRoute = async ({ request }) => {
         code: "invalid_phone",
         field: "phone",
       },
+      400,
+      requestId,
+    );
+  }
+
+  if (!carrera) {
+    return jsonResponse(
+      { message: "Indica la carrera que estudiaste.", code: "missing_carrera", field: "carrera" },
       400,
       requestId,
     );
@@ -151,10 +161,12 @@ export const POST: APIRoute = async ({ request }) => {
         name,
         email,
         phone,
+        carrera,
         programTitle,
         startCycle,
         campaign: CAMPAIGN,
         source: "/inscripciones-septiembre-2026",
+        ...programSubmissionMeta(program),
       },
       ip:
         request.headers.get("x-forwarded-for") ||
@@ -198,6 +210,7 @@ export const POST: APIRoute = async ({ request }) => {
   const safePhone = escapeHtml(phone);
   const safeProgram = escapeHtml(programTitle);
   const safeCycle = escapeHtml(startCycle);
+  const safeCarrera = escapeHtml(carrera);
 
   const adminSubject = sanitizeEmailSubjectLine(
     `Registro inicial Septiembre 2026: ${programTitle}`,
@@ -209,6 +222,7 @@ export const POST: APIRoute = async ({ request }) => {
     <p><strong>Ciclo de inicio:</strong> ${safeCycle}</p>
     <hr>
     <p><strong>Nombre:</strong> ${safeName}</p>
+    <p><strong>Carrera:</strong> ${safeCarrera}</p>
     <p><strong>Correo:</strong> ${safeEmail}</p>
     <p><strong>Teléfono:</strong> ${safePhone}</p>
   `;

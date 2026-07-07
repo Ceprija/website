@@ -6,6 +6,7 @@ import { SMTP_FROM } from "astro:env/server";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { programIsPublished } from "@lib/programPublished";
 import {
   guardPublicPost,
@@ -160,7 +161,7 @@ export const POST: APIRoute = async ({ request }) => {
       programSlug,
       programTitle,
       apiRoute: route,
-      payload: { name, message: message || null, brochure },
+      payload: { name, message: message || null, brochure, ...programSubmissionMeta(program) },
       ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined,
       userAgent: request.headers.get("user-agent") || undefined,
     },

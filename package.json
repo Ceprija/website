@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
+    "@playwright/test": "^1.57.0",
     "@types/busboy": "^1.5.4",
     "baseline-browser-mapping": "^2.10.27",
     "md-to-pdf": "^5.2.4"

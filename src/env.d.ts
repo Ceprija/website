@@ -16,6 +16,7 @@ interface ImportMetaEnv {
     readonly STRIPE_ALLOWED_PRICE_IDS?: string;
     readonly SITE_URL?: string;
     readonly KEY_API_BREVO?: string;
+    readonly EMAIL_PARTICIPANT_ONLY_RECIPIENT?: string;
     readonly EMAIL_CONTROL_ESCOLAR?: string;
     readonly EMAIL_SOPORTE_WEB?: string;
 }
