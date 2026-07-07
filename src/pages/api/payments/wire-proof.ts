@@ -22,6 +22,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -317,6 +318,13 @@ export const POST: APIRoute = async ({ request }) => {
       Object.assign(fiscalConstancy, fiscalNormalized.file);
     }
 
+    const programs = await getCollection("programas");
+    const program = programs.find(
+      (entry) =>
+        getProgramPathSlug(entry) === programId ||
+        String(entry.data.title ?? "") === programTitle,
+    );
+
     // Persist submission to database
     const submissionRequestId = getRequestId(request);
     const submission = await persistSubmission(
@@ -342,6 +350,7 @@ export const POST: APIRoute = async ({ request }) => {
           requiresInvoice,
           invoiceEmail: requiresInvoice ? invoiceEmail : null,
           applicationId: applicationIdField || null,
+          ...programSubmissionMeta(program),
           paymentProofFile: {
             fieldname: paymentProof.fieldname,
             filename: paymentProof.filename,
@@ -431,12 +440,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const programs = await getCollection("programas");
-    const program = programs.find(
-      (entry) =>
-        getProgramPathSlug(entry) === programId ||
-        String(entry.data.title ?? "") === programTitle,
-    );
     const adminRecipients = programAdminRecipients(program);
 
     const safeEnrollmentId = escapeHtml(enrollmentId);

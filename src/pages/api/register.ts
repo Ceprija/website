@@ -18,6 +18,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 import crypto from "node:crypto";
@@ -133,6 +134,7 @@ export const POST: APIRoute = async ({ request }) => {
           message,
           type,
           modality,
+          ...programSubmissionMeta(program),
           paymentProofFile: paymentProof ? {
             filename: paymentProof.filename,
             mimetype: paymentProof.mimetype,

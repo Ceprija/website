@@ -1,4 +1,4 @@
-import { KEY_API_BREVO } from "astro:env/server";
+import { KEY_API_BREVO, EMAIL_PARTICIPANT_ONLY_RECIPIENT } from "astro:env/server";
 import { recordFailedEmail } from "@lib/email/failedEmailStore";
 
 type BrevoRecipient = { email: string; name?: string };
@@ -33,6 +33,13 @@ export async function sendBrevoEmail(
       reason,
     });
     return { ok: false, reason };
+  }
+
+  // Safety valve for tests/staging: force all participant emails to a single recipient.
+  // Admin emails are already handled separately via EMAIL_ADMIN_ONLY_RECIPIENT in programAdminRecipients().
+  const onlyParticipant = (EMAIL_PARTICIPANT_ONLY_RECIPIENT ?? "").trim();
+  if (onlyParticipant && options.kind === "participant") {
+    payload = { ...payload, to: [{ email: onlyParticipant }] };
   }
 
   try {

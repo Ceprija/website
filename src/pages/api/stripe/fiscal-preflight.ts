@@ -21,6 +21,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -252,6 +253,13 @@ export const POST: APIRoute = async ({ request }) => {
     const customerEmail = (fields.customerEmail ?? "").trim();
     const applicationId = (fields.applicationId ?? "").trim();
 
+    const programs = await getCollection("programas");
+    const program = programs.find(
+      (entry) =>
+        getProgramPathSlug(entry) === programSlug ||
+        String(entry.data.title ?? "") === programTitle,
+    );
+
     // Persist submission to database
     const submission = await persistSubmission(
       {
@@ -272,6 +280,7 @@ export const POST: APIRoute = async ({ request }) => {
           modality,
           customerEmail,
           applicationId: applicationId || null,
+          ...programSubmissionMeta(program),
           fiscalConstancyFile: {
             fieldname: fiscal.fieldname,
             filename: fiscal.filename,
@@ -324,12 +333,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-    const programs = await getCollection("programas");
-    const program = programs.find(
-      (entry) =>
-        getProgramPathSlug(entry) === programSlug ||
-        String(entry.data.title ?? "") === programTitle,
-    );
 
     const adminHtml = `
       <h2>Facturación — pago con Stripe (pendiente)</h2>

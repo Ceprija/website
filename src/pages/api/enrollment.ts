@@ -42,6 +42,7 @@ import {
   programAdminRecipients,
 } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -665,6 +666,7 @@ export const POST: APIRoute = async ({ request }) => {
           email: emailS,
           telefono: telefonoS,
           modality,
+          ...programSubmissionMeta(program),
           degrees: degrees.map(d => ({
             grado: d.grado,
             carrera: d.carrera,

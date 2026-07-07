@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { programIsPublished } from "@lib/programPublished";
 import {
   guardPublicPost,
@@ -120,7 +121,7 @@ export const POST: APIRoute = async ({ request }) => {
       programSlug,
       programTitle,
       apiRoute: "POST /api/brochure-download",
-      payload: { name, message: message || null, brochure },
+      payload: { name, message: message || null, brochure, ...programSubmissionMeta(program) },
       ip:
         request.headers.get("x-forwarded-for") ||
         request.headers.get("x-real-ip") ||
