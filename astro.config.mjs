@@ -95,6 +95,12 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      /** Si está definido, todos los correos al participante van solo a este correo (p. ej. staging). */
+      EMAIL_PARTICIPANT_ONLY_RECIPIENT: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
   integrations: [
