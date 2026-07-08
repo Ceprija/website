@@ -1,6 +1,6 @@
 ---
 slug: "taller-oralidad-familiar-cnpcyf"
-title: "Taller de Oralidad Familiar con Base en el CNPCyF"
+title: "Taller de Oralidad Familiar con Base en el CNPCyF en Arandas, Jal."
 description: "Capacítate en el nuevo modelo procesal del CNPCyF mediante un taller práctico de oralidad familiar. Aprende las etapas del procedimiento, la actuación en audiencias y técnicas de litigación con un juez en activo."
 excerpt: "Desarrolla habilidades prácticas en oralidad familiar conforme al Código Nacional de Procedimientos Civiles y Familiares mediante simulaciones y casos reales."
 image: "/images/hero/site-1.webp"
