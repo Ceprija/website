@@ -68,8 +68,8 @@ export function buildFreeWebinarParticipantEmail(
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-      <div style="background-color: #f8fafc; padding: 28px 20px; text-align: center; border-bottom: 2px solid #1e3a8a;">
-        ${emailLogoImgTag(200)}
+      <div style="background-color: #f8fafc; padding: 20px 20px 16px; text-align: center; border-bottom: 2px solid #1e3a8a;">
+        ${emailLogoImgTag()}
       </div>
       <div style="padding: 28px 20px; background-color: #ffffff;">
         <p style="font-size: 13px; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; color: #c09418; margin: 0 0 12px;">
