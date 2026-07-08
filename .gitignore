@@ -33,3 +33,5 @@ data/inscripciones/*
 data/stripe-*.json
 data/failed-emails.jsonl
 tmp/*
+# playwright-cli automation artifacts
+.playwright-cli/

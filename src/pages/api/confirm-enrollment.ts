@@ -362,7 +362,13 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Skip exact-amount check when Stripe recorded a legitimate discount (e.g.
+    // a promotion code applied by the customer). The price-ID binding above
+    // already ensures the correct product was purchased; trusting Stripe's
+    // discounted total is safe because we created the coupon ourselves.
+    const stripeDiscountApplied = (session.total_details?.amount_discount ?? 0) > 0;
     if (
+      !stripeDiscountApplied &&
       typeof matchedPrice.expectedAmountCents === "number" &&
       session.amount_total !== matchedPrice.expectedAmountCents
     ) {

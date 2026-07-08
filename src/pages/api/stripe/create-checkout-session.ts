@@ -392,6 +392,9 @@ export const POST: APIRoute = async ({ request }) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail || undefined,
+      // Forzamos MXN: confirm-enrollment rechaza otras monedas y los cupones de
+      // monto fijo (amount_off) son incompatibles con Adaptive Pricing.
+      adaptive_pricing: { enabled: false },
       allow_promotion_codes: true,
       client_reference_id: truncateMeta(programSlug, 200),
       metadata: commonMetadata,
