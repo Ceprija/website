@@ -176,7 +176,13 @@ const programas = defineCollection({
     // Enrollment flow: determines if program uses inline form or dedicated application page
     // "inline" = simple registration on program page (curso, diplomado default)
     // "application" = multi-step application with documents (maestria, doctorado, especialidad default)
-    enrollmentFlow: z.enum(["inline", "application"]).optional()
+    enrollmentFlow: z.enum(["inline", "application"]).optional(),
+
+    /**
+     * Webinar gratuito: registro sin pago + constancia opcional (paymentOptions).
+     * Muestra FreeWebinarRegistrationForm en lugar del flujo de pago estándar.
+     */
+    freeWebinar: z.boolean().optional(),
   }).refine((data) => {
     // Active: always require enrollmentFlow. Payment options are optional for
     // maestría / especialidad / doctorado (solicitud + documentos; pago fuera de línea).

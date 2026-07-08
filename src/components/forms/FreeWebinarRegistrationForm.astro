@@ -1,0 +1,333 @@
+---
+import Button from "../ui/Button.astro";
+
+interface Props {
+    programTitle: string;
+    programSlug: string;
+    constanciaPriceId?: string;
+    constanciaPrice?: number;
+}
+
+const {
+    programTitle,
+    programSlug,
+    constanciaPriceId = "",
+    constanciaPrice = 200,
+} = Astro.props;
+
+const constanciaLink = `/oferta-academica/${programSlug}?constancia=1#inscripcion`;
+
+const fieldClass =
+    "w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all";
+const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
+---
+
+<div
+    class="w-full"
+    data-free-webinar-root
+    data-program-slug={programSlug}
+    data-constancia-price-id={constanciaPriceId}
+    data-constancia-price={String(constanciaPrice)}
+    data-constancia-link={constanciaLink}
+>
+    <form id={`free-webinar-form-${programSlug}`} class="space-y-6">
+        <input
+            type="text"
+            name="website"
+            autocomplete="off"
+            tabindex="-1"
+            class="sr-only"
+            aria-hidden="true"
+        />
+        <input type="hidden" name="program" value={programTitle} />
+        <input type="hidden" name="type" value="registration" />
+        <input type="hidden" name="modality" value="En línea" />
+
+        <div>
+            <label for={`fw-name-${programSlug}`} class:list={[labelClass]}>
+                Nombre completo *
+            </label>
+            <input
+                type="text"
+                id={`fw-name-${programSlug}`}
+                name="name"
+                required
+                class:list={[fieldClass]}
+                placeholder="Tu nombre"
+            />
+        </div>
+
+        <div>
+            <label for={`fw-email-${programSlug}`} class:list={[labelClass]}>
+                Correo electrónico *
+            </label>
+            <input
+                type="email"
+                id={`fw-email-${programSlug}`}
+                name="email"
+                required
+                class:list={[fieldClass]}
+                placeholder="tu@email.com"
+            />
+        </div>
+
+        <div>
+            <label for={`fw-phone-${programSlug}`} class:list={[labelClass]}>
+                Teléfono *
+            </label>
+            <input
+                type="tel"
+                id={`fw-phone-${programSlug}`}
+                name="phone"
+                required
+                class:list={[fieldClass]}
+                placeholder="33 1234 5678"
+            />
+        </div>
+
+        <fieldset class="space-y-3">
+            <legend class:list={[labelClass, "mb-1"]}>
+                ¿Deseas constancia de participación? *
+            </legend>
+            <p class="text-sm text-gray-500 mb-3">
+                El acceso al webinar es gratuito. La constancia tiene un costo de
+                ${constanciaPrice} MXN.
+            </p>
+            <label
+                class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-100 p-4 transition-colors has-[:checked]:border-secondary has-[:checked]:bg-secondary/5"
+            >
+                <input
+                    type="radio"
+                    name="wantsConstancia"
+                    value="no"
+                    class="mt-1"
+                    checked
+                    data-constancia-choice
+                />
+                <span>
+                    <span class="block font-semibold text-gray-900">No, solo el webinar gratuito</span>
+                    <span class="text-sm text-gray-500">Te enviaremos el enlace de acceso por correo.</span>
+                </span>
+            </label>
+            <label
+                class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-100 p-4 transition-colors has-[:checked]:border-secondary has-[:checked]:bg-secondary/5"
+            >
+                <input
+                    type="radio"
+                    name="wantsConstancia"
+                    value="yes"
+                    class="mt-1"
+                    data-constancia-choice
+                />
+                <span>
+                    <span class="block font-semibold text-gray-900">Sí, deseo constancia (${constanciaPrice} MXN)</span>
+                    <span class="text-sm text-gray-500">Continuarás al pago seguro y después recibirás confirmación con el enlace al webinar.</span>
+                </span>
+            </label>
+        </fieldset>
+
+        <div
+            id={`fw-status-${programSlug}`}
+            class="hidden rounded-lg p-4 text-sm"
+            role="status"
+            aria-live="polite"
+        >
+        </div>
+
+        <Button
+            type="submit"
+            id={`fw-submit-${programSlug}`}
+            variant="secondary"
+            class="w-full flex justify-center items-center gap-2"
+        >
+            <span>Confirmar registro</span>
+            <svg
+                class="animate-spin h-5 w-5 text-primary hidden"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                id={`fw-spinner-${programSlug}`}
+                aria-hidden="true"
+            >
+                <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"></circle>
+                <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+            </svg>
+        </Button>
+    </form>
+</div>
+
+<script>
+    import {
+        validateRequiredFieldsInContainer,
+        reportStepValidationFailure,
+    } from "@lib/client/multiStepFormValidation";
+
+    function preselectConstanciaFromQuery(form) {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("constancia") !== "1") return;
+        const yesRadio = form.querySelector(
+            'input[name="wantsConstancia"][value="yes"]',
+        );
+        if (yesRadio instanceof HTMLInputElement) {
+            yesRadio.checked = true;
+        }
+        const section = document.getElementById("inscripcion");
+        section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function initFreeWebinarForm(root) {
+        const programSlug = root.dataset.programSlug ?? "";
+        const constanciaPriceId = root.dataset.constanciaPriceId ?? "";
+        const constanciaPrice = Number(root.dataset.constanciaPrice ?? "200");
+        const constanciaLink = root.dataset.constanciaLink ?? "#inscripcion";
+        const form = root.querySelector("form");
+
+        if (!(form instanceof HTMLFormElement) || !programSlug) return;
+
+        preselectConstanciaFromQuery(form);
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const stepCheck = validateRequiredFieldsInContainer(form);
+            if (!stepCheck.ok) {
+                reportStepValidationFailure("Registro al webinar", stepCheck);
+                return;
+            }
+
+            const formData = new FormData(form);
+            const name = String(formData.get("name") ?? "").trim();
+            const email = String(formData.get("email") ?? "").trim();
+            const phone = String(formData.get("phone") ?? "").trim();
+            const wantsConstancia = String(
+                formData.get("wantsConstancia") ?? "no",
+            );
+
+            const statusEl = document.getElementById(`fw-status-${programSlug}`);
+            const submitBtn = document.getElementById(`fw-submit-${programSlug}`);
+            const spinner = document.getElementById(`fw-spinner-${programSlug}`);
+            const btnText = submitBtn?.querySelector("span");
+
+            const setLoading = (loading) => {
+                if (!submitBtn || !spinner || !btnText) return;
+                submitBtn.disabled = loading;
+                spinner.classList.toggle("hidden", !loading);
+                btnText.textContent = loading
+                    ? "Procesando..."
+                    : "Confirmar registro";
+            };
+
+            const setStatus = (message, variant) => {
+                if (!statusEl) return;
+                statusEl.textContent = "";
+                statusEl.className =
+                    "rounded-lg p-4 text-sm border " +
+                    (variant === "success"
+                        ? "bg-green-50 text-green-900 border-green-200"
+                        : "bg-red-50 text-red-900 border-red-200");
+                statusEl.classList.remove("hidden");
+
+                if (variant === "success" && message.includes("[constancia]")) {
+                    const parts = message.split("[constancia]");
+                    statusEl.append(document.createTextNode(parts[0]));
+                    const link = document.createElement("a");
+                    link.href = constanciaLink;
+                    link.className = "font-semibold text-primary underline";
+                    link.textContent = "tramitar tu constancia aquí";
+                    statusEl.append(link);
+                    if (parts[1]) statusEl.append(document.createTextNode(parts[1]));
+                } else {
+                    statusEl.textContent = message;
+                }
+            };
+
+            setLoading(true);
+            statusEl?.classList.add("hidden");
+
+            try {
+                if (wantsConstancia === "yes") {
+                    if (!constanciaPriceId) {
+                        throw new Error(
+                            "El pago de constancia aún no está configurado. Regístrate sin constancia o contáctanos.",
+                        );
+                    }
+
+                    const response = await fetch(
+                        "/api/stripe/create-checkout-session",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                priceId: constanciaPriceId,
+                                customerEmail: email,
+                                programSlug,
+                                participantName: name,
+                                participantPhone: phone,
+                                modality: "En línea",
+                                requiresInvoice: "No",
+                                invoiceEmail: "",
+                            }),
+                        },
+                    );
+                    const data = await response.json();
+                    if (!response.ok || !data.url) {
+                        throw new Error(
+                            data.error ||
+                                "No se pudo iniciar el pago de la constancia.",
+                        );
+                    }
+                    window.location.href = data.url;
+                    return;
+                }
+
+                const response = await fetch("/api/register", {
+                    method: "POST",
+                    body: formData,
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(
+                        [result.message, result.code]
+                            .filter(Boolean)
+                            .join(" — ") || "Error al enviar el formulario",
+                    );
+                }
+
+                setStatus(
+                    `¡Formulario recibido con éxito! Te enviamos un correo con el enlace al webinar. Si te interesa obtener tu constancia de participación (costo: $${constanciaPrice}), puedes [constancia].`,
+                    "success",
+                );
+                form.reset();
+                const noRadio = form.querySelector(
+                    'input[name="wantsConstancia"][value="no"]',
+                );
+                if (noRadio instanceof HTMLInputElement) {
+                    noRadio.checked = true;
+                }
+            } catch (error) {
+                const msg =
+                    error instanceof Error
+                        ? error.message
+                        : "Hubo un error al enviar tu registro.";
+                setStatus(msg, "error");
+                console.error("Free webinar registration error:", error);
+            } finally {
+                setLoading(false);
+            }
+        });
+    }
+
+    document
+        .querySelectorAll("[data-free-webinar-root]")
+        .forEach((root) => initFreeWebinarForm(root));
+</script>

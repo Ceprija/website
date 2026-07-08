@@ -32,6 +32,7 @@ import {
 } from "@lib/email/programAdminRecipients";
 import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
+import { buildFreeWebinarParticipantEmail } from "@lib/email/freeWebinarConfirmationEmail";
 
 type ProgramPriceMatch = {
   matches: boolean;
@@ -422,16 +423,41 @@ export const POST: APIRoute = async ({ request }) => {
     const programTitle = String(program.data.title ?? "");
     const programId = getProgramPathSlug(program);
     const requiresVerification = !!program.data.requiresVerification;
+    const startDate = String(program.data.startDate || "Por confirmar");
+    const schedule = String(program.data.schedule || program.data.horario || "Por confirmar");
+    const meetingLink = String(
+      (program.data as { meetingLink?: string }).meetingLink || "",
+    ).trim();
+    const isFreeWebinar = Boolean(
+      (program.data as { freeWebinar?: boolean }).freeWebinar,
+    );
+    const isOnlineProgram = /en\s*l[ií]nea/i.test(String(program.data.modalidad ?? ""));
 
     const safeName = escapeHtml(participantName);
     const safeTitle = escapeHtml(programTitle);
     const safeModality = escapeHtml(modalityLabel);
     const safeEmail = escapeHtml(customerEmail);
+    const eventDetailsBlock =
+      meetingLink && (isOnlineProgram || isFreeWebinar)
+        ? `<div class="info-box">
+                            <h3 style="margin-top: 0;">Detalles del evento:</h3>
+                            <p><strong>Fecha:</strong> ${escapeHtml(startDate)}</p>
+                            <p><strong>Horario:</strong> ${escapeHtml(schedule)}</p>
+                            <p><strong>Enlace en línea:</strong> <a href="${escapeHtml(meetingLink)}" style="color: #2563eb;">${escapeHtml(meetingLink || "Se enviará previo al evento")}</a></p>
+                        </div>`
+        : "";
 
     const senderEmail =
       (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar = programAdminEmail(program);
     const adminNotificationRecipients = programAdminRecipients(program);
+
+    const horario = String(
+      program.data.horario ||
+        program.data.schedule ||
+        program.data.duracion ||
+        "Por confirmar",
+    );
 
     const piId = paymentIntentId(session);
     const amountStr = session.amount_total
@@ -439,7 +465,28 @@ export const POST: APIRoute = async ({ request }) => {
       : "0.00";
     const currency = session.currency?.toUpperCase() || "MXN";
 
-    const userEmailBody = `
+    let userEmailBody: string;
+    let userSubject: string;
+
+    if (isFreeWebinar && meetingLink) {
+      const webinarMail = buildFreeWebinarParticipantEmail({
+        participantName,
+        programTitle,
+        startDate,
+        horario,
+        meetingLink,
+        constanciaPaid: true,
+      });
+      userSubject = webinarMail.subject;
+      userEmailBody = `${webinarMail.html}
+        <p style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto 24px; padding: 0 20px; color: #475569; font-size: 14px;">
+          Comprobante de pago de constancia: <strong>$${amountStr} ${currency}</strong>
+        </p>`;
+    } else {
+      userSubject = sanitizeEmailSubjectLine(
+        `Confirmación de Inscripción - ${programTitle}`,
+      );
+      userEmailBody = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -474,14 +521,20 @@ export const POST: APIRoute = async ({ request }) => {
                             <p><strong>ID de Pago:</strong> ${escapeHtml(piId)}</p>
                             <p><strong>Monto Pagado:</strong> $${amountStr} ${currency}</p>
                         </div>
+
+                        ${eventDetailsBlock}
                         
-                        <p>Pronto recibirás información adicional sobre:</p>
+                        ${
+                          eventDetailsBlock
+                            ? ""
+                            : `<p>Pronto recibirás información adicional sobre:</p>
                         <ul>
                             <li>Fecha de inicio del programa</li>
                             <li>Materiales necesarios</li>
                             <li>Acceso a plataforma (si aplica)</li>
                             <li>Información de contacto de tu coordinador</li>
-                        </ul>
+                        </ul>`
+                        }
                         
                         <p>Si tienes alguna pregunta, no dudes en contactarnos:</p>
                         <p>📧 Email: ${escapeHtml(controlEscolar)}<br>
@@ -499,6 +552,7 @@ export const POST: APIRoute = async ({ request }) => {
             </body>
             </html>
         `;
+    }
 
     markEnrollmentConfirmed(stripeSessionId);
 
@@ -556,9 +610,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     let emailWarnings: string[] = [];
 
-    const userSubject = sanitizeEmailSubjectLine(
-      `Confirmación de Inscripción - ${programTitle}`,
-    );
     const userEmailResponse = await sendBrevoEmail(
       {
         sender: { email: senderEmail, name: "CEPRIJA" },

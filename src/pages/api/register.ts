@@ -21,6 +21,7 @@ import { getProgramPathSlug } from "@lib/programPaths";
 import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
+import { buildFreeWebinarParticipantEmail } from "@lib/email/freeWebinarConfirmationEmail";
 import crypto from "node:crypto";
 import { apiLog } from "@lib/server/apiRequestLog";
 
@@ -57,6 +58,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const { name, email, phone, message, program: programTitle, type, modality } =
       parsed.data;
+    const wantsConstancia = (fields.wantsConstancia ?? "").trim().toLowerCase();
 
     if (paymentProof) {
       const fileCheck = validateUploadBuffer(paymentProof.buffer, paymentProof.mimetype, {
@@ -109,19 +111,33 @@ export const POST: APIRoute = async ({ request }) => {
 
     const instructor = String(program?.data.instructor || "Claustro Docente CEPRIJA");
     const startDate = String(program?.data.startDate || "Por confirmar");
-    const schedule = String(program?.data.schedule || "Por confirmar");
-    const address = String(program?.data.address || "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500");
+    const horario = String(
+      program?.data.horario ||
+        program?.data.schedule ||
+        program?.data.duracion ||
+        "Por confirmar",
+    );
+    const schedule = String(program?.data.schedule || horario);
+    const address =
+      typeof program?.data.address === "string" && program.data.address.trim().length > 0
+        ? program.data.address.trim()
+        : "";
     const meetingLink = String((program?.data as { meetingLink?: string })?.meetingLink || "Se enviará previo al evento");
+    const isFreeWebinar = Boolean((program?.data as { freeWebinar?: boolean })?.freeWebinar);
+    const programPathSlug = program ? getProgramPathSlug(program) : "";
+    const constanciaUpsellLink = programPathSlug
+      ? `https://ceprija.edu.mx/oferta-academica/${programPathSlug}?constancia=1#inscripcion`
+      : "https://ceprija.edu.mx/oferta-academica";
 
     // Persist to Database
     const submissionRequestId = crypto.randomUUID();
     const submission = await persistSubmission(
       {
         requestId: submissionRequestId,
-        flow: "wire_proof",
-        personKind: "enrollment_intent",
+        flow: isFreeWebinar && type === "registration" ? "register" : "wire_proof",
+        personKind: isFreeWebinar && type === "registration" ? "enrolled" : "enrollment_intent",
         workflowStatus: "received",
-        wireReviewStatus: type === "registration" ? "pending" : null,
+        wireReviewStatus: type === "registration" && !isFreeWebinar ? "pending" : null,
         email: email.trim(),
         phone: phone.trim(),
         programSlug: program ? getProgramPathSlug(program) : programTitle,
@@ -134,6 +150,7 @@ export const POST: APIRoute = async ({ request }) => {
           message,
           type,
           modality,
+          wantsConstancia: wantsConstancia || null,
           ...programSubmissionMeta(program),
           paymentProofFile: paymentProof ? {
             filename: paymentProof.filename,
@@ -208,6 +225,7 @@ export const POST: APIRoute = async ({ request }) => {
             <p><strong>Teléfono:</strong> ${safePhone}</p>
             <p><strong>Programa:</strong> ${safeProgram}</p>
             <p><strong>Modalidad:</strong> ${safeModality}</p>
+            ${wantsConstancia ? `<p><strong>Constancia:</strong> ${escapeHtml(wantsConstancia === "yes" ? "Sí" : "No")}</p>` : ""}
             <p><strong>Mensaje:</strong> ${safeMessage}</p>
             ${paymentProof ? `<p><strong>Comprobante de pago:</strong> Adjunto</p>` : ""}
         `;
@@ -260,16 +278,36 @@ export const POST: APIRoute = async ({ request }) => {
     if (type === "registration" && email) {
       const isOnline = modality === "En línea";
 
-      const emailSubject = `Confirmación de Registro - ${programTitle}`;
+      let emailSubject = `Confirmación de Registro - ${programTitle}`;
+      let emailBody = "";
 
-      const safeInstructor = escapeHtml(instructor);
-      const safeStart = escapeHtml(startDate);
-      const safeSchedule = escapeHtml(schedule);
-      const safeAddress = escapeHtml(address);
-      const safeMeeting = escapeHtml(meetingLink);
-      const safeProgramTitle = escapeHtml(programTitle);
+      if (isFreeWebinar) {
+        const constanciaPrice =
+          program?.data.paymentOptions?.find((option) => option.id === "constancia")
+            ?.price ?? 200;
+        const webinarMail = buildFreeWebinarParticipantEmail({
+          participantName: name,
+          programTitle,
+          startDate,
+          horario,
+          meetingLink,
+          constanciaUpsellLink: constanciaUpsellLink,
+          constanciaPrice,
+        });
+        emailSubject = webinarMail.subject;
+        emailBody = webinarMail.html;
+      } else {
+        const safeInstructor = escapeHtml(instructor);
+        const safeStart = escapeHtml(startDate);
+        const safeSchedule = escapeHtml(schedule);
+        const safeAddress = escapeHtml(
+          address ||
+            "Instalaciones de CEPRIJA - Lope de Vega #273, Col. Americana Arcos. C.P. 44500",
+        );
+        const safeMeeting = escapeHtml(meetingLink);
+        const safeProgramTitle = escapeHtml(programTitle);
 
-      const emailBody = `
+        emailBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
                 <div style="background-color: #f8fafc; padding: 30px 20px; text-align: center; border-bottom: 2px solid #1e3a8a;">
                     <img src="https://ceprija.edu.mx/images/logo.png" alt="CEPRIJA" style="max-width: 200px; height: auto; margin: 0 auto; display: block;">
@@ -292,11 +330,15 @@ export const POST: APIRoute = async ({ request }) => {
                         <h3 style="color: #1e3a8a; margin-top: 0;">Detalles del evento:</h3>
                         <ul style="list-style: none; padding: 0; margin: 0;">
                             <li style="margin-bottom: 8px;">📅 <strong>Fecha:</strong> ${safeStart}</li>
-                            <li style="margin-bottom: 8px;">⏰ <strong>Duración:</strong> ${safeSchedule}</li>
+                            <li style="margin-bottom: 8px;">⏰ <strong>Horario:</strong> ${safeSchedule}</li>
                             ${
                               isOnline
                                 ? `<li style="margin-bottom: 8px;">💻 <strong>Enlace en línea:</strong> <a href="${escapeHtml(meetingLink)}" style="color: #2563eb;">${safeMeeting}</a></li>
-                                   <li style="margin-bottom: 8px;">📍 <strong>Alternativa presencial:</strong> ${safeAddress}</li>`
+                                   ${
+                                     address
+                                       ? `<li style="margin-bottom: 8px;">📍 <strong>Alternativa presencial:</strong> ${safeAddress}</li>`
+                                       : ""
+                                   }`
                                 : `<li style="margin-bottom: 8px;">📍 <strong>Instalaciones:</strong> ${safeAddress}</li>`
                             }
                         </ul>
@@ -317,6 +359,7 @@ export const POST: APIRoute = async ({ request }) => {
                 </div>
             </div>
             `;
+      }
 
       const userBody = {
         sender: { email: senderEmail, name: "Equipo CEPRIJA" },
