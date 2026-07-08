@@ -1,4 +1,4 @@
-import { EMAIL_LOGO_URL } from "@lib/assets";
+import { emailLogoImgTag } from "@lib/email/emailLogo";
 import { escapeHtml } from "@lib/htmlEscape";
 
 export function isPlaceholderProgramCopy(value: string): boolean {
@@ -69,7 +69,7 @@ export function buildFreeWebinarParticipantEmail(
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
       <div style="background-color: #f8fafc; padding: 28px 20px; text-align: center; border-bottom: 2px solid #1e3a8a;">
-        <img src="${EMAIL_LOGO_URL}" alt="CEPRIJA" width="200" style="max-width: 200px; height: auto; margin: 0 auto; display: block; border: 0;">
+        ${emailLogoImgTag(200)}
       </div>
       <div style="padding: 28px 20px; background-color: #ffffff;">
         <p style="font-size: 13px; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; color: #c09418; margin: 0 0 12px;">
