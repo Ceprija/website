@@ -10,7 +10,7 @@ status: "active"
 horario: "Martes 21: 16:00–20:00 h · Miércoles 22: 9:00–13:00 h y 16:00–19:00 h · Jueves 23: 9:00–13:00 h"
 startDate: "21 de julio de 2026"
 duracion: "3 días (15 h)"
-modalidad: "Presencial"
+modalidad: "Presencial · Arandas, Jalisco"
 paymentOptions:
   - id: "taller_completo"
     label: "Taller completo"

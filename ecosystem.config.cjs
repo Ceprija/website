@@ -3,6 +3,7 @@ module.exports = {
     {
       name: "ceprija-site",
       script: "./dist/server/entry.mjs",
+      node_args: "--env-file=.env",
       instances: 1,
       exec_mode: "fork",
       env: {

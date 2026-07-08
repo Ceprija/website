@@ -4,18 +4,17 @@ title: "Reforma Laboral en México"
 description: "Jornada de 40 horas, implementación estratégica y desafíos empresariales. Con el Mtro. Francisco Peña, ponente internacional, presidente de la Asociación de Empresarios Mexicanos, Capítulo McAllen, y secretario general de la AEM Binacional."
 excerpt: "Jornada de 40 horas, implementación estratégica y desafíos empresariales de la reforma laboral en México."
 image: "/images/programs/reforma-laboral.webp"
-brochure: "/brochures/webinarReformaLaboral.pdf"
 escuela: "juridica"
 nivel: "webinar"
 status: "active"
 horario: "19:00 h"
-startDate: "30 de junio de 2026"
+startDate: "5 de agosto de 2026"
 duracion: "1 sesión (webinar)"
 modalidad: "En línea"
-date: "2026-06-30"
+date: "2026-08-05"
 address: ""
 requiresVerification: false
-instructor: "Mtro. Francisco Peña"
+instructor: "Mtro. Francisco J. Peña-Valdés"
 enrollmentFlow: "inline"
 featured: true
 profileAudience: "Abogados laboralistas, directores de recursos humanos, empresarios y asesores que requieran anticiparse a los cambios de la reforma laboral en México."
@@ -40,7 +39,7 @@ paymentOptions:
 galleryFolder: "/images/programs/webinarReformeLaboral/gallery"
 ---
 
-## Webinar — Junio 2026
+## Webinar — Agosto 2026
 
 **Reforma Laboral en México:** jornada de 40 horas, implementación estratégica y desafíos empresariales.
 

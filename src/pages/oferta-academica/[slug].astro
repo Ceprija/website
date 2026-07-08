@@ -175,7 +175,8 @@ const heroObjectPosition =
                 aria-hidden="true"
             />
             <div class="container mx-auto px-6 relative z-10">
-                <div class="max-w-4xl">
+                <div class="grid gap-10 lg:grid-cols-3 lg:items-center">
+                    <div class="max-w-4xl lg:col-span-2">
                     <span
                         class="bg-black/35 ring-1 ring-white/25 backdrop-blur-sm text-white text-sm font-bold px-4 py-2 rounded-full uppercase tracking-wide inline-block mb-4 shadow-sm"
                         data-animate="fade-up"
@@ -332,6 +333,80 @@ const heroObjectPosition =
                                 ></path>
                             </svg>
                             <span>{program.data.modalidad}</span>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div
+                        class="lg:col-span-1"
+                        data-animate="fade-up"
+                        data-delay="200"
+                    >
+                        <div
+                            class="rounded-2xl bg-white/10 p-6 shadow-2xl ring-1 ring-white/25 backdrop-blur-md"
+                        >
+                            {
+                                programStatus === "waitlist" ? (
+                                    <>
+                                        <p class="mb-1 text-xs font-bold uppercase tracking-wide text-secondary">
+                                            Próximamente
+                                        </p>
+                                        <p class="mb-5 text-lg font-bold text-white font-serif">
+                                            ¿Te interesa este programa?
+                                        </p>
+                                        <a
+                                            href="#inscripcion"
+                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3.5 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                        >
+                                            Únete a la lista
+                                        </a>
+                                        <p class="mt-3 text-center text-xs text-gray-200">
+                                            Te avisaremos cuando abramos inscripciones.
+                                        </p>
+                                    </>
+                                ) : enrollmentFlow === "application" ? (
+                                    <>
+                                        <p class="mb-1 text-xs font-bold uppercase tracking-wide text-secondary">
+                                            Inscripciones abiertas
+                                        </p>
+                                        <p class="mb-5 text-lg font-bold text-white font-serif">
+                                            {isDiplomado
+                                                ? "Regístrate al diplomado"
+                                                : "Inicia tu proceso de admisión"}
+                                        </p>
+                                        <a
+                                            href={`/enrollment/${programSlug}`}
+                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3.5 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                        >
+                                            {isDiplomado
+                                                ? "Iniciar Registro"
+                                                : "Iniciar Solicitud"}
+                                        </a>
+                                        <p class="mt-3 text-center text-xs text-gray-200">
+                                            Registro en línea seguro.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p class="mb-1 text-xs font-bold uppercase tracking-wide text-secondary">
+                                            Inscripciones abiertas
+                                        </p>
+                                        <p class="mb-5 text-lg font-bold text-white font-serif">
+                                            ¿Listo para inscribirte?
+                                        </p>
+                                        <button
+                                            type="button"
+                                            data-enrollment-modal-open
+                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3.5 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                        >
+                                            Inscríbete Ya
+                                        </button>
+                                        <p class="mt-3 text-center text-xs text-gray-200">
+                                            Registro en línea • Cupo limitado.
+                                        </p>
+                                    </>
+                                )
+                            }
                         </div>
                     </div>
                 </div>
@@ -894,7 +969,10 @@ const heroObjectPosition =
              hace que position:fixed de descendientes se ancle al section y el pie
              del formulario desaparezca. `enrollmentFlow: inline` en el .md sigue
              gobernado por getEnrollmentFlow(). -->
-        <section class="py-16 pb-20 border-t border-gray-200 bg-gray-50/80">
+        <section
+            id="inscripcion"
+            class="py-16 pb-20 border-t border-gray-200 bg-gray-50/80 scroll-mt-24"
+        >
             <div class="container mx-auto px-6 max-w-4xl lg:max-w-5xl">
                 {
                     programStatus === "waitlist" ? (

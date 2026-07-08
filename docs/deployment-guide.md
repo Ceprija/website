@@ -36,13 +36,19 @@ mkdir -p data logs
 chmod 755 data logs
 ```
 
-Copy `ecosystem.config.cjs` to the server root and start:
+Copy `ecosystem.config.cjs` to the server root and start. The app reads secrets
+from `.env` at runtime via the parent shell, so source it **before** starting PM2:
 
 ```sh
+set -a && source .env && set +a
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup
 ```
+
+> **Important:** Use `pm2 delete <name> && pm2 start ecosystem.config.cjs` (not
+> `pm2 restart` or `pm2 reload`) whenever `.env` changes. Only a fresh `pm2 start`
+> after `source .env` picks up new environment variables.
 
 ## 3. Nginx
 
@@ -75,6 +81,6 @@ Then verify:
 
 1. Revert to the previous deployed git revision.
 2. Run `npm ci --omit=dev && npm run build`.
-3. Restart PM2: `pm2 reload ceprija-site`.
+3. Restart PM2: `set -a && source .env && set +a && pm2 delete ceprija-site && pm2 start ecosystem.config.cjs && pm2 save`.
 4. Check `/api/health`.
 5. If Stripe webhooks fail during rollback, leave the same endpoint URL and secret in place.
