@@ -136,7 +136,8 @@ export const POST: APIRoute = async ({ request }) => {
         requestId: submissionRequestId,
         flow: isFreeWebinar && type === "registration" ? "register" : "wire_proof",
         personKind: isFreeWebinar && type === "registration" ? "enrolled" : "enrollment_intent",
-        workflowStatus: "received",
+        workflowStatus:
+          isFreeWebinar && type === "registration" ? "approved" : "received",
         wireReviewStatus: type === "registration" && !isFreeWebinar ? "pending" : null,
         email: email.trim(),
         phone: phone.trim(),
@@ -151,6 +152,7 @@ export const POST: APIRoute = async ({ request }) => {
           type,
           modality,
           wantsConstancia: wantsConstancia || null,
+          ...(isFreeWebinar && type === "registration" ? { freeWebinar: true } : {}),
           ...programSubmissionMeta(program),
           paymentProofFile: paymentProof ? {
             filename: paymentProof.filename,
