@@ -138,7 +138,7 @@ export const POST: APIRoute = async ({ request }) => {
         personKind: isFreeWebinar && type === "registration" ? "enrolled" : "enrollment_intent",
         workflowStatus:
           isFreeWebinar && type === "registration" ? "approved" : "received",
-        wireReviewStatus: type === "registration" && !isFreeWebinar ? "pending" : null,
+        wireReviewStatus: paymentProof ? "pending" : null,
         email: email.trim(),
         phone: phone.trim(),
         programSlug: program ? getProgramPathSlug(program) : programTitle,

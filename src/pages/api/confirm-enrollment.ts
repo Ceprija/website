@@ -562,7 +562,7 @@ export const POST: APIRoute = async ({ request }) => {
         requestId: stripeSessionId,
         flow: "stripe_paid_confirmation",
         personKind: "enrolled",
-        workflowStatus: "paid",
+        workflowStatus: requiresVerification ? "paid" : "approved",
         email: customerEmail,
         phone: participantPhone || null,
         programSlug: programSlugMeta,
