@@ -150,7 +150,7 @@ export const POST: APIRoute = async ({ request }) => {
     {
       requestId: submissionRequestId,
       flow: "register",
-      personKind: "interested",
+      personKind: "applicant",
       workflowStatus: "received",
       email,
       phone,

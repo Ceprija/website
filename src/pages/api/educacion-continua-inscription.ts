@@ -296,7 +296,8 @@ export const POST: APIRoute = async ({ request }) => {
       {
         requestId: submissionRequestId,
         flow: "educacion_continua",
-        personKind: "interested",
+        personKind: "applicant",
+        wireReviewStatus: nonEmptyFiles.length > 0 ? "pending" : null,
         email: email.trim(),
         phone: phone.trim(),
         programSlug: programId,
@@ -309,6 +310,7 @@ export const POST: APIRoute = async ({ request }) => {
           modality: modalityCanonical,
           requiresInvoice,
           invoiceEmail: invoiceEmail || null,
+          paymentMethod: "wire",
           ...programSubmissionMeta(program),
           files: nonEmptyFiles.map(f => ({
             fieldname: f.fieldname,
