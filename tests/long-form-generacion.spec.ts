@@ -11,23 +11,28 @@ test.describe("Generación on long inscription + enrollment", () => {
     await expect(page.getByText("Generación *")).toBeVisible();
     await expect(generacion).toHaveAttribute("readonly", "");
     await expect(generacion).toHaveValue("");
+    await expect(generacion).toHaveAttribute(
+      "placeholder",
+      "Se asigna al elegir programa",
+    );
 
-    // Prefer exact option values from the select (titles, not forced uppercase labels)
     const programSelect = page.locator("#program-select");
-    const options = await programSelect.locator("option").allTextContents();
-    const pick = (re: RegExp) => {
-      const match = options.find((o) => re.test(o.trim()));
-      if (!match) throw new Error(`No option matching ${re}; got: ${options.join(" | ")}`);
-      return match.trim();
+    const byNivel = async (nivel: string) => {
+      const value = await programSelect
+        .locator(`option[data-nivel="${nivel}"]`)
+        .first()
+        .getAttribute("value");
+      if (!value) throw new Error(`No option with data-nivel=${nivel}`);
+      return value;
     };
 
-    await programSelect.selectOption(pick(/maestr[ií]a en derecho civil/i));
+    await programSelect.selectOption(await byNivel("maestria"));
     await expect(generacion).toHaveValue("2026C -2028B");
 
-    await programSelect.selectOption(pick(/doctorado/i));
+    await programSelect.selectOption(await byNivel("doctorado"));
     await expect(generacion).toHaveValue("2026C -2028C");
 
-    await programSelect.selectOption(pick(/especialidad/i));
+    await programSelect.selectOption(await byNivel("especialidad"));
     await expect(generacion).toHaveValue("2026C -2027B");
 
     // Email must stay lowercase under the uppercase handler

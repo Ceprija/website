@@ -12,9 +12,14 @@ import {
     sources,
 } from "../../data/forms/inscription-options.js";
 
+export interface InscriptionProgramOption {
+    title: string;
+    nivel: string;
+}
+
 interface Props {
     selectedProgram?: string;
-    programList?: string[];
+    programList?: InscriptionProgramOption[];
 }
 
 const { selectedProgram = "", programList = [] } = Astro.props;
@@ -138,10 +143,11 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         {
                             programList.map((p) => (
                                 <option
-                                    value={p}
-                                    selected={p === selectedProgram}
+                                    value={p.title}
+                                    data-nivel={p.nivel}
+                                    selected={p.title === selectedProgram}
                                 >
-                                    {p.toUpperCase()}
+                                    {p.title.toUpperCase()}
                                 </option>
                             ))
                         }
@@ -161,7 +167,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                         readonly
                         class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all uppercase"
                         value=""
-                        placeholder="SELECCIONA UN PROGRAMA"
+                        placeholder="Se asigna al elegir programa"
                     />
                 </div>
 
@@ -1023,6 +1029,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
         validateRequiredFieldsInContainer,
         reportStepValidationFailure,
     } from "@lib/client/multiStepFormValidation";
+    import { GENERACION_BY_NIVEL } from "@lib/programGeneracion";
 
     const form = document.getElementById("inscription-form") as HTMLFormElement;
 
@@ -1090,23 +1097,20 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
         "generacion-input",
     ) as HTMLInputElement | null;
 
-    function generacionFromProgramTitle(title: string): string {
-        const t = title.trim().toLocaleLowerCase("es");
-        if (t.includes("doctorado")) return "2026C -2028C";
-        if (t.includes("especialidad")) return "2026C -2027B";
-        if (t.includes("maestría") || t.includes("maestria")) {
-            return "2026C -2028B";
-        }
-        return "";
-    }
-
     function syncGeneracionFromProgram() {
         if (!generacionInput || !programSelect) return;
-        const value = generacionFromProgramTitle(programSelect.value);
+        const selected = programSelect.selectedOptions[0];
+        const nivel = selected?.dataset.nivel ?? "";
+        const value =
+            (nivel &&
+                GENERACION_BY_NIVEL[
+                    nivel as keyof typeof GENERACION_BY_NIVEL
+                ]) ||
+            "";
         generacionInput.value = value;
         generacionInput.placeholder = value
             ? value
-            : "SELECCIONA UN PROGRAMA";
+            : "Se asigna al elegir programa";
     }
 
     syncGeneracionFromProgram();

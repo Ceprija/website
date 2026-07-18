@@ -3,8 +3,9 @@ import type { ProgramaNivel } from "@lib/programNiveles";
 /**
  * Cohort generation labels for Sept 2026 posgrado intake (ficha / form display).
  * Hardcoded for this cycle; prefer optional `generacion` on program frontmatter later.
+ * Spacing before the hyphen (e.g. `2026C -2028B`) is intentional for ficha/ops copy.
  */
-const GENERACION_BY_NIVEL: Partial<Record<ProgramaNivel, string>> = {
+export const GENERACION_BY_NIVEL: Partial<Record<ProgramaNivel, string>> = {
   maestria: "2026C -2028B",
   doctorado: "2026C -2028C",
   especialidad: "2026C -2027B",
@@ -19,8 +20,8 @@ export function generacionFromNivel(
 }
 
 /**
- * Resolve generación from a program title when nivel is unavailable
- * (e.g. InscriptionForm select of titles only).
+ * Resolve generación from a program title when nivel is unavailable.
+ * Prefer `generacionFromNivel` / `data-nivel` on form options.
  */
 export function generacionFromProgramTitle(title: string): string {
   const t = title.trim().toLocaleLowerCase("es");
