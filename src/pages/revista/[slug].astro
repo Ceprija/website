@@ -1,19 +1,25 @@
 ---
-import { getCollection, render } from 'astro:content';
-import Layout from '../../layouts/Layout.astro';
-import { getPostSlug } from '@lib/posts';
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import { getPostSlug } from "@lib/posts";
 
 export async function getStaticPaths() {
-  const posts = await getCollection('revista');
+  const posts = await getCollection("revista");
 
-  return posts.map(post => ({
+  return posts.map((post) => ({
     params: { slug: getPostSlug(post) },
-    props: { post }
+    props: { post },
   }));
 }
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+
+const publishedLabel = new Date(post.data.date).toLocaleDateString("es-MX", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 ---
 
 <Layout
@@ -21,31 +27,132 @@ const { Content } = await render(post);
   description={post.data.excerpt}
   image={post.data.image || "/images/branding/site/ceprija_02.webp"}
 >
+  <article class="revista-article mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+    {
+      post.data.category ? (
+        <p class="mb-3 text-sm font-bold uppercase tracking-wide text-secondary">
+          {post.data.category}
+        </p>
+      ) : null
+    }
 
-  <article class="max-w-3xl mx-auto py-16 px-4">
-    
-    <h1 class="text-3xl font-bold mb-4">
+    <h1 class="mb-4 font-serif text-3xl font-bold leading-tight text-primary sm:text-4xl md:text-5xl">
       {post.data.title}
     </h1>
 
-    <span>{post.data.category}</span>
-
-    <p class="text-gray-500 mb-6">
-      {new Date(post.data.date).toLocaleDateString()}
+    <p class="mb-6 text-lg leading-relaxed text-gray-600 sm:text-xl">
+      {post.data.excerpt}
     </p>
 
-    {post.data.image && (
-      <img 
-        src={post.data.image} 
-        alt={post.data.title}
-        class="w-full rounded-xl mb-8"
-      />
-    )}
-
-    <div class="prose max-w-none">
-      <Content />
+    <div class="mb-8 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-gray-200 pb-6 text-sm text-gray-500">
+      {
+        post.data.author ? (
+          <span>
+            Por: <span class="font-medium text-gray-700">{post.data.author}</span>
+          </span>
+        ) : null
+      }
+      <time datetime={post.data.date}>{publishedLabel}</time>
     </div>
 
-  </article>
+    {
+      post.data.image ? (
+        <figure class="revista-figure mb-10">
+          <img
+            src={post.data.image}
+            alt={post.data.title}
+            class="revista-figure__img"
+            loading="eager"
+          />
+          {post.data.category ? (
+            <figcaption class="revista-figure__caption">
+              {post.data.category}
+            </figcaption>
+          ) : null}
+        </figure>
+      ) : null
+    }
 
+    <div class="revista-prose">
+      <Content />
+    </div>
+  </article>
 </Layout>
+
+<style>
+  .revista-figure {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .revista-figure__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 12px rgba(0, 40, 85, 0.12);
+  }
+
+  .revista-figure__caption {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  /* Body copy + full-width figures aligned to the text column */
+  .revista-prose :global(p) {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+
+  .revista-prose :global(h2),
+  .revista-prose :global(h3) {
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+    font-family: theme("fontFamily.serif");
+    font-weight: 600;
+    color: theme("colors.primary");
+  }
+
+  .revista-prose :global(ul),
+  .revista-prose :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .revista-prose :global(li) {
+    margin-bottom: 0.5rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+
+  .revista-prose :global(figure) {
+    width: 100%;
+    margin: 2rem 0;
+  }
+
+  .revista-prose :global(figure img) {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    height: auto;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 12px rgba(0, 40, 85, 0.12);
+  }
+
+  .revista-prose :global(figcaption) {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+</style>

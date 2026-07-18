@@ -13,7 +13,7 @@ author: "Redacción CEPRIJA"
 <p class="mb-4">Con el compromiso de fortalecer la preparación profesional en Jalisco y responder a las necesidades actuales del mercado laboral, el  Centro de Preparación Integral en Materia Jurídica y Administrativa, A.C. (CEPRIJA), y el Instituto de Formación para el Trabajo del Estado de Jalisco (IDEFT),  firmaron un convenio de colaboración enfocado en la capacitación, actualización y certificación académica.</p>
 
 <figure class="my-8">
-  <img src="/images/revista/convenio_IDEFT2.webp" alt="Convenio CEPRIJA e IDEFT" class="w-[60%] mx-auto rounded-xl" style="box-shadow: 0 0.25px 16px rgba(0, 40, 85, 0.35);" />
+  <img src="/images/revista/convenio_IDEFT2.webp" alt="Convenio CEPRIJA e IDEFT" class="w-full rounded-lg" />
 </figure>
 
 <p class="mb-4">El acuerdo fue encabezado por el director general del IDEFT, el Dr. Salvador Cosío Gaona y la rectora de CEPRIJA, la Dra. Verónica Ucaranza, representando un esfuerzo conjunto para reducir la brecha entre la preparación académica y las exigencias del entorno laboral, especialmente en áreas estratégicas como el <b>derecho</b> y la <b>administración</b>.</p>
