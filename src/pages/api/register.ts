@@ -8,7 +8,7 @@ import { validateUploadBuffer } from "@lib/uploads/fileValidation";
 import { normalizeUploadForDelivery } from "@lib/uploads/normalizeUploadForDelivery";
 import { parseWireRegisterFields } from "@lib/validation/enrollment";
 import { SMTP_FROM } from "astro:env/server";
-import { getProgramStatus } from "@lib/programPayments";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 import { getRequestId } from "@lib/server/apiRequestLog";
 import {
   guardPublicPost,
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Get program details from content collection
     const programs = await getCollection("programas");
     const program = programs.find((p) => p.data.title === programTitle);
-    if (program && getProgramStatus(program) === "disabled") {
+    if (program && getEffectiveProgramStatus(program) !== "active") {
       return new Response(
         JSON.stringify({
           message: "Programa no disponible",

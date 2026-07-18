@@ -160,18 +160,19 @@ export function getDisplayPrices(
   return {};
 }
 
+export type ProgramStatus = "active" | "waitlist" | "past" | "disabled";
+
 /**
- * Determines the program's effective status, considering both new `status` field
- * and legacy `disabled` field for backward compatibility.
+ * Frontmatter status (and legacy `disabled`), without calendar auto-archive.
  */
 export function getProgramStatus(
   program: CollectionEntry<"programas">
-): "active" | "waitlist" | "disabled" {
+): ProgramStatus {
   const data = program.data as any;
 
   // New field takes precedence
   if (data.status) {
-    return data.status;
+    return data.status as ProgramStatus;
   }
 
   // Legacy: map disabled boolean to status

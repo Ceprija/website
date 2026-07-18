@@ -18,7 +18,8 @@ import {
   clientIpFromRequest,
   pruneRateLimitBuckets,
 } from "@lib/server/rateLimit";
-import { getPaymentOptions, getProgramStatus } from "@lib/programPayments";
+import { getPaymentOptions } from "@lib/programPayments";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 import { getVariantOptions } from "@lib/programVariants";
 import { hasHoneypotValue } from "@lib/server/publicEndpointGuards";
 import { getProgramPathSlug } from "@lib/programPaths";
@@ -255,7 +256,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const programs = await getCollection("programas");
   const program = programs.find((entry) => getProgramPathSlug(entry) === programSlug);
-  if (!program || getProgramStatus(program) !== "active") {
+  if (!program || getEffectiveProgramStatus(program) !== "active") {
     apiLog("warn", route, "program_unavailable", {
       requestId,
       programSlug,

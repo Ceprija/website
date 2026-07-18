@@ -24,7 +24,7 @@ import {
 } from "@lib/validation/enrollmentText";
 import type { ProgramaNivel } from "@lib/programNiveles";
 import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
-import { programIsPublished } from "@lib/programPublished";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
 import {
   EMAIL_SOPORTE_WEB,
@@ -274,7 +274,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const programs = await getCollection("programas");
     const program = programs.find((p) => getProgramPathSlug(p) === programSlug || p.data.title === programTitle);
-    if (program && !programIsPublished(program)) {
+    if (program && getEffectiveProgramStatus(program) !== "active") {
       return enrollmentRespond(
         { error: "Programa no disponible", code: "program_unavailable" },
         404,
