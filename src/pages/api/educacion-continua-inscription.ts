@@ -29,6 +29,7 @@ import {
 import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 import { programSubmissionMeta } from "@lib/programSubmissionMeta";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
@@ -251,7 +252,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Get program details from content collection
     const programs = await getCollection("programas");
     const program = programs.find((p) => getProgramPathSlug(p) === programId || p.data.title === programTitle);
-    if (program?.data.disabled) {
+    if (program && getEffectiveProgramStatus(program) !== "active") {
       return new Response(
         JSON.stringify({
           message: "Programa no disponible",

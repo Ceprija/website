@@ -1,6 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getProgramPathSlug } from "@lib/programPaths";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 
 interface Props {
     program: CollectionEntry<"programas">;
@@ -20,10 +21,12 @@ const {
 const d = program.data;
 const slug = getProgramPathSlug(program);
 const href = `/oferta-academica/${slug}`;
+const isPast = getEffectiveProgramStatus(program) === "past";
 
 const nivelEtiqueta: Record<string, string> = {
     curso: "Curso",
     taller: "Taller",
+    webinar: "Webinar",
     diplomado: "Diplomado",
     maestria: "Maestría",
     doctorado: "Doctorado",
@@ -34,6 +37,7 @@ const nivel = nivelEtiqueta[d.nivel] ?? d.nivel;
 const startDateRaw =
     typeof d.startDate === "string" ? d.startDate.trim() : "";
 const showStartDate =
+    !isPast &&
     startDateRaw.length > 0 &&
     !/^por definir$/i.test(startDateRaw);
 
@@ -41,7 +45,9 @@ const imageHeightClass = compact ? "h-36 sm:h-40" : "h-48";
 /** Reserve 3 line boxes so 1–2 line titles match 3-line cards in the grid. */
 const titleClass = compact
     ? "text-sm sm:text-base font-bold text-primary mb-2 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]"
-    : "text-2xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]";
+    : isPast
+      ? "text-lg sm:text-xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]"
+      : "text-2xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]";
 const bodyPadClass = compact ? "p-4 sm:p-5" : "p-8";
 const metaClass = compact
     ? "space-y-1.5 mb-4 text-xs text-gray-500"
@@ -49,7 +55,10 @@ const metaClass = compact
 ---
 
 <article
-    class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full"
+    class:list={[
+        "group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full",
+        isPast && "opacity-90",
+    ]}
     data-animate="fade-up"
     data-delay={index * 100}
 >
@@ -59,7 +68,10 @@ const metaClass = compact
                 <img
                     src={d.image}
                     alt=""
-                    class="h-full w-full object-cover"
+                    class:list={[
+                        "h-full w-full object-cover",
+                        isPast && "grayscale-[30%]",
+                    ]}
                     style={
                         d.imagePosition
                             ? `object-position: ${d.imagePosition}`
@@ -70,10 +82,17 @@ const metaClass = compact
             ) : null
         }
         <div class="absolute inset-0 bg-black opacity-10 group-hover:opacity-0 transition-opacity" />
-        <div class="absolute top-4 left-4">
+        <div class="absolute top-4 left-4 flex flex-wrap gap-2">
             <span class="bg-white/90 backdrop-blur-sm text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
                 {nivel}
             </span>
+            {
+                isPast ? (
+                    <span class="bg-gray-800/85 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                        Finalizado
+                    </span>
+                ) : null
+            }
         </div>
     </div>
 
@@ -92,49 +111,13 @@ const metaClass = compact
             ) : null
         }
 
-        <div class={metaClass}>
-            <div class="flex items-center gap-2">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                </svg>
-                <span>{d.duracion || "—"}</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                </svg>
-                <span>{d.modalidad || "—"}</span>
-            </div>
-            {
-                showStartDate ? (
-                    <div class="flex items-start gap-2">
+        {
+            !isPast ? (
+                <div class={metaClass}>
+                    <div class="flex items-center gap-2">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 shrink-0 mt-0.5"
+                            class="h-4 w-4 shrink-0"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -144,14 +127,54 @@ const metaClass = compact
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                         </svg>
-                        <span>Inicio: {startDateRaw}</span>
+                        <span>{d.duracion || "—"}</span>
                     </div>
-                ) : null
-            }
-        </div>
+                    <div class="flex items-center gap-2">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
+                        </svg>
+                        <span>{d.modalidad || "—"}</span>
+                    </div>
+                    {
+                        showStartDate ? (
+                            <div class="flex items-start gap-2">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 shrink-0 mt-0.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                </svg>
+                                <span>Inicio: {startDateRaw}</span>
+                            </div>
+                        ) : null
+                    }
+                </div>
+            ) : null
+        }
 
         <div class={`mt-auto border-t border-gray-100 flex items-center justify-between ${compact ? "pt-4" : "pt-6"}`}>
             <a

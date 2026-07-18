@@ -16,9 +16,11 @@ escuela: "juridica"
 nivel: "curso"
 
 # Program status: controls visibility and enrollment behavior
-# - "active": Program is available for enrollment with payment options (DEFAULT)
-# - "waitlist": Program is visible but not currently available; shows "Request Info" form
-# - "disabled": Program is hidden from catalog
+# - "active": available for enrollment (DEFAULT)
+# - "waitlist": visible; shows “Request Info” / próximamente
+# - "past": archived under “Cursos pasados”; no enrollment
+# - "disabled": hidden from catalog
+# Active educación continua with ISO `date` before today also behaves as past after rebuild.
 status: "active"
 
 # RVOE (titulación). Opcional si solo aplica registro de diplomado.
@@ -26,6 +28,7 @@ status: "active"
 # Diplomados u otros con registro (se muestra "Registro:" en la ficha). Opcional.
 # registroAcademico: "ESDIP-2024-000"
 horario: ""
+# Human-facing start (cards, ficha, emails)
 startDate: ""
 duracion: ""
 modalidad: "Presencial / En línea"
@@ -46,6 +49,7 @@ paymentOptions:
     type: "online"
 
 featured: false
+# ISO last session / event day (YYYY-MM-DD). Auto-archives active ed. continua when past.
 date: ""
 
 address: ""

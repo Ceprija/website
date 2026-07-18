@@ -10,12 +10,14 @@ import ProgramEnrollmentAsideCard from "@components/program/ProgramEnrollmentAsi
 import { getProgramPathSlug, validateUniqueSlugs } from "@lib/programPaths";
 import { getEnrollmentFlow } from "@lib/enrollmentRouting";
 import { programMetaDescriptionSuffix } from "../../data/config/seo.js";
-import { filterPublishedPrograms } from "@lib/programPublished";
+import {
+    filterPublishedPrograms,
+    getEffectiveProgramStatus,
+} from "@lib/programPublished";
 import {
     getPaymentOptions,
     getStripePriceIds,
     getDisplayPrices,
-    getProgramStatus,
 } from "@lib/programPayments";
 import { getVariantOptions } from "@lib/programVariants";
 
@@ -30,9 +32,16 @@ export async function getStaticPaths() {
 
 const { program } = Astro.props;
 
-const programStatus = getProgramStatus(program);
+const programStatus = getEffectiveProgramStatus(program);
 const enrollmentFlow = getEnrollmentFlow(program);
 const programSlug = getProgramPathSlug(program);
+
+const schoolListHref =
+    program.data.escuela === "juridica"
+        ? "/oferta-academica/formacion-juridica"
+        : program.data.escuela === "economica"
+          ? "/oferta-academica/formacion-economico-administrativa"
+          : "/oferta-academica/formacion-integral";
 
 /** Narrow optional arrays/objects so Astro/TS templates stay type-safe when schema inference is loose. */
 type CurriculumPeriod = {
@@ -351,7 +360,25 @@ const heroObjectPosition =
                             class="rounded-2xl bg-white/10 p-6 shadow-2xl ring-1 ring-white/25 backdrop-blur-md"
                         >
                             {
-                                programStatus === "waitlist" ? (
+                                programStatus === "past" ? (
+                                    <>
+                                        <p class="mb-1 text-xs font-bold uppercase tracking-wide text-secondary">
+                                            Finalizado
+                                        </p>
+                                        <p class="mb-5 text-lg font-bold text-white font-serif">
+                                            Este programa ya concluyó
+                                        </p>
+                                        <a
+                                            href={schoolListHref}
+                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3.5 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                        >
+                                            Ver oferta actual
+                                        </a>
+                                        <p class="mt-3 text-center text-xs text-gray-200">
+                                            Consulta programas abiertos a inscripción.
+                                        </p>
+                                    </>
+                                ) : programStatus === "waitlist" ? (
                                     <>
                                         <p class="mb-1 text-xs font-bold uppercase tracking-wide text-secondary">
                                             Próximamente
@@ -999,7 +1026,43 @@ const heroObjectPosition =
         >
             <div class="container mx-auto px-6 max-w-4xl lg:max-w-5xl">
                 {
-                    programStatus === "waitlist" ? (
+                    programStatus === "past" ? (
+                        <div class="max-w-4xl mx-auto">
+                            <div class="bg-white rounded-3xl shadow-xl p-8 md:p-12 text-center">
+                                <div class="inline-block p-4 bg-gray-100 rounded-2xl mb-4">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-12 w-12 text-gray-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 class="text-2xl md:text-3xl font-bold text-primary mb-4 font-serif">
+                                    Este programa ya concluyó
+                                </h3>
+                                <p class="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+                                    Esta edición ya no está abierta a inscripción.
+                                    Revisa la oferta actual de la escuela para
+                                    programas disponibles.
+                                </p>
+                                <a
+                                    href={schoolListHref}
+                                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-8 py-4 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                >
+                                    Ver oferta actual
+                                </a>
+                            </div>
+                        </div>
+                    ) : programStatus === "waitlist" ? (
                         <div class="max-w-4xl mx-auto">
                             <div class="bg-white rounded-3xl shadow-xl p-8 md:p-12">
                                 <div class="text-center mb-8">
@@ -1180,7 +1243,8 @@ const heroObjectPosition =
         </section>
         {
             enrollmentFlow === "inline" &&
-                programStatus !== "waitlist" && (
+                programStatus !== "waitlist" &&
+                programStatus !== "past" && (
                 <div
                     id="enrollment-modal"
                     class="fixed inset-0 z-50 flex pointer-events-none items-center justify-center bg-black/60 px-4 py-8 opacity-0 transition-opacity duration-200 ease-out"

@@ -10,7 +10,7 @@ import {
     requiresAcademicDegreeSteps,
     requiresExtendedApplicantProfile,
 } from "@lib/enrollmentAdmissionFlags";
-import { filterPublishedPrograms } from "@lib/programPublished";
+import { filterPublishedPrograms, getEffectiveProgramStatus } from "@lib/programPublished";
 import VariantSelectionStep from "@components/enrollment/VariantSelectionStep.astro";
 import bankInfo from "../../data/bank-info.json";
 import {
@@ -28,6 +28,7 @@ export async function getStaticPaths() {
     validateUniqueSlugs(programs);
     // Only generate pages for programs requiring application flow
     return filterPublishedPrograms(programs)
+        .filter((program) => getEffectiveProgramStatus(program) === "active")
         .filter((program) => getEnrollmentFlow(program) === "application")
         .map((program) => ({
             params: { slug: getProgramPathSlug(program) },

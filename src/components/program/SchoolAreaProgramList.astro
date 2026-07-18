@@ -3,8 +3,11 @@ import { getCollection } from "astro:content";
 import Button from "@components/ui/Button.astro";
 import ProgramOfferCard from "@components/program/ProgramOfferCard.astro";
 import type { ProgramaNivel } from "@lib/programNiveles";
-import { filterPublishedPrograms } from "@lib/programPublished";
-import { getProgramStatus } from "@lib/programPayments";
+import {
+    filterCatalogPrograms,
+    filterPastPrograms,
+    getEffectiveProgramStatus,
+} from "@lib/programPublished";
 import { getProgramPathSlug } from "@lib/programPaths";
 
 interface SectionGroup {
@@ -38,23 +41,34 @@ const {
     sectionGroups,
 } = Astro.props as Props;
 
-const allPrograms = filterPublishedPrograms(await getCollection("programas"));
-const programs = allPrograms
+const collection = await getCollection("programas");
+
+const programs = filterCatalogPrograms(collection)
     .filter((p) => p.data.escuela === escuela)
-    .filter((p) => !activeOnly || getProgramStatus(p) === "active")
+    .filter((p) => !activeOnly || getEffectiveProgramStatus(p) === "active")
     .sort((a, b) => {
-        const statusA = getProgramStatus(a) === "active" ? 0 : 1;
-        const statusB = getProgramStatus(b) === "active" ? 0 : 1;
+        const statusA = getEffectiveProgramStatus(a) === "active" ? 0 : 1;
+        const statusB = getEffectiveProgramStatus(b) === "active" ? 0 : 1;
         if (statusA !== statusB) return statusA - statusB;
         return a.data.title.localeCompare(b.data.title, "es", {
             sensitivity: "base",
         });
     });
 
+const pastPrograms = filterPastPrograms(collection)
+    .filter((p) => p.data.escuela === escuela)
+    .sort((a, b) =>
+        a.data.title.localeCompare(b.data.title, "es", {
+            sensitivity: "base",
+        }),
+    );
+
 const useGroups =
     Array.isArray(sectionGroups) &&
     sectionGroups.length > 0 &&
     programs.length > 0;
+
+const showEmptyCatalog = programs.length === 0 && pastPrograms.length === 0;
 
 function normalizedProgramText(program: (typeof programs)[number]) {
     return `${program.data.title} ${getProgramPathSlug(program)}`.toLocaleLowerCase("es");
@@ -95,7 +109,7 @@ function programsForSubsection(subsection: ProgramSubsection) {
 ---
 
 {
-    programs.length === 0 ? (
+    showEmptyCatalog ? (
         <div class="col-span-full text-center py-20 bg-white rounded-xl shadow-sm">
             <div class="mb-6 mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                 <svg
@@ -249,8 +263,159 @@ function programsForSubsection(subsection: ProgramSubsection) {
                     ))}
                 </div>
             ) : null}
+
+            {pastPrograms.length > 0 ? (
+                <div class="mt-16 border-t border-gray-200 pt-12">
+                    <h2 class="text-3xl font-bold text-primary mb-3 font-serif">
+                        Cursos pasados
+                    </h2>
+                    <p class="text-gray-600 mb-8 max-w-2xl">
+                        Ediciones anteriores. Ya no están abiertas a inscripción.
+                    </p>
+                    {pastPrograms.length <= 3 ? (
+                        <div
+                            class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                            data-program-card-grid
+                        >
+                            {pastPrograms.map((program, index) => (
+                                <ProgramOfferCard
+                                    program={program}
+                                    index={index}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div class="relative">
+                            <div class="swiper past-programs-swiper !pb-12">
+                                <div class="swiper-wrapper">
+                                    {pastPrograms.map((program, index) => (
+                                        <div class="swiper-slide !h-auto">
+                                            <div
+                                                class="h-full px-1"
+                                                data-program-card-grid
+                                            >
+                                                <ProgramOfferCard
+                                                    program={program}
+                                                    index={index}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div class="swiper-pagination past-programs-pagination" />
+                            </div>
+                            <button
+                                type="button"
+                                class="past-programs-prev absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white p-2.5 text-primary shadow-md ring-1 ring-gray-200 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:-translate-x-full"
+                                aria-label="Programas anteriores"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M15 19l-7-7 7-7"
+                                    />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                class="past-programs-next absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2 rounded-full bg-white p-2.5 text-primary shadow-md ring-1 ring-gray-200 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:translate-x-full"
+                                aria-label="Programas siguientes"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : null}
         </>
     )
+}
+
+{
+    pastPrograms.length > 3 ? (
+        <>
+            <link
+                rel="stylesheet"
+                href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+            />
+            <script
+                is:inline
+                src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"
+            />
+            <script is:inline>
+                function initPastProgramsSlider() {
+                    const swiperEl = document.querySelector(
+                        ".past-programs-swiper",
+                    );
+                    if (
+                        !swiperEl ||
+                        typeof Swiper === "undefined" ||
+                        swiperEl.dataset.swiperReady === "1"
+                    ) {
+                        return;
+                    }
+                    swiperEl.dataset.swiperReady = "1";
+
+                    new Swiper(".past-programs-swiper", {
+                        slidesPerView: 1,
+                        spaceBetween: 24,
+                        // At the end, jump back to the first — no cloned/empty slides.
+                        rewind: true,
+                        watchOverflow: true,
+                        navigation: {
+                            prevEl: ".past-programs-prev",
+                            nextEl: ".past-programs-next",
+                        },
+                        pagination: {
+                            el: ".past-programs-pagination",
+                            clickable: true,
+                        },
+                        breakpoints: {
+                            768: { slidesPerView: 2 },
+                            1024: { slidesPerView: 3 },
+                        },
+                    });
+                }
+
+                document.addEventListener(
+                    "DOMContentLoaded",
+                    initPastProgramsSlider,
+                );
+                document.addEventListener(
+                    "astro:page-load",
+                    initPastProgramsSlider,
+                );
+            </script>
+            <style>
+                .past-programs-swiper :global(.swiper-pagination-bullet-active) {
+                    background: theme("colors.primary");
+                }
+            </style>
+        </>
+    ) : null
 }
 
 <script>

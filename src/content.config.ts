@@ -61,9 +61,13 @@ const programas = defineCollection({
      * Program status: controls visibility and enrollment behavior.
      * - "active": Program is available for enrollment with payment options
      * - "waitlist": Program is visible but not currently available; shows "Request Info" form
+     * - "past": Archived edition; listed under “Cursos pasados”, no enrollment
      * - "disabled": Program is hidden from catalog
+     *
+     * Educación continua with status "active" may become effectively "past" when
+     * ISO `date` is before today (see getEffectiveProgramStatus).
      */
-    status: z.enum(["active", "waitlist", "disabled"]).default("active"),
+    status: z.enum(["active", "waitlist", "past", "disabled"]).default("active"),
 
     /** @deprecated Use `status: "disabled"` instead. Kept for backward compatibility. */
     disabled: z.boolean().optional(),
@@ -74,9 +78,11 @@ const programas = defineCollection({
     /** Registro académico de diplomados (p. ej. ESDIP-2024-xxx). Se muestra como “Registro” en la ficha. */
     registroAcademico: optionalYamlString(),
     horario: z.string(),
+    /** Human-facing start copy (cards, ficha, emails). Not used for auto-archive. */
     startDate: z.string(),
     duracion: z.string(),
     modalidad: z.string(),
+
 
     /**
      * Structured payment options for Stripe integration.
@@ -99,6 +105,11 @@ const programas = defineCollection({
     /** @deprecated Use `paymentOptions` array instead. Kept for backward compatibility. */
     price: z.union([z.number(), z.record(z.string(), z.string())]).optional(),
     featured: z.boolean().optional(),
+    /**
+     * ISO calendar day `YYYY-MM-DD` (last session / event day).
+     * Used by getEffectiveProgramStatus to auto-archive active educación continua.
+     * Display dates stay in `startDate`.
+     */
     date: optionalYamlString(),
 
     // Extended fields for rich program data

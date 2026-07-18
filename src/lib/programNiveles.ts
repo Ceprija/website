@@ -1,5 +1,5 @@
 import type { CollectionEntry } from "astro:content";
-import { getProgramStatus } from "@lib/programPayments";
+import { getEffectiveProgramStatus } from "@lib/programPublished";
 
 /**
  * Program levels stored in content collection `programas` (`nivel` in frontmatter).
@@ -43,6 +43,7 @@ type ProgramEntry = CollectionEntry<"programas">;
 /**
  * Active programs in the given niveles, featured first, then title A–Z.
  * Caps at `limit` (default 4) for homepage showcases.
+ * Uses effective status so dated finished courses drop off after rebuild.
  */
 export function pickHomePrograms(
   programs: ProgramEntry[],
@@ -54,7 +55,8 @@ export function pickHomePrograms(
   return programs
     .filter(
       (p) =>
-        getProgramStatus(p) === "active" && nivelSet.has(p.data.nivel),
+        getEffectiveProgramStatus(p) === "active" &&
+        nivelSet.has(p.data.nivel),
     )
     .sort((a, b) => {
       const featuredA = a.data.featured === true ? 0 : 1;
