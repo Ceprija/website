@@ -151,6 +151,23 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 <div>
                     <label
                         class="block text-sm font-semibold text-gray-700 mb-2"
+                        >Generación *</label
+                    >
+                    <input
+                        type="text"
+                        name="generacion"
+                        id="generacion-input"
+                        required
+                        readonly
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all uppercase"
+                        value=""
+                        placeholder="SELECCIONA UN PROGRAMA"
+                    />
+                </div>
+
+                <div>
+                    <label
+                        class="block text-sm font-semibold text-gray-700 mb-2"
                         >Nombre(s) *</label
                     >
                     <input
@@ -402,7 +419,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                     class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm"
                     >3</span
                 >
-                Trayectoria Académica
+                Antecedentes Académicos
             </h3>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -444,7 +461,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 <div class="col-span-1 md:col-span-2">
                     <label
                         class="block text-sm font-semibold text-gray-700 mb-2"
-                        >Carrera Cursada (Licenciatura) *</label
+                        >Carrera cursada *</label
                     >
                     <input
                         type="text"
@@ -512,7 +529,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
                 <div>
                     <label
                         class="block text-sm font-semibold text-gray-700 mb-2"
-                        >Número de Cédula *</label
+                        >Número de Cédula Profesional *</label
                     >
                     <input
                         type="text"
@@ -1027,16 +1044,22 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
 
     const alert = showInlineAlert;
 
-    // Validaciones: Convertir a MAYÚSCULAS
+    // Validaciones: Convertir a MAYÚSCULAS (email se mantiene en minúsculas)
     document
-        .querySelectorAll('input[type="text"], textarea, select')
+        .querySelectorAll("input, textarea, select")
         .forEach((el: any) => {
+            if (el.type === "email" || el.type === "file" || el.type === "hidden") {
+                return;
+            }
             if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
                 el.addEventListener("input", (e: any) => {
+                    if (e.target.type === "email") return;
                     e.target.value = e.target.value.toUpperCase();
                 });
             }
-            el.style.textTransform = "uppercase";
+            if (el.type !== "checkbox" && el.type !== "radio") {
+                el.style.textTransform = "uppercase";
+            }
         });
 
     // Validaciones: Solo números
@@ -1063,8 +1086,33 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     const modalidadSelect = document.getElementById(
         "modalidad-select",
     ) as HTMLSelectElement;
+    const generacionInput = document.getElementById(
+        "generacion-input",
+    ) as HTMLInputElement | null;
+
+    function generacionFromProgramTitle(title: string): string {
+        const t = title.trim().toLocaleLowerCase("es");
+        if (t.includes("doctorado")) return "2026C -2028C";
+        if (t.includes("especialidad")) return "2026C -2027B";
+        if (t.includes("maestría") || t.includes("maestria")) {
+            return "2026C -2028B";
+        }
+        return "";
+    }
+
+    function syncGeneracionFromProgram() {
+        if (!generacionInput || !programSelect) return;
+        const value = generacionFromProgramTitle(programSelect.value);
+        generacionInput.value = value;
+        generacionInput.placeholder = value
+            ? value
+            : "SELECCIONA UN PROGRAMA";
+    }
+
+    syncGeneracionFromProgram();
 
     programSelect?.addEventListener("change", () => {
+        syncGeneracionFromProgram();
         const isCivil = programSelect.value.includes("Civil");
         const standard = JSON.parse(programSelect.dataset.standard || "[]");
         const civil = JSON.parse(programSelect.dataset.civil || "[]");
@@ -1086,7 +1134,7 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     const stepNames = [
         "Datos Personales",
         "Dirección Particular",
-        "Trayectoria Académica",
+        "Antecedentes Académicos",
         "Documentación",
         "Salud",
         "Contacto y Finalización",

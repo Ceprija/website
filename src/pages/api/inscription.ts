@@ -22,6 +22,7 @@ import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
 import { programSubmissionMeta } from "@lib/programSubmissionMeta";
+import { generacionFromNivel, generacionFromProgramTitle } from "@lib/programGeneracion";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -134,6 +135,9 @@ export const POST: APIRoute = async ({ request }) => {
             return honeypotResponse(route, requestId);
         }
         const { programTitle } = fields;
+        if (fields.email) {
+            fields.email = fields.email.trim().toLowerCase();
+        }
         const submissionRequestId = crypto.randomUUID();
 
         const identityErr = validateInscriptionIdentity(fields);
@@ -201,12 +205,25 @@ export const POST: APIRoute = async ({ request }) => {
             }
         }
 
+        // Resolve program + generación before CSV / persist
+        const programs = await getCollection("programas");
+        const program = programs.find(
+            (entry) =>
+                getProgramPathSlug(entry) === programTitle ||
+                String(entry.data.title ?? "") === programTitle,
+        );
+        const programSlug = program ? getProgramPathSlug(program) : programTitle;
+        // Always derive server-side — ignore client-posted generacion (readonly is UI-only).
+        const generacion =
+            generacionFromNivel(program?.data.nivel) ||
+            generacionFromProgramTitle(programTitle ?? "");
+
         // 1. Generate CSV content
 
         const headers = [
             "Fecha Registro", "Programa", "Nombre", "Apellidos", "Género", "Teléfono", "Email",
             "Fecha Nacimiento", "CURP", "Nacionalidad", "Entidad Federativa", "Estado Civil",
-            "Calle", "Colonia", "CP", "Ciudad", "Estado", "Modalidad Estudo", "Grado Estudios",
+            "Calle", "Colonia", "CP", "Ciudad", "Estado", "Modalidad Estudo", "Generación", "Grado Estudios",
             "Carrera", "Institución", "Fecha Inicio", "Fecha Fin", "Estado Licenciatura", "Cédula Num",
             "Cédula Doc", "Acta Nacimiento", "CURP Doc", "Comprobante Dom", "INE",
             "Capacidad Dif", "Detalle Capacidad", "Enf Crónica", "Detalle Enf", "Alergia", "Detalle Alergia",
@@ -240,6 +257,7 @@ export const POST: APIRoute = async ({ request }) => {
             fields.ciudad,
             fields.estadoDireccion,
             fields.modalidadEstudio,
+            generacion,
             fields.ultimoGrado,
             fields.carrera,
             fields.institucion,
@@ -268,21 +286,14 @@ export const POST: APIRoute = async ({ request }) => {
             fields.origen
         ].map((val, index) => {
             let processed = (val || '').toString();
-            if (index !== 6) { // Skip uppercase for email (index 6)
+            // Skip uppercase for email (index 6)
+            if (index !== 6) {
                 processed = processed.toUpperCase();
             }
             return `"${processed.replace(/"/g, '""')}"`;
         }).join(',');
 
         // 2. Persist to Database
-        const programs = await getCollection("programas");
-        const program = programs.find(
-            (entry) =>
-                getProgramPathSlug(entry) === programTitle ||
-                String(entry.data.title ?? "") === programTitle,
-        );
-        const programSlug = program ? getProgramPathSlug(program) : programTitle;
-
         const submission = await persistSubmission(
             {
                 requestId: submissionRequestId,
@@ -310,6 +321,7 @@ export const POST: APIRoute = async ({ request }) => {
                     ciudad: fields.ciudad,
                     estadoDireccion: fields.estadoDireccion,
                     modalidadEstudio: fields.modalidadEstudio,
+                    generacion,
                     ultimoGrado: fields.ultimoGrado,
                     carrera: fields.carrera,
                     institucion: fields.institucion,
