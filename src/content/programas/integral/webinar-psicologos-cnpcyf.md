@@ -1,6 +1,6 @@
 ---
 slug: "webinar-psicologos-cnpcyf"
-title: "La función de los psicólogos en el nuevo Código Nacional de Procedimientos Civiles y Familiares"
+title: "La función de los psicólogos en el nuevo CNPCyF"
 description: "Webinar gratuito sobre la función de los psicólogos en el nuevo Código Nacional de Procedimientos Civiles y Familiares (CNPCyF). Comprende los cambios que transforman tu práctica profesional: el rol del psicólogo y del perito en materia civil y familiar, la prueba pericial psicológica, la actuación en audiencias orales y la valoración de dictámenes en el nuevo modelo procesal."
 excerpt: "Webinar gratuito sobre la función del psicólogo en el nuevo CNPCyF: comprende los cambios que transforman tu práctica profesional en materia civil y familiar."
 image: "/images/hero/psicologos-cnpcyf.webp"

@@ -15,7 +15,7 @@ test("webinar program page shows registration CTA and details", async ({ page })
 
   await expect(
     page.getByRole("heading", {
-      name: /La función de los psicólogos en el nuevo Código Nacional/i,
+      name: /La función de los psicólogos en el nuevo CNPCyF/i,
     }),
   ).toBeVisible();
   await expect(page.getByText("25 de julio de 2026")).toBeVisible();
@@ -71,10 +71,11 @@ test("free webinar registration without constancia submits successfully", async 
 test("homepage hero includes psicólogos webinar slide", async ({ page }) => {
   await page.goto("/");
   await dismissCookieBanner(page);
+  const hero = page.locator("#hero-slider");
   await expect(
-    page.getByRole("heading", {
-      name: /La función de los psicólogos en el nuevo Código Nacional/i,
+    hero.getByRole("heading", {
+      name: /La función de los psicólogos en el nuevo CNPCyF/i,
     }),
   ).toBeVisible();
-  await expect(page.getByText("Webinar Gratuito | 25 de julio 2026")).toBeVisible();
+  await expect(hero.getByText("Webinar Gratuito | 25 de julio 2026")).toBeVisible();
 });

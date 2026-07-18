@@ -1,40 +1,64 @@
 ---
 import { partners } from "@data/partners";
 import {
-  sectionMuted,
+  sectionPartners,
   containerNarrow,
-  headingSectionCompact,
-  lead,
   gridPartners,
-  cardPartnerLink,
+  partnerLogoImg,
+  partnerLogoSlot,
+  partnerLogoSlotOnDark,
 } from "@lib/landingSectionStyles";
+
+const visiblePartners = partners.filter((p) => p.active !== false);
 ---
 
-<section class={sectionMuted}>
-  <div class={containerNarrow}>
-    <h2 class={headingSectionCompact}>Convenios y Alianzas</h2>
+{
+  visiblePartners.length > 0 ? (
+    <section class={sectionPartners} aria-label="Convenios y alianzas">
+      <div class={containerNarrow}>
+        <p
+          class="mx-auto mb-6 max-w-3xl text-center text-sm text-gray-500 sm:mb-8 sm:text-base"
+          data-animate="fade-up"
+        >
+          CEPRIJA colabora con instituciones y organismos para fortalecer la
+          formación profesional.
+        </p>
 
-    <p class={lead}>
-      Colaboramos con instituciones y empresas para ofrecer programas de alta
-      calidad.
-    </p>
-
-    <div class={gridPartners}>
-      {
-        partners.map((p) => (
-          <a
-            href={p.url}
-            target="_blank"
-            class={cardPartnerLink}
-          >
-            <img
-              src={p.logo}
-              alt={p.name}
-              class="h-12 object-contain grayscale-0 opacity-100 group-hover:grayscale group-hover:opacity-50 transition duration-300"
-            />
-          </a>
-        ))
-      }
-    </div>
-  </div>
-</section>
+        <div class={gridPartners} data-animate="fade-up" data-delay="80">
+          {visiblePartners.map((p) => {
+            const slot = p.onDark ? partnerLogoSlotOnDark : partnerLogoSlot;
+            return p.url ? (
+              <a
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class={slot}
+                title={p.name}
+              >
+                <img
+                  src={p.logo}
+                  alt={p.name}
+                  class={partnerLogoImg}
+                  loading="lazy"
+                  width="192"
+                  height="192"
+                />
+              </a>
+            ) : (
+              <span class={slot} title={p.name}>
+                <img
+                  src={p.logo}
+                  alt={p.name}
+                  class={partnerLogoImg}
+                  loading="lazy"
+                  width="192"
+                  height="192"
+                />
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  ) : null
+}
