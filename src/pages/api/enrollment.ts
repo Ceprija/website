@@ -43,6 +43,7 @@ import {
 } from "@lib/email/programAdminRecipients";
 import { getProgramPathSlug } from "@lib/programPaths";
 import { programSubmissionMeta } from "@lib/programSubmissionMeta";
+import { generacionFromNivel } from "@lib/programGeneracion";
 import { persistSubmission, logEmailAttempt, uploadSubmissionFiles } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 
@@ -303,6 +304,8 @@ export const POST: APIRoute = async ({ request }) => {
     // Extended profile fields (diplomado / maestría / doctorado / especialidad).
     // Mirrors the historical 7-step inscription form so admin records are complete.
     const trim = (raw: string | undefined) => stripControlChars((raw ?? "").trim());
+    // Always derive server-side — ignore client-posted generacion (readonly is UI-only).
+    const generacionS = generacionFromNivel(nivel) || "";
     const generoS = trim(fields.genero);
     const fechaNacimientoS = trim(fields.fechaNacimiento);
     const curpS = trim(fields.curp).toUpperCase();
@@ -666,6 +669,7 @@ export const POST: APIRoute = async ({ request }) => {
           email: emailS,
           telefono: telefonoS,
           modality,
+          generacion: generacionS,
           ...programSubmissionMeta(program),
           degrees: degrees.map(d => ({
             grado: d.grado,

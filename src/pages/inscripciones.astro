@@ -9,9 +9,15 @@ const program = Astro.url.searchParams.get("programa") || "";
 // Get juridic programs from content collection instead of legacy data
 const allPrograms = filterPublishedPrograms(await getCollection("programas"));
 const juridicPrograms = allPrograms
-    .filter(p => ["maestria", "doctorado", "especialidad"].includes(p.data.nivel))
-    .map(p => p.data.title)
-    .sort();
+    .filter((p) =>
+        ["maestria", "doctorado", "especialidad"].includes(p.data.nivel),
+    )
+    .map((p) => ({
+        title: String(p.data.title ?? ""),
+        nivel: String(p.data.nivel ?? ""),
+    }))
+    .filter((p) => p.title)
+    .sort((a, b) => a.title.localeCompare(b.title, "es"));
 ---
 
 <Layout
