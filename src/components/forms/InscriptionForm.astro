@@ -1055,12 +1055,24 @@ const initialModalities = isCivil ? modalitiesCivil : modalitiesStandard;
     document
         .querySelectorAll("input, textarea, select")
         .forEach((el: any) => {
-            if (el.type === "email" || el.type === "file" || el.type === "hidden") {
+            if (
+                el.type === "email" ||
+                el.type === "file" ||
+                el.type === "hidden" ||
+                el.type === "radio" ||
+                el.type === "checkbox"
+            ) {
                 return;
             }
             if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
                 el.addEventListener("input", (e: any) => {
-                    if (e.target.type === "email") return;
+                    if (
+                        e.target.type === "email" ||
+                        e.target.type === "radio" ||
+                        e.target.type === "checkbox"
+                    ) {
+                        return;
+                    }
                     e.target.value = e.target.value.toUpperCase();
                 });
             }
