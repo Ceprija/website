@@ -12,12 +12,22 @@ export const sectionMutedOverflow = "py-20 bg-gray-50 overflow-hidden";
 /** Contrasting band (e.g. testimonials on white) */
 export const sectionSurface = "py-20 bg-white";
 
-/** Inner width for most landing sections (replaces mixed container/max-w patterns) */
-export const containerNarrow = "max-w-6xl mx-auto px-4 sm:px-6";
+/** Same as sectionSurface when overflow must be clipped (e.g. faculty slider) */
+export const sectionSurfaceOverflow = "py-20 bg-white overflow-hidden";
+
+/**
+ * Homepage band rhythm (alternate to keep equal visual gaps):
+ * Oferta → muted | Claustro → surface | Partners → muted | Features → surface | Revista → muted
+ */
+/** Shared content width for landing sections */
+export const containerNarrow = "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8";
+
+/** Alias — same width as containerNarrow (homepage card grids, etc.) */
+export const containerWide = containerNarrow;
 
 /** Hero slide content alignment (full-height flex row) */
 export const heroContainer =
-  "relative z-20 max-w-6xl mx-auto px-4 sm:px-6 h-full flex items-center";
+  "relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center";
 
 /** Centered section title (no subtitle below) */
 export const headingSection =
@@ -47,8 +57,12 @@ export const linkSecondary =
 /** Standard 3-column grid on landing */
 export const gridThree = "grid md:grid-cols-3 gap-8";
 
-/** Partner logo grid (2 cols mobile) */
-export const gridPartners = "grid grid-cols-2 md:grid-cols-3 gap-8 justify-center";
+/** Partner logo cloud: wraps and centers; up to ~6 per row on desktop */
+export const gridPartners =
+  "flex flex-wrap justify-center items-center gap-x-6 gap-y-6 sm:gap-x-8 sm:gap-y-8";
+
+/** Compact muted band for the logo cloud (less empty gray) */
+export const sectionPartners = "py-12 bg-gray-50 sm:py-14";
 
 /** Clickable card (news list, etc.) */
 export const cardInteractive =
@@ -66,9 +80,21 @@ export const cardSchoolGlow =
 export const cardFeature =
   "bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-t-4 border-secondary group";
 
-/** Partner logo tile */
+/** @deprecated Prefer flat logo cloud; kept for any legacy partner tiles */
 export const cardPartnerLink =
   "flex items-center justify-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition group";
+
+/** Partner logo — equal square slot; assets are pre-normalized to same content scale */
+export const partnerLogoImg =
+  "h-full w-full object-contain transition-opacity group-hover:opacity-80";
+
+/** Wrapper: fixed square so every mark shares the same visual weight */
+export const partnerLogoSlot =
+  "group flex h-24 w-24 shrink-0 items-center justify-center sm:h-28 sm:w-28 md:h-32 md:w-32";
+
+/** Dark pill for white/light logos */
+export const partnerLogoSlotOnDark =
+  "group flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-primary p-2 sm:h-28 sm:w-28 md:h-32 md:w-32";
 
 /** Inline link inside program lists */
 export const linkProgramItem =

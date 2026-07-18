@@ -5,9 +5,18 @@ import { getProgramPathSlug } from "@lib/programPaths";
 interface Props {
     program: CollectionEntry<"programas">;
     index: number;
+    /** When false, hides excerpt/description (e.g. compact homepage grids). Default true. */
+    showDescription?: boolean;
+    /** Tighter typography and taller image for dense grids (e.g. homepage). Default false. */
+    compact?: boolean;
 }
 
-const { program, index } = Astro.props;
+const {
+    program,
+    index,
+    showDescription = true,
+    compact = false,
+} = Astro.props;
 const d = program.data;
 const slug = getProgramPathSlug(program);
 const href = `/oferta-academica/${slug}`;
@@ -27,6 +36,16 @@ const startDateRaw =
 const showStartDate =
     startDateRaw.length > 0 &&
     !/^por definir$/i.test(startDateRaw);
+
+const imageHeightClass = compact ? "h-36 sm:h-40" : "h-48";
+/** Reserve 3 line boxes so 1–2 line titles match 3-line cards in the grid. */
+const titleClass = compact
+    ? "text-sm sm:text-base font-bold text-primary mb-2 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]"
+    : "text-2xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif line-clamp-3 leading-snug min-h-[3lh]";
+const bodyPadClass = compact ? "p-4 sm:p-5" : "p-8";
+const metaClass = compact
+    ? "space-y-1.5 mb-4 text-xs text-gray-500"
+    : "space-y-2 mb-6 text-sm text-gray-500";
 ---
 
 <article
@@ -34,7 +53,7 @@ const showStartDate =
     data-animate="fade-up"
     data-delay={index * 100}
 >
-    <div class="h-48 relative overflow-hidden bg-gray-100">
+    <div class={`${imageHeightClass} relative overflow-hidden bg-gray-100`}>
         {
             d.image ? (
                 <img
@@ -58,21 +77,22 @@ const showStartDate =
         </div>
     </div>
 
-    <div class="p-8 flex flex-col flex-grow">
-        <h3
-            data-program-card-title
-            class="text-2xl font-bold text-primary mb-3 group-hover:text-secondary transition-colors font-serif line-clamp-3"
-        >
+    <div class={`${bodyPadClass} flex flex-col flex-grow`}>
+        <h3 data-program-card-title class={titleClass}>
             <a href={href}>{d.title}</a>
         </h3>
-        <p
-            data-program-card-excerpt
-            class="text-gray-600 mb-3 leading-relaxed line-clamp-4 break-words min-h-0"
-        >
-            {d.excerpt || d.description}
-        </p>
+        {
+            showDescription ? (
+                <p
+                    data-program-card-excerpt
+                    class="text-gray-600 mb-3 leading-relaxed line-clamp-4 break-words min-h-0"
+                >
+                    {d.excerpt || d.description}
+                </p>
+            ) : null
+        }
 
-        <div class="space-y-2 mb-6 text-sm text-gray-500">
+        <div class={metaClass}>
             <div class="flex items-center gap-2">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -133,10 +153,10 @@ const showStartDate =
             }
         </div>
 
-        <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
+        <div class={`mt-auto border-t border-gray-100 flex items-center justify-between ${compact ? "pt-4" : "pt-6"}`}>
             <a
                 href={href}
-                class="text-primary font-bold hover:text-secondary transition-colors flex items-center gap-2"
+                class={`text-primary font-bold hover:text-secondary transition-colors flex items-center gap-2 ${compact ? "text-sm" : ""}`}
             >
                 Más información
                 <svg

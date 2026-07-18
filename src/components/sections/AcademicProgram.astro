@@ -1,172 +1,89 @@
 ---
-import { escuelas } from "@data/schools";
 import { getCollection } from "astro:content";
+import ProgramOfferCard from "@components/program/ProgramOfferCard.astro";
 import {
   sectionMuted,
-  containerNarrow,
+  containerWide,
   headingSection,
-  gridThree,
-  linkProgramItem,
+  rowHeader,
+  linkSecondary,
 } from "@lib/landingSectionStyles";
-import { getProgramPathSlug } from "@lib/programPaths";
 import { filterPublishedPrograms } from "@lib/programPublished";
+import {
+  POSGRADO_NIVELES,
+  EDUCACION_CONTINUA_NIVELES,
+  pickHomePrograms,
+} from "@lib/programNiveles";
 
 const programas = filterPublishedPrograms(await getCollection("programas"));
+const posgrado = pickHomePrograms(programas, POSGRADO_NIVELES);
+const edContinua = pickHomePrograms(programas, EDUCACION_CONTINUA_NIVELES);
 
-const nivelesLabel: Record<string, string> = {
-  taller: "Talleres",
-  curso: "Cursos",
-  webinar: "Webinars",
-  seminario: "Seminarios",
-  diplomado: "Diplomados",
-  especialidad: "Especialidades",
-  maestria: "Maestrías",
-  doctorado: "Doctorados",
-};
-
-const nivelesOrder = [
-  "taller",
-  "curso",
-  "webinar",
-  "seminario",
-  "diplomado",
-  "especialidad",
-  "maestria",
-  "doctorado",
-];
-
-const programasPorEscuela = escuelas.map((escuela) => {
-  const items = programas.filter((p) => p.data.escuela === escuela.id);
-  const niveles: Record<string, typeof items> = {};
-  for (const programa of items) {
-    const nivel = programa.data.nivel;
-    if (!niveles[nivel]) niveles[nivel] = [];
-    niveles[nivel].push(programa);
-  }
-  return { ...escuela, niveles };
-});
+const blocks = [
+  {
+    id: "posgrado",
+    title: "Posgrado",
+    programs: posgrado,
+    ctaHref: "/oferta-academica",
+    ctaLabel: "Ver toda la oferta",
+  },
+  {
+    id: "educacion-continua",
+    title: "Educación Continua",
+    programs: edContinua,
+    ctaHref: "/oferta-academica",
+    ctaLabel: "Ver toda la oferta",
+  },
+].filter((s) => s.programs.length > 0);
 ---
 
-<section class={sectionMuted}>
-  <div class={containerNarrow}>
-    <h2 class={headingSection} data-animate="fade-up">
-      Nuestra Oferta Académica
-    </h2>
+{
+  blocks.length > 0 ? (
+    <section
+      class={sectionMuted}
+      aria-labelledby="home-oferta-academica-heading"
+    >
+      <div class={containerWide}>
+        <h2
+          id="home-oferta-academica-heading"
+          class={headingSection}
+          data-animate="fade-up"
+        >
+          Nuestra Oferta Académica
+        </h2>
 
-    <div class={`${gridThree} items-stretch`}>
-      {
-        programasPorEscuela.map((escuela, cardIndex) => (
-          <article
-            class="group/card relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100/80 bg-white shadow-md ring-1 ring-gray-100/60 transition-all duration-300 hover:-translate-y-1 hover:border-secondary/30 hover:shadow-xl hover:ring-secondary/20"
-            data-animate="fade-up"
-            data-delay={cardIndex * 80}
-          >
-            <div class="relative h-36 shrink-0 overflow-hidden sm:h-40">
-              <img
-                src={escuela.image}
-                alt=""
-                class="h-full w-full object-cover transition duration-700 ease-out group-hover/card:scale-105"
-                loading="lazy"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-primary via-primary/55 to-primary/20" />
-              <div class="absolute inset-x-0 bottom-0 p-4 pt-12">
-                <p class="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
-                  {escuela.id.charAt(0).toUpperCase() + escuela.id.slice(1)}
-                </p>
-                <h3 class="font-serif text-lg font-bold leading-snug text-white drop-shadow-sm sm:text-xl">
-                  {escuela.title}
-                </h3>
-              </div>
-            </div>
-
-            <div class="relative flex flex-1 flex-col gap-4 p-5 sm:p-6">
-              <p class="text-sm leading-relaxed text-gray-600">
-                {escuela.description}
-              </p>
-
-              <div class="min-h-0 flex-1 space-y-2">
-                {Object.keys(escuela.niveles).length > 0 ? (
-                  Object.entries(escuela.niveles)
-                    .sort(
-                      ([a], [b]) =>
-                        nivelesOrder.indexOf(a) - nivelesOrder.indexOf(b),
-                    )
-                    .map(([nivel, progList]) => (
-                      <details class="group/acc overflow-hidden rounded-xl border border-gray-100 bg-gray-50/80 transition-colors open:bg-white open:shadow-sm">
-                        <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 text-left outline-none hover:bg-white/90 sm:px-4 [&::-webkit-details-marker]:hidden">
-                          <span class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
-                            <span class="font-semibold text-primary text-sm">
-                              {nivelesLabel[nivel] ?? nivel}
-                            </span>
-                            <span class="text-xs font-medium text-gray-400">
-                              {progList.length}{" "}
-                              {progList.length === 1 ? "programa" : "programas"}
-                            </span>
-                          </span>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-5 w-5 shrink-0 text-secondary transition duration-200 group-open/acc:rotate-180"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </summary>
-                        <div class="space-y-0.5 border-t border-gray-100 bg-white px-2 py-2">
-                          {progList.map((programa) => (
-                            <a
-                              href={`/oferta-academica/${getProgramPathSlug(programa)}`}
-                              class:list={[
-                                linkProgramItem,
-                                "rounded-lg px-3 py-2.5 hover:bg-primary/5",
-                              ]}
-                            >
-                              <span class="line-clamp-2">
-                                {programa.data.title}
-                              </span>
-                            </a>
-                          ))}
-                        </div>
-                      </details>
-                    ))
-                ) : (
-                  <p class="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-400">
-                    Próximamente programas disponibles
-                  </p>
-                )}
-              </div>
-
-              <a
-                href={`/oferta-academica?escuela=${escuela.id}`}
-                class="mt-auto flex items-center justify-center gap-2 rounded-xl border-2 border-primary/15 bg-primary/[0.06] px-4 py-3 text-center text-sm font-bold text-primary transition hover:border-secondary/50 hover:bg-secondary/10 hover:text-primary"
-              >
-                Ver todos los programas
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4 transition group-hover/card:translate-x-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+        <div class="space-y-14">
+          {blocks.map((block) => (
+            <div aria-labelledby={`home-${block.id}-heading`}>
+              <div class={rowHeader} data-animate="fade-up">
+                <h3
+                  id={`home-${block.id}-heading`}
+                  class="text-2xl font-bold text-primary font-serif"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                  {block.title}
+                </h3>
+                <a
+                  href={block.ctaHref}
+                  class={`${linkSecondary} shrink-0 text-sm`}
+                >
+                  {block.ctaLabel}
+                </a>
+              </div>
+
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+                {block.programs.map((program, index) => (
+                  <ProgramOfferCard
+                    program={program}
+                    index={index}
+                    showDescription={false}
+                    compact={true}
                   />
-                </svg>
-              </a>
+                ))}
+              </div>
             </div>
-          </article>
-        ))
-      }
-    </div>
-  </div>
-</section>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null
+}
