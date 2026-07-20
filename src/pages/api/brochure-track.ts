@@ -1,17 +1,14 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { getCollection } from "astro:content";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
-import { getProgramPathSlug } from "@lib/programPaths";
-import { programSubmissionMeta } from "@lib/programSubmissionMeta";
-import { programIsPublished } from "@lib/programPublished";
 import {
   guardPublicPost,
   hasHoneypotValue,
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { persistSubmission } from "@lib/db/submissions";
+import { resolveBrochureDownload } from "@lib/server/resolveBrochureDownload";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s().-]{7,24}$/;
@@ -20,15 +17,6 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string"
     ? value.replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0, max)
     : "";
-}
-
-function isSafePublicPdfPath(value: string): boolean {
-  return (
-    value.startsWith("/") &&
-    value.toLowerCase().endsWith(".pdf") &&
-    !value.includes("..") &&
-    !/^\/\//.test(value)
-  );
 }
 
 /**
@@ -67,6 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
   const programTitle = clean(body?.programTitle, 180);
   const programSlug = clean(body?.programSlug, 120);
   const brochure = clean(body?.brochure, 240);
+  const landingSlug = clean(body?.landingSlug, 120) || undefined;
 
   if (!trackingRequestId) {
     return jsonResponse({ ok: false, code: "missing_tracking_request_id" }, 400, requestId);
@@ -80,35 +69,23 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  if (!isSafePublicPdfPath(brochure)) {
-    return jsonResponse({ ok: false, code: "invalid_brochure" }, 400, requestId);
-  }
+  const resolved = await resolveBrochureDownload({
+    brochure,
+    programSlug,
+    programTitle,
+    landingSlug,
+  });
 
-  const programs = await getCollection("programas");
-  const program = programs.find(
-    (entry) =>
-      getProgramPathSlug(entry) === programSlug ||
-      String(entry.data.title ?? "") === programTitle,
-  );
-  const configuredBrochure =
-    typeof program?.data.brochure === "string"
-      ? program.data.brochure.trim()
-      : "";
-
-  if (
-    !program ||
-    !programIsPublished(program) ||
-    configuredBrochure !== brochure ||
-    !isSafePublicPdfPath(configuredBrochure)
-  ) {
-    apiLog("warn", route, "brochure_program_mismatch", {
+  if (!resolved.ok) {
+    apiLog("warn", route, resolved.code, {
       requestId,
       trackingRequestId,
       programSlug,
+      landingSlug,
       brochure,
-      code: "brochure_program_mismatch",
+      code: resolved.code,
     });
-    return jsonResponse({ ok: false, code: "brochure_program_mismatch" }, 400, requestId);
+    return jsonResponse({ ok: false, code: resolved.code }, 400, requestId);
   }
 
   const submission = await persistSubmission(
@@ -118,10 +95,15 @@ export const POST: APIRoute = async ({ request }) => {
       personKind: "lead",
       email,
       phone,
-      programSlug,
-      programTitle,
+      programSlug: resolved.programSlug,
+      programTitle: resolved.programTitle,
       apiRoute: "POST /api/brochure-download",
-      payload: { name, message: message || null, brochure, ...programSubmissionMeta(program) },
+      payload: {
+        name,
+        message: message || null,
+        brochure: resolved.brochure,
+        ...resolved.meta,
+      },
       ip:
         request.headers.get("x-forwarded-for") ||
         request.headers.get("x-real-ip") ||
@@ -136,11 +118,10 @@ export const POST: APIRoute = async ({ request }) => {
     apiLog("warn", route, "school_hub_persist_failed", {
       requestId,
       trackingRequestId,
-      programSlug,
+      programSlug: resolved.programSlug,
     });
     return jsonResponse({ ok: false, code: "school_hub_persist_failed" }, 503, requestId);
   }
 
   return jsonResponse({ ok: true }, 200, requestId);
 };
-

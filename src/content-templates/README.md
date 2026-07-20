@@ -5,6 +5,7 @@ Esta carpeta **no** forma parte de las [content collections](https://docs.astro.
 - Contenido publicado: copia el frontmatter (y el cuerpo, en revista) a:
   - `src/content/programas/*.md`
   - `src/content/revista/*.md`
+  - `src/content/landings/*.md` (Meta Ads → `/landing/{archivo}`; **self-contained** display copy — independent of `programas`; only `programSlug` links to Septiembre CTA / CRM; ver `landings/TEMPLATE.md`)
 - Esquema y tipos: `src/content.config.ts`
 - **YAML y campos opcionales:** varias claves de texto (p. ej. `rvoe`, `registroAcademico`, `date`, datos de ficha extendida) se pueden **omitir**, dejar **vacías** o poner explícitamente `null` en YAML; el build las normaliza a “sin valor” para que un solo campo vacío no rompa `astro dev`. Los campos que siguen siendo obligatorios aparecen como `z.string()` (sin `optional`) en `content.config.ts`.
 - **Ruta del programa:** Astro toma el campo `slug` del frontmatter como segmento de URL. Si se omite, usa el nombre del archivo (`curso-foo.md` → `/oferta-academica/curso-foo`). Con `slug` explícito se puede cambiar la URL sin renombrar el archivo. El build falla si dos programas comparten el mismo slug (ver `validateUniqueSlugs`).

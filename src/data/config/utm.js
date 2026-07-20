@@ -23,6 +23,9 @@ export const utmConfig = {
         // Botones y enlaces marcados específicamente para el rastreo
         'a[data-utm="true"]',
 
+        // Ads landings → Septiembre interest form
+        'a[href*="/inscripciones-septiembre-2026"]',
+
         // Enlaces de WhatsApp
         'a[href*="wa.me"]',
         'a[href*="api.whatsapp.com"]',

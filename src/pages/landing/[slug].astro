@@ -1,0 +1,90 @@
+---
+import { getCollection } from "astro:content";
+import { readdir } from "node:fs/promises";
+import { extname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import AdsProgramLanding from "../../components/ads/AdsProgramLanding.astro";
+import { SEPTIEMBRE_2026_SLUG_TO_TITLE } from "@lib/septiembre2026Programs";
+
+export async function getStaticPaths() {
+  const landings = await getCollection("landings");
+
+  return landings
+    .filter((landing) => landing.data.status === "active")
+    .map((landing) => {
+      if (!(landing.data.programSlug in SEPTIEMBRE_2026_SLUG_TO_TITLE)) {
+        throw new Error(
+          `Landing "${landing.id}" has programSlug "${landing.data.programSlug}" which is not in the Septiembre 2026 form map. Fix the slug or add it to septiembre2026Programs.ts.`,
+        );
+      }
+      return {
+        params: { slug: landing.id },
+        props: { landing },
+      };
+    });
+}
+
+const { landing } = Astro.props;
+
+const publicDirectory = fileURLToPath(new URL("../../../public", import.meta.url));
+const galleryImageExtensions = new Set([
+  ".webp",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".avif",
+]);
+
+async function getGalleryFolderItems(
+  folderPath: unknown,
+  programTitle: string,
+): Promise<{ src: string; alt: string }[]> {
+  const raw = typeof folderPath === "string" ? folderPath.trim() : "";
+  if (!raw) return [];
+  const normalizedFolder = raw.replace(/^\/+/, "").replace(/\/+$/, "");
+  const absoluteFolder = join(publicDirectory, normalizedFolder);
+  const relativeFolder = relative(publicDirectory, absoluteFolder);
+  if (
+    relativeFolder.startsWith("..") ||
+    relativeFolder.split(sep).includes("..")
+  ) {
+    return [];
+  }
+
+  try {
+    const entries = await readdir(absoluteFolder, { withFileTypes: true });
+    return entries
+      .filter(
+        (entry) =>
+          entry.isFile() &&
+          galleryImageExtensions.has(extname(entry.name).toLowerCase()),
+      )
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      )
+      .map((entry, index) => ({
+        src: `/${normalizedFolder}/${entry.name}`.replace(/\/{2,}/g, "/"),
+        alt: `${programTitle} - imagen ${index + 1}`,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+const explicitGallery = Array.isArray(landing.data.gallery)
+  ? landing.data.gallery.map((item, index) => ({
+      src: item.src,
+      alt: item.alt || `${landing.data.title} - imagen ${index + 1}`,
+    }))
+  : [];
+
+const folderGallery = await getGalleryFolderItems(
+  landing.data.galleryFolder,
+  landing.data.title,
+);
+
+const galleryImages = [...explicitGallery, ...folderGallery];
+---
+
+<AdsProgramLanding landing={landing} galleryImages={galleryImages} />

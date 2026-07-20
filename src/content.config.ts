@@ -229,7 +229,7 @@ const docentes = defineCollection({
      * `position_laboral` + listas si estos campos no existen).
      */
     cargo_intro: optionalYamlString(),
-    /** Bloque “Área de Especialidad” (texto corrido). */
+    /** Bloque “Área de Especialidad” en la ficha. */
     area_especialidad: optionalYamlString(),
     /** Bloque “Hito Profesional” (texto corrido). */
     hito_profesional: optionalYamlString(),
@@ -260,8 +260,57 @@ const docentes = defineCollection({
   }),
 });
 
+/**
+ * Meta Ads landings at `/landing/{id}`.
+ * Display copy/assets live here (independent of `programas`).
+ * `programSlug` is only for Septiembre CTA preselect + CRM attribution.
+ */
+const landings = defineCollection({
+  loader: glob({ pattern: "*.md", base: "./src/content/landings" }),
+  schema: z.object({
+    programSlug: z.string().min(1),
+    status: z.enum(["active", "draft"]).default("active"),
+    title: z.string().min(1),
+    excerpt: z.string().min(1),
+    description: z.string().min(1),
+    image: z.string().min(1),
+    nivelLabel: z.string().min(1),
+    startDate: z.string().min(1),
+    duracion: z.string().min(1),
+    modalidad: z.string().min(1),
+    includes: z.array(z.string()).default([]),
+    faqs: z
+      .array(
+        z.object({
+          q: z.string().min(1),
+          a: z.string().min(1),
+        }),
+      )
+      .default([]),
+    horario: optionalYamlString(),
+    rvoe: optionalYamlString(),
+    profile: optionalYamlString(),
+    profileAudience: optionalYamlString(),
+    fieldOfWork: optionalYamlString(),
+    curriculumTitle: optionalYamlString(),
+    galleryFolder: optionalYamlString(),
+    gallery: z
+      .array(
+        z.object({
+          src: z.string(),
+          alt: z.string().optional(),
+        }),
+      )
+      .optional(),
+    brochure: optionalPublicPdfPath(),
+    seoTitle: optionalYamlString(),
+    seoDescription: optionalYamlString(),
+  }),
+});
+
 export const collections = {
   revista,
   programas,
-  docentes
+  docentes,
+  landings,
 };

@@ -24,17 +24,13 @@ import {
 } from "@lib/validation/enrollment";
 import { MAX_FULL_NAME_LEN, TEXT_MAX_LENGTH_BY_NAME } from "@lib/validation/formFieldLimits";
 import { isValidPhone } from "@lib/validation/phone";
+import { SEPTIEMBRE_2026_PROGRAMS } from "@lib/septiembre2026Programs";
 import crypto from "node:crypto";
 
 const CAMPAIGN = "septiembre_2026";
 const START_CYCLE = "Septiembre 2026";
 
-const ALLOWED_PROGRAMS = [
-  "Maestría en Derecho Internacional de Derechos Humanos y Litigio Estratégico",
-  "Especialidad en Criminalística y Ciencias Forenses",
-  "Maestría en Derecho Civil y Familiar",
-  "Doctorado en Derecho Procesal y Sistemas Contemporáneos",
-] as const;
+const ALLOWED_PROGRAMS = SEPTIEMBRE_2026_PROGRAMS;
 
 function clean(value: unknown, max: number): string {
   return typeof value === "string"

@@ -107,7 +107,8 @@ export default defineConfig({
     tailwind(),
     sitemap({
       filter: (page) =>
-        !page.includes("/educacion-continua-inscripciones"),
+        !page.includes("/educacion-continua-inscripciones") &&
+        !page.includes("/landing/"),
     }),
     partytown({
       config: {
