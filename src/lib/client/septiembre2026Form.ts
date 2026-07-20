@@ -2,6 +2,7 @@ import {
   reportStepValidationFailure,
   validateStepSection,
 } from "@lib/client/multiStepFormValidation";
+import { resolveSeptiembre2026Program } from "@lib/septiembre2026Programs";
 
 function queryInput(form: HTMLFormElement, selector: string): HTMLInputElement | null {
   const el = form.querySelector(selector);
@@ -32,6 +33,24 @@ function readFormConfig(form: HTMLFormElement): {
   }
 }
 
+function preselectProgramFromQuery(
+  form: HTMLFormElement,
+  allowedPrograms: readonly string[],
+): void {
+  const params = new URLSearchParams(window.location.search);
+  const match = resolveSeptiembre2026Program(params.get("programa"));
+  if (!match || !allowedPrograms.includes(match)) return;
+
+  const select = querySelect(form, "#program");
+  if (!select) return;
+
+  select.value = match;
+  const placeholder = select.querySelector('option[value=""]');
+  if (placeholder instanceof HTMLOptionElement) {
+    placeholder.selected = false;
+  }
+}
+
 export function initSeptember2026Form(): void {
   const form = document.getElementById("septiembre-2026-form");
   if (!(form instanceof HTMLFormElement)) return;
@@ -43,6 +62,8 @@ export function initSeptember2026Form(): void {
   }
 
   const { allowedPrograms, startCycle } = config;
+
+  preselectProgramFromQuery(form, allowedPrograms);
 
   const statusDiv = document.getElementById("septiembre-2026-status");
   const submitBtn = document.getElementById("septiembre-2026-submit");

@@ -1,0 +1,122 @@
+---
+/**
+ * Chrome-light layout for Meta Ads landings.
+ * No site Header/Footer — not linked from organic nav. Includes analytics + UTM.
+ */
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+import WhatsAppButton from "../components/integrations/WhatsAppButton.astro";
+import AnalyticsHead from "../components/integrations/AnalyticsHead.astro";
+import AnalyticsBody from "../components/integrations/AnalyticsBody.astro";
+import CookieBanner from "../components/integrations/CookieBanner.astro";
+import UtmTracker from "../components/integrations/UtmTracker.astro";
+import { seoConfig } from "../data/config/seo";
+import "../styles/animations.css";
+import "@fontsource/ibm-plex-sans/100.css";
+import "@fontsource/ibm-plex-sans/200.css";
+import "@fontsource/ibm-plex-sans/300.css";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans/700.css";
+import "@fontsource/merriweather/300.css";
+import "@fontsource/merriweather/400.css";
+import "@fontsource/merriweather/700.css";
+import "@fontsource/merriweather/900.css";
+import "@fontsource/merriweather/300-italic.css";
+import "@fontsource/merriweather/400-italic.css";
+import "@fontsource/merriweather/700-italic.css";
+import "@fontsource/merriweather/900-italic.css";
+
+const {
+  title: propTitle,
+  description: propDesc,
+  image: propImage,
+} = Astro.props;
+
+const defaults = seoConfig.default;
+const title = propTitle || defaults.title;
+const description = propDesc || defaults.description;
+const image = propImage || defaults.image;
+const absoluteImage = new URL(image, Astro.site).toString();
+
+function clampMeta(value: string, max = 160): string {
+  const compact = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (compact.length <= max) return compact;
+  const sliced = compact.slice(0, max - 1).trimEnd();
+  return `${sliced.replace(/[,.:-]\s*$/, "")}…`;
+}
+
+const metaDescription = clampMeta(description);
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="facebook-domain-verification"
+      content="17ldzfe9plshw9doccg4mxgywf0e9o"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/images/branding/logos/favicon.svg"
+    />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={metaDescription} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:image" content={absoluteImage} />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={metaDescription} />
+    <meta property="twitter:image" content={absoluteImage} />
+
+    <AnalyticsHead />
+    <slot name="head" />
+  </head>
+  <body
+    class="bg-white text-gray-900 font-sans antialiased flex flex-col min-h-screen"
+  >
+    <AnalyticsBody />
+    <div class="flex-grow">
+      <slot />
+    </div>
+    <WhatsAppButton />
+    <CookieBanner />
+    <UtmTracker />
+    <script>
+      const observerOptions = {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.1,
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll("[data-animate]").forEach((el) => {
+        observer.observe(el);
+      });
+    </script>
+  </body>
+</html>

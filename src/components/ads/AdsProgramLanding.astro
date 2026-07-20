@@ -1,0 +1,551 @@
+---
+import AdsLandingLayout from "../../layouts/AdsLandingLayout.astro";
+import AdsLandingCta from "./AdsLandingCta.astro";
+import BrochureLeadModal from "../forms/BrochureLeadModal.astro";
+import { images } from "@lib/assets";
+import { buildSeptiembre2026CtaHref } from "@lib/septiembre2026Programs";
+import {
+  adsProse,
+  adsProseClosing,
+  adsProseFaq,
+  adsProseHero,
+  adsProseMuted,
+} from "@lib/adsLandingStyles";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  landing: CollectionEntry<"landings">;
+  galleryImages: { src: string; alt: string }[];
+}
+
+const { landing, galleryImages } = Astro.props;
+const data = landing.data;
+const programSlug = data.programSlug;
+const title = data.title;
+const ctaHref = buildSeptiembre2026CtaHref(programSlug);
+const brochure =
+  typeof data.brochure === "string" && data.brochure.trim()
+    ? data.brochure.trim()
+    : "";
+
+const horarioKnown =
+  typeof data.horario === "string" &&
+  data.horario.trim() !== "" &&
+  !/^por confirmar$/i.test(data.horario.trim());
+
+const includes = Array.isArray(data.includes) ? data.includes : [];
+const faqs = Array.isArray(data.faqs) ? data.faqs : [];
+---
+
+<AdsLandingLayout
+  title={data.seoTitle || `${title} | Inicio ${data.startDate} | CEPRIJA`}
+  description={data.seoDescription || data.excerpt || data.description}
+  image={data.image}
+>
+  <div class="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
+    <div
+      class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6"
+    >
+      <img src={images.logosvg} alt="CEPRIJA" class="h-9 w-auto sm:h-10" />
+      <a
+        href={ctaHref}
+        data-utm="true"
+        class="shrink-0 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-primary transition hover:bg-yellow-400 sm:px-5"
+      >
+        Quiero inscribirme →
+      </a>
+    </div>
+  </div>
+
+  <section class="relative min-h-[88vh] overflow-hidden text-white">
+    <img
+      src={data.image}
+      alt=""
+      class="absolute inset-0 h-full w-full object-cover"
+      fetchpriority="high"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/55"
+    >
+    </div>
+    <div
+      class="relative z-10 mx-auto flex min-h-[88vh] max-w-6xl flex-col items-center justify-center px-4 py-20 text-center sm:px-6"
+    >
+      <p
+        class="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-secondary"
+        data-animate="fade-up"
+        data-delay="50"
+      >
+        {data.nivelLabel} · Ciclo {data.startDate}
+      </p>
+      <h1
+        class="max-w-3xl font-serif text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl"
+        data-animate="fade-up"
+        data-delay="100"
+      >
+        {title}
+      </h1>
+      <p class:list={["mt-6 max-w-2xl", adsProseHero]} data-animate="fade-up" data-delay="150">
+        {data.excerpt}
+      </p>
+      <div
+        class="mt-10 flex flex-wrap items-center justify-center gap-4"
+        data-animate="fade-up"
+        data-delay="200"
+      >
+        <AdsLandingCta programa={programSlug} label="Quiero inscribirme" />
+        <a
+          href="#incluye"
+          class="text-sm font-semibold text-white/90 underline-offset-4 hover:underline"
+        >
+          Qué incluye ↓
+        </a>
+      </div>
+      <dl
+        class:list={["mt-12 flex flex-wrap justify-center gap-x-8 gap-y-3", adsProseMuted]}
+        data-animate="fade-up"
+        data-delay="250"
+      >
+        <div>
+          <dt class="sr-only">Duración</dt>
+          <dd>{data.duracion}</dd>
+        </div>
+        <div>
+          <dt class="sr-only">Modalidad</dt>
+          <dd>{data.modalidad}</dd>
+        </div>
+        {
+          data.rvoe ? (
+            <div>
+              <dt class="sr-only">RVOE</dt>
+              <dd>RVOE {data.rvoe}</dd>
+            </div>
+          ) : null
+        }
+      </dl>
+    </div>
+  </section>
+
+  <section class="bg-white py-20">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+      <div class="mx-auto max-w-3xl text-center">
+        <p
+          class="text-sm font-semibold uppercase tracking-widest text-secondary"
+          data-animate="fade-up"
+        >
+          El programa
+        </p>
+        <h2
+          class="mt-3 font-serif text-3xl font-bold text-primary sm:text-4xl"
+          data-animate="fade-up"
+        >
+          {title}
+        </h2>
+        <p class:list={["mt-6", adsProse]} data-animate="fade-up">
+          {data.description}
+        </p>
+      </div>
+      <div
+        class="mx-auto mt-14 grid max-w-4xl gap-10 md:grid-cols-2"
+        data-animate="fade-up"
+      >
+        {
+          data.profile ? (
+            <div>
+              <h3 class="font-serif text-xl font-bold text-primary">
+                Perfil de egreso
+              </h3>
+              <p class:list={["mt-3", adsProse]}>{data.profile}</p>
+            </div>
+          ) : null
+        }
+        {
+          data.fieldOfWork ? (
+            <div>
+              <h3 class="font-serif text-xl font-bold text-primary">
+                Campo de trabajo
+              </h3>
+              <p class:list={["mt-3", adsProse]}>{data.fieldOfWork}</p>
+            </div>
+          ) : null
+        }
+      </div>
+      <div class="mt-12 flex justify-center" data-animate="fade-up">
+        <AdsLandingCta programa={programSlug} />
+      </div>
+    </div>
+  </section>
+
+  <section id="incluye" class="scroll-mt-24 bg-primary py-20 text-white">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+      <div class="mx-auto max-w-3xl text-center">
+        <p
+          class="text-sm font-semibold uppercase tracking-widest text-secondary"
+          data-animate="fade-up"
+        >
+          Contenido
+        </p>
+        <h2
+          class="mt-3 font-serif text-3xl font-bold sm:text-4xl"
+          data-animate="fade-up"
+        >
+          ¿Qué incluye el programa?
+        </h2>
+      </div>
+      <ul
+        class="mx-auto mt-12 grid max-w-4xl gap-4 sm:grid-cols-2"
+        data-animate="fade-up"
+      >
+        {
+          includes.map((item) => (
+            <li class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"
+              ></span>
+              <span>{item}</span>
+            </li>
+          ))
+        }
+        <li
+          class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95"
+        >
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"></span>
+          <span>Duración: {data.duracion}</span>
+        </li>
+        <li
+          class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95"
+        >
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"></span>
+          <span>Modalidad: {data.modalidad}</span>
+        </li>
+        <li
+          class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95"
+        >
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"></span>
+          <span>Inicio: {data.startDate}</span>
+        </li>
+        {
+          horarioKnown ? (
+            <li class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"
+              ></span>
+              <span>Horario: {data.horario}</span>
+            </li>
+          ) : null
+        }
+        {
+          data.rvoe ? (
+            <li class="flex gap-3 border-b border-white/15 pb-4 text-left text-base md:text-lg leading-relaxed text-white/95">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-secondary"
+              ></span>
+              <span>RVOE {data.rvoe}</span>
+            </li>
+          ) : null
+        }
+      </ul>
+      <div
+        class="mt-12 flex flex-wrap justify-center gap-4"
+        data-animate="fade-up"
+      >
+        <AdsLandingCta
+          programa={programSlug}
+          label="Solicitar información"
+          variant="secondary"
+        />
+        {
+          brochure ? (
+            <button
+              type="button"
+              data-brochure-open
+              class="inline-flex items-center justify-center rounded-full border-2 border-white/40 px-8 py-4 text-lg font-bold text-white transition hover:border-white hover:bg-white/10"
+            >
+              Descargar brochure
+            </button>
+          ) : null
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    data.profileAudience ? (
+      <section class="bg-gray-50 py-20">
+        <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2
+            class="font-serif text-3xl font-bold text-primary sm:text-4xl"
+            data-animate="fade-up"
+          >
+            ¿A quién va dirigido?
+          </h2>
+          <p class:list={["mt-6", adsProse]} data-animate="fade-up">
+            {data.profileAudience}
+          </p>
+          <div class="mt-10 flex justify-center" data-animate="fade-up">
+            <AdsLandingCta
+              programa={programSlug}
+              label="Solicitar información"
+            />
+          </div>
+        </div>
+      </section>
+    ) : null
+  }
+
+  {
+    galleryImages.length > 0 ? (
+      <section class="overflow-hidden bg-gray-50 py-20">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6">
+          <div class="mx-auto max-w-3xl text-center">
+            <p
+              class="text-sm font-semibold uppercase tracking-widest text-secondary"
+              data-animate="fade-up"
+            >
+              Plan de estudios
+            </p>
+            <h2
+              class="mt-3 font-serif text-3xl font-bold text-primary sm:text-4xl"
+              data-animate="fade-up"
+            >
+              {data.curriculumTitle || "Plan de estudios"}
+            </h2>
+          </div>
+
+          <div class="relative mt-14" data-animate="fade-up">
+            <div class="swiper ads-curriculum-swiper !pb-12">
+              <div class="swiper-wrapper">
+                {galleryImages.map((img) => (
+                  <div class="swiper-slide !h-auto">
+                    <figure class="overflow-hidden px-1">
+                      <img
+                        src={img.src}
+                        alt={img.alt}
+                        class="h-auto w-full object-cover"
+                        loading="lazy"
+                      />
+                    </figure>
+                  </div>
+                ))}
+              </div>
+              <div class="swiper-pagination ads-curriculum-pagination" />
+            </div>
+            <button
+              type="button"
+              class="ads-curriculum-prev absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white p-2.5 text-primary shadow-md ring-1 ring-gray-200 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:-translate-x-full"
+              aria-label="Temario anterior"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="ads-curriculum-next absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2 rounded-full bg-white p-2.5 text-primary shadow-md ring-1 ring-gray-200 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:translate-x-full"
+              aria-label="Temario siguiente"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div class="mt-12 flex justify-center" data-animate="fade-up">
+            <AdsLandingCta programa={programSlug} label="Quiero ser parte" />
+          </div>
+        </div>
+      </section>
+    ) : null
+  }
+
+  {
+    galleryImages.length > 0 ? (
+      <>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+        />
+        <script
+          is:inline
+          src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"
+        />
+        <script is:inline>
+          function initAdsCurriculumSlider() {
+            const swiperEl = document.querySelector(".ads-curriculum-swiper");
+            if (
+              !swiperEl ||
+              typeof Swiper === "undefined" ||
+              swiperEl.dataset.swiperReady === "1"
+            ) {
+              return;
+            }
+            swiperEl.dataset.swiperReady = "1";
+
+            new Swiper(".ads-curriculum-swiper", {
+              slidesPerView: 1,
+              spaceBetween: 24,
+              rewind: true,
+              watchOverflow: true,
+              navigation: {
+                prevEl: ".ads-curriculum-prev",
+                nextEl: ".ads-curriculum-next",
+              },
+              pagination: {
+                el: ".ads-curriculum-pagination",
+                clickable: true,
+              },
+              breakpoints: {
+                768: { slidesPerView: 2 },
+              },
+            });
+          }
+
+          document.addEventListener(
+            "DOMContentLoaded",
+            initAdsCurriculumSlider,
+          );
+          document.addEventListener(
+            "astro:page-load",
+            initAdsCurriculumSlider,
+          );
+        </script>
+        <style>
+          .ads-curriculum-swiper :global(.swiper-pagination-bullet-active) {
+            background: theme("colors.primary");
+          }
+        </style>
+      </>
+    ) : null
+  }
+
+  <section class="relative overflow-hidden bg-primary py-24 text-white">
+    <div
+      class="pointer-events-none absolute inset-0 opacity-30"
+      style={`background-image: url('${data.image}'); background-size: cover; background-position: center;`}
+    >
+    </div>
+    <div class="absolute inset-0 bg-black/55"></div>
+    <div class="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <p
+        class="text-sm font-semibold uppercase tracking-widest text-secondary"
+        data-animate="fade-up"
+      >
+        Ciclo {data.startDate}
+      </p>
+      <h2
+        class="mt-4 font-serif text-3xl font-bold sm:text-5xl"
+        data-animate="fade-up"
+      >
+        Inicia en {data.startDate}
+      </h2>
+      <p class:list={["mt-6", adsProseHero]} data-animate="fade-up">
+        Deja tus datos en el formulario corto. Un asesor de CEPRIJA te
+        contactará para guiarte en tu inscripción — sin pago en esta página.
+      </p>
+      <div class="mt-10 flex justify-center" data-animate="fade-up">
+        <AdsLandingCta
+          programa={programSlug}
+          label="Quiero inscribirme"
+          size="lg"
+        />
+      </div>
+      <p class:list={["mt-6", adsProseMuted]} data-animate="fade-up">
+        {data.duracion} · {data.modalidad}
+        {data.rvoe ? ` · RVOE ${data.rvoe}` : ""}
+      </p>
+    </div>
+  </section>
+
+  {
+    faqs.length > 0 ? (
+      <section class="bg-white py-20">
+        <div class="mx-auto max-w-3xl px-4 sm:px-6">
+          <h2
+            class="text-center font-serif text-3xl font-bold text-primary sm:text-4xl"
+            data-animate="fade-up"
+          >
+            Preguntas frecuentes
+          </h2>
+          <div class="mt-12 space-y-4">
+            {faqs.map((faq, i) => (
+              <details
+                class="group border-b border-gray-200 py-4"
+                data-animate="fade-up"
+                data-delay={String(i * 30)}
+              >
+                <summary class="cursor-pointer list-none font-semibold text-primary marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span class="flex items-center justify-between gap-4">
+                    {faq.q}
+                    <span class="text-secondary transition group-open:rotate-45"
+                      >+</span
+                    >
+                  </span>
+                </summary>
+                <p class={adsProseFaq}>{faq.a}</p>
+              </details>
+            ))}
+          </div>
+          <div class="mt-12 flex justify-center" data-animate="fade-up">
+            <AdsLandingCta programa={programSlug} />
+          </div>
+        </div>
+      </section>
+    ) : null
+  }
+
+  <section class="border-t border-gray-100 bg-gray-50 py-16">
+    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <img
+        src={images.logosvg}
+        alt="CEPRIJA"
+        class="mx-auto mb-6 h-10 w-auto"
+      />
+      <h2 class="font-serif text-2xl font-bold text-primary sm:text-3xl">
+        {title}
+      </h2>
+      <p class={adsProseClosing}>
+        Ciclo {data.startDate}. Completa el registro corto y un asesor te
+        contactará.
+      </p>
+      <div class="mt-8 flex justify-center">
+        <AdsLandingCta programa={programSlug} label="¡Quiero inscribirme!" />
+      </div>
+      <p class="mt-10 text-xs text-gray-400">
+        Centro de Preparación Integral en Materia Jurídica y Administrativa ·
+        CEPRIJA
+      </p>
+    </div>
+  </section>
+
+  {
+    brochure ? (
+      <BrochureLeadModal
+        programTitle={title}
+        programSlug={programSlug}
+        brochure={brochure}
+        landingSlug={landing.id}
+      />
+    ) : null
+  }
+</AdsLandingLayout>

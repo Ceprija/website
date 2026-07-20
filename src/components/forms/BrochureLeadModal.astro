@@ -1,0 +1,172 @@
+---
+interface Props {
+  programTitle: string;
+  programSlug: string;
+  brochure: string;
+  /** When set, API validates brochure against the landings collection. */
+  landingSlug?: string;
+}
+
+const { programTitle, programSlug, brochure, landingSlug } = Astro.props;
+---
+
+<div
+  id="brochure-modal"
+  class="fixed inset-0 z-50 flex pointer-events-none items-center justify-center bg-black/60 px-4 py-8 opacity-0 transition-opacity duration-200 ease-out"
+  aria-hidden="true"
+  inert
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="brochure-modal-title"
+  aria-describedby="brochure-modal-description"
+>
+  <div
+    class="relative w-full max-w-xl scale-95 rounded-3xl bg-white p-6 opacity-0 shadow-2xl transition-all duration-200 ease-out md:p-8"
+    data-modal-panel
+  >
+    <button
+      type="button"
+      id="brochure-modal-close"
+      class="absolute right-4 top-4 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+      aria-label="Cerrar"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        ></path>
+      </svg>
+    </button>
+
+    <h2
+      id="brochure-modal-title"
+      class="mb-2 pr-8 font-serif text-2xl font-bold text-primary"
+    >
+      Descarga el brochure
+    </h2>
+    <p id="brochure-modal-description" class="mb-6 text-sm text-gray-600">
+      Déjanos tus datos para enviarte seguimiento personalizado. Al enviar el
+      formulario se iniciará la descarga del PDF.
+    </p>
+
+    <form
+      id="brochure-lead-form"
+      class="space-y-4"
+      data-program-title={programTitle}
+      data-program-slug={programSlug}
+      data-brochure={brochure}
+      data-landing-slug={landingSlug ?? ""}
+    >
+      <input
+        type="text"
+        name="website"
+        autocomplete="off"
+        tabindex="-1"
+        class="sr-only"
+        aria-hidden="true"
+      />
+      <div>
+        <label
+          class="mb-2 block text-sm font-semibold text-gray-700"
+          for="brochure-name"
+        >
+          Nombre completo *
+        </label>
+        <input
+          id="brochure-name"
+          name="name"
+          type="text"
+          required
+          class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+          placeholder="Tu nombre"
+        />
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label
+            class="mb-2 block text-sm font-semibold text-gray-700"
+            for="brochure-email"
+          >
+            Correo electrónico *
+          </label>
+          <input
+            id="brochure-email"
+            name="email"
+            type="email"
+            required
+            class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+            placeholder="tu@email.com"
+          />
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-sm font-semibold text-gray-700"
+            for="brochure-phone"
+          >
+            Teléfono *
+          </label>
+          <input
+            id="brochure-phone"
+            name="phone"
+            type="tel"
+            required
+            class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+            placeholder="33 0000 0000"
+          />
+        </div>
+      </div>
+      <div>
+        <label
+          class="mb-2 block text-sm font-semibold text-gray-700"
+          for="brochure-message"
+        >
+          Mensaje
+        </label>
+        <textarea
+          id="brochure-message"
+          name="message"
+          rows="3"
+          class="w-full rounded-xl border-2 border-gray-100 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+          placeholder="Cuéntanos si tienes alguna duda"
+        ></textarea>
+      </div>
+      <p
+        id="brochure-form-status"
+        class="hidden rounded-xl px-4 py-3 text-sm"
+        role="status"
+      >
+      </p>
+      <button
+        type="submit"
+        id="brochure-submit"
+        class="w-full rounded-xl bg-secondary px-6 py-3 font-bold text-primary shadow-lg transition-colors hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        Enviar y descargar
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { initBrochureLeadModal } from "@lib/client/brochureLeadForm";
+
+  function boot() {
+    initBrochureLeadModal({
+      isOtherModalOpen: () =>
+        document
+          .getElementById("enrollment-modal")
+          ?.getAttribute("aria-hidden") === "false",
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", boot);
+  document.addEventListener("astro:page-load", boot);
+</script>

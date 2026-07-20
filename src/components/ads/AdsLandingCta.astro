@@ -1,0 +1,32 @@
+---
+import Button from "../ui/Button.astro";
+import { buildSeptiembre2026CtaHref } from "@lib/septiembre2026Programs";
+
+interface Props {
+  programa: string;
+  label?: string;
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "white";
+  size?: "sm" | "md" | "lg";
+  class?: string;
+}
+
+const {
+  programa,
+  label = "Quiero inscribirme",
+  variant = "secondary",
+  size = "lg",
+  class: className = "",
+} = Astro.props;
+
+const href = buildSeptiembre2026CtaHref(programa);
+---
+
+<Button
+  href={href}
+  variant={variant}
+  size={size}
+  class={className}
+  data-utm="true"
+>
+  {label}
+</Button>

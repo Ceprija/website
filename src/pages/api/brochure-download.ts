@@ -1,13 +1,9 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { getCollection } from "astro:content";
 import { SMTP_FROM } from "astro:env/server";
 import { escapeHtml } from "@lib/htmlEscape";
 import { apiLog, getRequestId, jsonResponse } from "@lib/server/apiRequestLog";
-import { getProgramPathSlug } from "@lib/programPaths";
-import { programSubmissionMeta } from "@lib/programSubmissionMeta";
-import { programIsPublished } from "@lib/programPublished";
 import {
   guardPublicPost,
   hasHoneypotValue,
@@ -17,6 +13,7 @@ import { sendBrevoEmail } from "@lib/email/brevoClient";
 import { programAdminRecipients } from "@lib/email/programAdminRecipients";
 import { sanitizeEmailSubjectLine } from "@lib/email/outboundMailGuards";
 import { persistSubmission, recordEmailAttempt } from "@lib/db/submissions";
+import { resolveBrochureDownload } from "@lib/server/resolveBrochureDownload";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s().-]{7,24}$/;
@@ -25,15 +22,6 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string"
     ? value.replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0, max)
     : "";
-}
-
-function isSafePublicPdfPath(value: string): boolean {
-  return (
-    value.startsWith("/") &&
-    value.toLowerCase().endsWith(".pdf") &&
-    !value.includes("..") &&
-    !/^\/\//.test(value)
-  );
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -65,6 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
   const programTitle = clean(body?.programTitle, 180);
   const programSlug = clean(body?.programSlug, 120);
   const brochure = clean(body?.brochure, 240);
+  const landingSlug = clean(body?.landingSlug, 120) || undefined;
 
   if (!trackingRequestId) {
     return jsonResponse(
@@ -85,44 +74,25 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  if (!isSafePublicPdfPath(brochure)) {
-    return jsonResponse(
-      {
-        error: "Brochure no válido.",
-        code: "invalid_brochure",
-      },
-      400,
-      requestId,
-    );
-  }
+  const resolved = await resolveBrochureDownload({
+    brochure,
+    programSlug,
+    programTitle,
+    landingSlug,
+  });
 
-  const programs = await getCollection("programas");
-  const program = programs.find(
-    (entry) =>
-      getProgramPathSlug(entry) === programSlug ||
-      String(entry.data.title ?? "") === programTitle,
-  );
-  const configuredBrochure =
-    typeof program?.data.brochure === "string"
-      ? program.data.brochure.trim()
-      : "";
-
-  if (
-    !program ||
-    !programIsPublished(program) ||
-    configuredBrochure !== brochure ||
-    !isSafePublicPdfPath(configuredBrochure)
-  ) {
-    apiLog("warn", route, "brochure_program_mismatch", {
+  if (!resolved.ok) {
+    apiLog("warn", route, resolved.code, {
       requestId,
       programSlug,
+      landingSlug,
       brochure,
-      code: "brochure_program_mismatch",
+      code: resolved.code,
     });
     return jsonResponse(
       {
         error: "Brochure no disponible para este programa.",
-        code: "brochure_program_mismatch",
+        code: resolved.code,
       },
       400,
       requestId,
@@ -130,18 +100,21 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const senderEmail = (SMTP_FROM ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
-  const safeProgram = escapeHtml(programTitle);
+  const safeProgram = escapeHtml(resolved.programTitle);
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
   const safePhone = escapeHtml(phone);
-  const safeBrochure = escapeHtml(brochure);
+  const safeBrochure = escapeHtml(resolved.brochure);
   const safeMessage = escapeHtml(message || "Sin mensaje adicional");
 
-  const emailSubject = sanitizeEmailSubjectLine(`Descarga de brochure: ${programTitle}`);
+  const emailSubject = sanitizeEmailSubjectLine(
+    `Descarga de brochure: ${resolved.programTitle}`,
+  );
   const emailHtml = `
         <h2>Nueva descarga de brochure</h2>
         <p><strong>Programa:</strong> ${safeProgram}</p>
-        <p><strong>Slug:</strong> ${escapeHtml(programSlug || "N/A")}</p>
+        <p><strong>Slug:</strong> ${escapeHtml(resolved.programSlug || "N/A")}</p>
+        ${landingSlug ? `<p><strong>Landing:</strong> ${escapeHtml(landingSlug)}</p>` : ""}
         <p><strong>Brochure:</strong> ${safeBrochure}</p>
         <hr>
         <p><strong>Nombre:</strong> ${safeName}</p>
@@ -150,7 +123,6 @@ export const POST: APIRoute = async ({ request }) => {
         <p><strong>Mensaje:</strong> ${safeMessage}</p>
       `;
 
-  // Persist submission to School Hub BEFORE sending email
   const submission = await persistSubmission(
     {
       requestId: trackingRequestId,
@@ -158,11 +130,19 @@ export const POST: APIRoute = async ({ request }) => {
       personKind: "lead",
       email,
       phone,
-      programSlug,
-      programTitle,
+      programSlug: resolved.programSlug,
+      programTitle: resolved.programTitle,
       apiRoute: route,
-      payload: { name, message: message || null, brochure, ...programSubmissionMeta(program) },
-      ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined,
+      payload: {
+        name,
+        message: message || null,
+        brochure: resolved.brochure,
+        ...resolved.meta,
+      },
+      ip:
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined,
       userAgent: request.headers.get("user-agent") || undefined,
     },
     route,
@@ -171,7 +151,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const submissionId = submission.ok ? submission.submissionId : null;
 
-  const adminRecipients = programAdminRecipients(program);
+  const adminRecipients = programAdminRecipients(resolved.program ?? undefined);
 
   const emailResult = await sendBrevoEmail(
     {
@@ -184,11 +164,10 @@ export const POST: APIRoute = async ({ request }) => {
       route,
       requestId,
       kind: "admin",
-      programSlug,
+      programSlug: resolved.programSlug,
     },
   );
 
-  // Log email attempt to School Hub
   if (submissionId) {
     await recordEmailAttempt(submissionId, {
       route,
@@ -198,14 +177,14 @@ export const POST: APIRoute = async ({ request }) => {
       status: emailResult.ok ? "sent" : "failed",
       brevoStatusCode: emailResult.ok ? undefined : emailResult.status,
       error: emailResult.ok ? undefined : emailResult.reason,
-      programSlug,
+      programSlug: resolved.programSlug,
     });
   }
 
   if (!emailResult.ok) {
     apiLog("error", route, "brochure_email_failed", {
       requestId,
-      programSlug,
+      programSlug: resolved.programSlug,
       submissionId,
       brevoStatus: emailResult.status,
     });
@@ -221,14 +200,15 @@ export const POST: APIRoute = async ({ request }) => {
 
   apiLog("info", route, "brochure_lead_registered", {
     requestId,
-    programSlug,
+    programSlug: resolved.programSlug,
+    landingSlug,
     submissionId,
   });
 
   return jsonResponse(
     {
       success: true,
-      brochure,
+      brochure: resolved.brochure,
       tracking: {
         ok: submission.ok,
         requestId,
