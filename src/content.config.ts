@@ -106,9 +106,9 @@ const programas = defineCollection({
     price: z.union([z.number(), z.record(z.string(), z.string())]).optional(),
     featured: z.boolean().optional(),
     /**
-     * ISO calendar day `YYYY-MM-DD` (last session / event day).
-     * Used by getEffectiveProgramStatus to auto-archive active educación continua.
-     * Display dates stay in `startDate`.
+     * ISO calendar day `YYYY-MM-DD` when enrollment should close / auto-archive.
+     * Often the start / first session day. Used by getEffectiveProgramStatus
+     * (on or before today → effective "past"). Display dates stay in `startDate`.
      */
     date: optionalYamlString(),
 
