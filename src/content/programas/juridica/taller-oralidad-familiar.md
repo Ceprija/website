@@ -18,7 +18,7 @@ paymentOptions:
     stripePriceId: "price_1Tr0Gb3s3evyMWrazJMMlyOA"
     type: "presencial"
 featured: false
-date: "2026-07-23"
+date: "2026-07-21"
 address: "Arandas, Jalisco"
 requiresVerification: false
 instructor: "Juez Martín Ricardo Torres Álvarez, juez en activo especialista en el CNPCyF."

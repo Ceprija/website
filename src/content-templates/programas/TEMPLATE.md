@@ -21,7 +21,7 @@ nivel: "curso"
 # - "past": archived under “Cursos pasados”; no enrollment
 # - "disabled": hidden from catalog
 # Active educación continua with ISO `date` on or before today also behaves as past after rebuild.
-# Use the last session/event day for multi-day programs.
+# Use the day enrollment should close (often the first session / start day).
 status: "active"
 
 # RVOE (titulación). Opcional si solo aplica registro de diplomado.
