@@ -6,7 +6,7 @@ excerpt: "Fortalece tus habilidades de litigación oral mediante un taller prác
 image: "/images/programs/taller-tecnicas-litigacion-oral.webp"
 escuela: "juridica"
 nivel: "taller"
-status: "active"
+status: "past"
 horario: "23 y 24 de julio 16:00–20:00 h · 25 de julio 9:00–13:00 h"
 startDate: "23 de julio de 2026"
 duracion: "3 sesiones (12 h)"
