@@ -87,8 +87,9 @@ Then verify:
 
 ## 6. Nightly rebuild cron (server once — not each deploy)
 
-Catalog pages are prerendered. Educación continua with an ISO `date` before today
+Catalog pages are prerendered. Educación continua with an ISO `date` on or before today
 (`America/Mexico_City`) only moves into “Cursos pasados” after a rebuild.
+Use the last session day in `date` for multi-day programs.
 
 **Install once** on the production host (survives normal `git pull` + build deploys).
 You do **not** re-add this on every release; a normal deploy already rebuilds and

@@ -65,7 +65,7 @@ const programas = defineCollection({
      * - "disabled": Program is hidden from catalog
      *
      * Educación continua with status "active" may become effectively "past" when
-     * ISO `date` is before today (see getEffectiveProgramStatus).
+     * ISO `date` is on or before today (see getEffectiveProgramStatus).
      */
     status: z.enum(["active", "waitlist", "past", "disabled"]).default("active"),
 
