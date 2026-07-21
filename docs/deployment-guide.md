@@ -84,3 +84,21 @@ Then verify:
 3. Restart PM2: `set -a && source .env && set +a && pm2 delete ceprija-site && pm2 start ecosystem.config.cjs && pm2 save`.
 4. Check `/api/health`.
 5. If Stripe webhooks fail during rollback, leave the same endpoint URL and secret in place.
+
+## 6. Nightly rebuild cron (server once — not each deploy)
+
+Catalog pages are prerendered. Educación continua with an ISO `date` before today
+(`America/Mexico_City`) only moves into “Cursos pasados” after a rebuild.
+
+**Install once** on the production host (survives normal `git pull` + build deploys).
+You do **not** re-add this on every release; a normal deploy already rebuilds and
+refreshes listings.
+
+```cron
+CRON_TZ=America/Mexico_City
+1 0 * * * /var/www/ceprija/scripts/nightly-rebuild.sh >> /var/www/ceprija/logs/nightly-rebuild.log 2>&1
+```
+
+Script: `scripts/nightly-rebuild.sh` (build + `pm2 restart ceprija-site`).
+
+Check: `crontab -l` and `tail -n 50 /var/www/ceprija/logs/nightly-rebuild.log`.
