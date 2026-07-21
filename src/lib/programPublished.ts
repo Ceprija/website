@@ -58,8 +58,9 @@ export function parseProgramIsoDate(
 
 /**
  * Effective status for listings, fichas, and enrollment gates.
- * Active educación continua with ISO `date` before today (Mexico City)
+ * Active educación continua with ISO `date` on or before today (Mexico City)
  * is treated as "past" without rewriting frontmatter.
+ * Set `date` to the last session/event day so multi-day programs stay active until then.
  */
 export function getEffectiveProgramStatus(
   entry: CollectionEntry<"programas">,
@@ -75,7 +76,7 @@ export function getEffectiveProgramStatus(
   const isoDate = parseProgramIsoDate(entry);
   if (!isoDate) return status;
 
-  if (isoDate < todayInMexicoCity(now)) {
+  if (isoDate <= todayInMexicoCity(now)) {
     return "past";
   }
 

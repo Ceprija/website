@@ -20,7 +20,8 @@ nivel: "curso"
 # - "waitlist": visible; shows “Request Info” / próximamente
 # - "past": archived under “Cursos pasados”; no enrollment
 # - "disabled": hidden from catalog
-# Active educación continua with ISO `date` before today also behaves as past after rebuild.
+# Active educación continua with ISO `date` on or before today also behaves as past after rebuild.
+# Use the last session/event day for multi-day programs.
 status: "active"
 
 # RVOE (titulación). Opcional si solo aplica registro de diplomado.

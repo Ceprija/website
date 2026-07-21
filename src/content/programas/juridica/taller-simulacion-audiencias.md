@@ -18,7 +18,7 @@ paymentOptions:
     stripePriceId: "price_1Tr0Ff3s3evyMWrawDHZXxV6"
     type: "presencial"
 featured: true
-date: "2026-07-20"
+date: "2026-07-22"
 address: "Lope de Vega #273, Col. Americana, Guadalajara, Jalisco"
 requiresVerification: false
 instructor: "Juezas Blanca Laura Ollivier Palacios y Edna Vázquez Pérez, juezas en activo especialistas en el CNPCyF."
