@@ -60,7 +60,7 @@ export function parseProgramIsoDate(
  * Effective status for listings, fichas, and enrollment gates.
  * Active educación continua with ISO `date` on or before today (Mexico City)
  * is treated as "past" without rewriting frontmatter.
- * Set `date` to the last session/event day so multi-day programs stay active until then.
+ * Set `date` to the day enrollment should close (often the start / first session day).
  */
 export function getEffectiveProgramStatus(
   entry: CollectionEntry<"programas">,

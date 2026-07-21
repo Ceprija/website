@@ -89,7 +89,7 @@ Then verify:
 
 Catalog pages are prerendered. Educación continua with an ISO `date` on or before today
 (`America/Mexico_City`) only moves into “Cursos pasados” after a rebuild.
-Use the last session day in `date` for multi-day programs.
+Set `date` to the day enrollment should close (often the start / first session day).
 
 **Install once** on the production host (survives normal `git pull` + build deploys).
 You do **not** re-add this on every release; a normal deploy already rebuilds and

@@ -18,7 +18,7 @@ paymentOptions:
     stripePriceId: "price_1Tr0Ef3s3evyMWraPT8JMYob"
     type: "presencial"
 featured: true
-date: "2026-07-25"
+date: "2026-07-23"
 address: "Lope de Vega #273, Col. Americana, Guadalajara, Jalisco"
 requiresVerification: false
 instructor: "Juezas Blanca Laura Ollivier Palacios y Edna Vázquez Pérez, juezas en activo especialistas en materia civil y familiar."
