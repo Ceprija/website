@@ -91,10 +91,11 @@ Catalog pages are prerendered. Educación continua with an ISO `date` on or befo
 (`America/Mexico_City`) only moves into “Cursos pasados” after a rebuild.
 Set `date` to the day enrollment should close (often the start / first session day).
 
-The production host timezone is **UTC**. Prefer a **systemd timer** with explicit
-`America/Mexico_City` (cron `CRON_TZ` is easy to mis-schedule on UTC hosts).
+The production host clock is **UTC**. This systemd build does **not** honor `Timezone=`
+on timers, so an hourly timer calls the script and the script gates on Mexico City
+local hour `00` (once per day).
 
-**Install once** (already applied on prod if using the timer unit below):
+**Install once:**
 
 ```ini
 # /etc/systemd/system/ceprija-nightly-rebuild.service
@@ -109,11 +110,10 @@ ExecStart=/var/www/ceprija/scripts/nightly-rebuild.sh
 ```ini
 # /etc/systemd/system/ceprija-nightly-rebuild.timer
 [Unit]
-Description=Run CEPRIJA nightly rebuild at 00:01 Mexico City
+Description=Check CEPRIJA nightly rebuild each hour (script gates to 00:xx Mexico City)
 
 [Timer]
-OnCalendar=*-*-* 00:01:00
-Timezone=America/Mexico_City
+OnCalendar=*-*-* *:01:00
 Persistent=true
 
 [Install]
@@ -126,10 +126,8 @@ systemctl enable --now ceprija-nightly-rebuild.timer
 systemctl list-timers | grep ceprija
 ```
 
-Script: `scripts/nightly-rebuild.sh` (sets `TZ=America/Mexico_City`, build + `pm2 restart`).
+Manual run (bypass gate): `FORCE_NIGHTLY_REBUILD=1 /var/www/ceprija/scripts/nightly-rebuild.sh`
 
-Check: `journalctl -u ceprija-nightly-rebuild.service -n 50` and
-`tail -n 50 /var/www/ceprija/logs/nightly-rebuild.log`.
+Check: `tail -n 50 /var/www/ceprija/logs/nightly-rebuild.log` and `cat logs/nightly-rebuild.stamp`.
 
-If a legacy crontab entry exists, remove it to avoid double rebuilds:
-`crontab -l` → delete the `# BEGIN CEPRIJA nightly-rebuild` block.
+Remove any legacy crontab `# BEGIN CEPRIJA nightly-rebuild` block if present.
