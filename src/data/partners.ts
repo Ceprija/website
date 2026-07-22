@@ -53,4 +53,20 @@ export const partners: Partner[] = [
     type: "universidad",
     active: true,
   },
+  {
+    name: "SICyT — Innovación, Ciencia y Tecnología",
+    logo: "/images/convenios/sicy-t.png",
+    url: "",
+    type: "institucion",
+    active: true,
+    onDark: true,
+  },
+  {
+    name: "VECAMU",
+    logo: "/images/convenios/vecamu.png",
+    url: "",
+    type: "empresa",
+    active: true,
+    onDark: true,
+  },
 ];
