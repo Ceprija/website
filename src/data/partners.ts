@@ -59,7 +59,6 @@ export const partners: Partner[] = [
     url: "",
     type: "institucion",
     active: true,
-    onDark: true,
   },
   {
     name: "VECAMU",
@@ -67,6 +66,5 @@ export const partners: Partner[] = [
     url: "",
     type: "empresa",
     active: true,
-    onDark: true,
   },
 ];
