@@ -1,12 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const LANDINGS = [
-  {
-    path: "/landing/especialidad-en-criminalistica-y-ciencias-forenses",
-    title: /Especialidad en Criminalística y Ciencias Forenses/i,
-    programa: "especialidad-en-criminalistica-y-ciencias-forenses",
-    formTitle: "Especialidad en Criminalística y Ciencias Forenses",
-  },
+const CLASSIC_LANDINGS = [
   {
     path: "/landing/maestria-en-derecho-civil-y-familiar",
     title: /Maestría en Derecho Civil y Familiar/i,
@@ -30,6 +24,12 @@ const LANDINGS = [
   },
 ] as const;
 
+const CRIMINALISTICA = {
+  path: "/landing/especialidad-en-criminalistica-y-ciencias-forenses",
+  programa: "especialidad-en-criminalistica-y-ciencias-forenses",
+  formTitle: "Especialidad en Criminalística y Ciencias Forenses",
+} as const;
+
 async function dismissCookieBanner(page: import("@playwright/test").Page) {
   const accept = page.getByRole("button", { name: "Aceptar todas" });
   if (await accept.isVisible().catch(() => false)) {
@@ -37,7 +37,7 @@ async function dismissCookieBanner(page: import("@playwright/test").Page) {
   }
 }
 
-for (const landing of LANDINGS) {
+for (const landing of CLASSIC_LANDINGS) {
   test(`ads landing ${landing.programa} has chrome-light layout and CTA`, async ({
     page,
   }) => {
@@ -86,19 +86,84 @@ for (const landing of LANDINGS) {
   });
 }
 
-test("brochure modal exposes lead fields and landingSlug, not a raw PDF link", async ({
+test("criminalística narrative landing: hero, CTAs, brochure plan", async ({
   page,
 }) => {
-  const landing = LANDINGS[0];
-  await page.goto(landing.path);
+  await page.goto(CRIMINALISTICA.path);
+  await dismissCookieBanner(page);
+
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: /La evidencia habla\. Prepárate para interpretarla/i,
+    }),
+  ).toBeVisible();
+
+  await expect(
+    page.getByText("Especialidad en Criminalística y Ciencias Forenses").first(),
+  ).toBeVisible();
+
+  await expect(
+    page.getByRole("heading", {
+      name: /Aprende de quienes viven la práctica/i,
+    }),
+  ).toBeVisible();
+
+  await expect(
+    page.getByRole("link", { name: "Oferta Académica" }),
+  ).toHaveCount(0);
+
+  const robots = page.locator('meta[name="robots"]');
+  await expect(robots).toHaveAttribute("content", /noindex/);
+
+  const cta = page
+    .getByRole("link", { name: /Quiero apartar mi lugar/i })
+    .first();
+  await expect(cta).toHaveAttribute(
+    "href",
+    new RegExp(
+      `inscripciones-septiembre-2026\\?programa=${CRIMINALISTICA.programa}`,
+    ),
+  );
+
+  await expect(
+    page.getByRole("link", { name: /Necesito esta especialidad/i }).first(),
+  ).toHaveAttribute(
+    "href",
+    new RegExp(
+      `inscripciones-septiembre-2026\\?programa=${CRIMINALISTICA.programa}`,
+    ),
+  );
+
+  const brochureBtn = page
+    .getByRole("button", { name: /Descargar plan de estudios/i })
+    .first();
+  await expect(brochureBtn).toBeVisible();
+  await brochureBtn.click();
+  await expect(page.locator("#brochure-modal")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+});
+
+test("criminalística brochure modal exposes landingSlug and lead fields", async ({
+  page,
+}) => {
+  await page.goto(CRIMINALISTICA.path);
   await dismissCookieBanner(page);
 
   await expect(page.locator('a[href$=".pdf"]')).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Descargar brochure/i }).first().click();
+  await page
+    .getByRole("button", { name: /Descargar plan de estudios/i })
+    .first()
+    .click();
   const form = page.locator("#brochure-lead-form");
   await expect(form).toBeVisible();
-  await expect(form).toHaveAttribute("data-program-slug", landing.programa);
+  await expect(form).toHaveAttribute(
+    "data-program-slug",
+    CRIMINALISTICA.programa,
+  );
   await expect(form).toHaveAttribute(
     "data-landing-slug",
     "especialidad-en-criminalistica-y-ciencias-forenses",
@@ -116,16 +181,28 @@ test("brochure modal exposes lead fields and landingSlug, not a raw PDF link", a
   );
 });
 
-test("primary CTA navigates to Septiembre with program preselect", async ({
+test("criminalística primary CTA navigates to Septiembre with program preselect", async ({
   page,
 }) => {
-  const landing = LANDINGS[0];
-  await page.goto(landing.path);
+  await page.goto(CRIMINALISTICA.path);
   await dismissCookieBanner(page);
 
-  await page.getByRole("link", { name: /Quiero inscribirme/i }).first().click();
+  await page
+    .getByRole("link", { name: /Quiero apartar mi lugar/i })
+    .first()
+    .click();
   await expect(page).toHaveURL(
-    new RegExp(`inscripciones-septiembre-2026\\?programa=${landing.programa}`),
+    new RegExp(
+      `inscripciones-septiembre-2026\\?programa=${CRIMINALISTICA.programa}`,
+    ),
   );
-  await expect(page.locator("#program")).toHaveValue(landing.formTitle);
+  await expect(page.locator("#program")).toHaveValue(CRIMINALISTICA.formTitle);
+});
+
+test("septiembre form preselects criminalística", async ({ page }) => {
+  await page.goto(
+    `/inscripciones-septiembre-2026?programa=${CRIMINALISTICA.programa}`,
+  );
+  await dismissCookieBanner(page);
+  await expect(page.locator("#program")).toHaveValue(CRIMINALISTICA.formTitle);
 });

@@ -2,37 +2,52 @@
 programSlug: "especialidad-en-criminalistica-y-ciencias-forenses"
 status: "active"
 title: "Especialidad en Criminalística y Ciencias Forenses"
-excerpt: "Criminalística y ciencias forenses: peritaje, evidencia física y biológica, escenas del crimen e informes periciales con enfoque científico y jurídico."
-description: "Formación para aplicar técnicas científicas, jurídicas y tecnológicas en la investigación criminal, el análisis de evidencia forense y la actuación pericial en el sistema de justicia penal, civil, laboral, administrativo y de amparo."
+excerpt: "Fórmate con peritos en activo y obtén un posgrado con RVOE que fortalezca tu preparación en investigación criminal y ciencias forenses."
+description: "Especialidad en Criminalística y Ciencias Forenses con RVOE. Formación con peritos en activo en investigación criminal, medicina forense, balística, genética, grafoscopía y derecho procesal forense. Inicio Septiembre 2026."
 image: "/images/programs/especialidad-criminalistica.webp"
 nivelLabel: "Especialidad"
 startDate: "Septiembre 2026"
 duracion: "3 cuatrimestres"
 modalidad: "Presencial / En línea"
-horario: "Por confirmar"
 rvoe: "ESP142024141"
-curriculumTitle: "Plan de Estudios por Cuatrimestre"
-galleryFolder: "/images/programs/especialidadCriminalistica/gallery"
 brochure: "/brochures/especialidadCriminalistica.pdf"
-profile: "Especialista con competencias para realizar peritajes, analizar evidencia física y biológica, actuar en escenas del crimen, elaborar informes periciales y colaborar con el sistema de justicia desde diversas disciplinas forenses."
-profileAudience: "Profesionistas y estudiantes de las áreas de Derecho, Criminología, Criminalística, Seguridad Pública, Medicina, Psicología y disciplinas afines, así como servidores públicos e interesados en el ámbito de las Ciencias Forenses."
-fieldOfWork: "Peritaje judicial, investigación criminal, análisis de evidencia, instituciones de procuración y administración de justicia, consultoría forense y litigio con base en prueba científica."
-includes:
-  - "Plan de estudios de 12 materias en 3 cuatrimestres"
-  - "Formación con peritos en activo"
-  - "Proceso de admisión en línea"
-  - "Constancias y trámites según reglamento de la especialidad"
-faqs:
-  - q: "¿Cuándo inicia la especialidad?"
-    a: "El ciclo de inicio es Septiembre 2026. Al enviar el formulario corto, un asesor de CEPRIJA te contacta para confirmar fechas, requisitos y siguientes pasos."
-  - q: "¿Es presencial u en línea?"
-    a: "Modalidad Presencial / En línea. El horario está por confirmar; un asesor te lo confirma durante el proceso de admisión."
-  - q: "¿Para quién es este programa?"
-    a: "Profesionistas y estudiantes de las áreas de Derecho, Criminología, Criminalística, Seguridad Pública, Medicina, Psicología y disciplinas afines, así como servidores públicos e interesados en el ámbito de las Ciencias Forenses."
-  - q: "¿Qué sigue después de registrarme en esta página?"
-    a: "Completas un formulario breve (nombre, correo, teléfono y carrera). No pagas en línea aquí: un asesor te contacta manualmente para acompañarte en la inscripción."
-  - q: "¿Tiene reconocimiento oficial?"
-    a: "Sí. Cuenta con RVOE ESP142024141."
-  - q: "¿Dónde veo el plan de estudios?"
-    a: "Más abajo encontrarás el plan de estudios en imágenes. También puedes descargar el brochure en PDF."
+seoTitle: "Especialidad en Criminalística | La evidencia habla | CEPRIJA"
+seoDescription: "La evidencia habla. Prepárate para interpretarla. Especialidad en Criminalística y Ciencias Forenses con RVOE. Aparta tu lugar para Septiembre 2026."
+includes: []
+faqs: []
+narrative:
+  heroHeadline: "La evidencia habla. Prepárate para interpretarla."
+  heroSupport: "Fórmate con peritos en activo y obtén un posgrado con RVOE que fortalezca tu preparación en investigación criminal y ciencias forenses."
+  stickyCtaLabel: "Quiero apartar mi lugar"
+  sections:
+    - id: expertos
+      title: "Aprende de quienes viven la práctica"
+      body: "Tu formación estará guiada por peritos y especialistas en activo que comparten casos, metodologías y experiencias reales para acercarte al ejercicio profesional desde el primer día."
+      primaryCta:
+        label: "Quiero estudiar con expertos"
+        action: septiembre
+    - id: disciplinas
+      title: "Domina las disciplinas que impulsan la investigación forense"
+      body: "Desde los fundamentos de la criminalística hasta áreas como medicina forense, balística, genética, grafoscopía y derecho procesal forense, desarrollarás una formación integral para afrontar los retos de la investigación actual."
+      primaryCta:
+        label: "Necesito esta especialidad"
+        action: septiembre
+      secondaryCta:
+        label: "Descargar plan de estudios"
+        action: brochure
+    - id: diferencia
+      title: "Tu especialización marca la diferencia"
+      body: "Quienes se preparan con conocimientos especializados están mejor preparados para responder a los desafíos que demanda el ámbito forense y la investigación criminal."
+    - id: rvoe
+      title: "Una especialidad con reconocimiento oficial"
+      body: "CEPRIJA cuenta con un programa de Especialidad en Criminalística y Ciencias Forenses con Reconocimiento de Validez Oficial de Estudios (RVOE), lo que brinda respaldo académico a tu formación."
+      primaryCta:
+        label: "Reservar mi lugar"
+        action: septiembre
+    - id: siguiente-paso
+      title: "Tu siguiente paso comienza hoy"
+      body: "La próxima generación está por iniciar. Completa tu registro y uno de nuestros asesores te acompañará para asegurar tu lugar."
+      primaryCta:
+        label: "Completar mi registro"
+        action: septiembre
 ---

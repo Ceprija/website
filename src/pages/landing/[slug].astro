@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import AdsProgramLanding from "../../components/ads/AdsProgramLanding.astro";
+import AdsNarrativeLanding from "../../components/ads/AdsNarrativeLanding.astro";
 import { SEPTIEMBRE_2026_SLUG_TO_TITLE } from "@lib/septiembre2026Programs";
 
 export async function getStaticPaths() {
@@ -85,6 +86,13 @@ const folderGallery = await getGalleryFolderItems(
 );
 
 const galleryImages = [...explicitGallery, ...folderGallery];
+const useNarrative = Boolean(landing.data.narrative);
 ---
 
-<AdsProgramLanding landing={landing} galleryImages={galleryImages} />
+{
+  useNarrative ? (
+    <AdsNarrativeLanding landing={landing} />
+  ) : (
+    <AdsProgramLanding landing={landing} galleryImages={galleryImages} />
+  )
+}
