@@ -41,6 +41,29 @@ faqs:
 # brochure: "/brochures/ejemplo.pdf"  # PDF propio del Ads (gate con modal de lead)
 # seoTitle: "…"
 # seoDescription: "…"
+
+# Layout narrativo MKT (opcional). Si está presente, la página usa
+# AdsNarrativeLanding en lugar del layout ficha clásico.
+# narrative:
+#   heroHeadline: "La evidencia habla. Prepárate para interpretarla."
+#   heroSupport: "Fórmate con peritos en activo…"
+#   stickyCtaLabel: "Quiero apartar mi lugar"
+#   sections:
+#     - id: expertos
+#       title: "Aprende de quienes viven la práctica"
+#       body: "…"
+#       primaryCta:
+#         label: "Quiero estudiar con expertos"
+#         action: septiembre   # septiembre | brochure
+#     - id: disciplinas
+#       title: "Domina las disciplinas…"
+#       body: "…"
+#       primaryCta:
+#         label: "Necesito esta especialidad"
+#         action: septiembre
+#       secondaryCta:
+#         label: "Descargar plan de estudios"
+#         action: brochure
 ---
 
 <!-- Cuerpo Markdown opcional; la página Ads usa sobre todo el frontmatter. -->

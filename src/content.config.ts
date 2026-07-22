@@ -305,6 +305,38 @@ const landings = defineCollection({
     brochure: optionalPublicPdfPath(),
     seoTitle: optionalYamlString(),
     seoDescription: optionalYamlString(),
+    /**
+     * Optional MKT narrative layout. When set, `/landing/{id}` uses
+     * AdsNarrativeLanding instead of the classic ficha-style AdsProgramLanding.
+     */
+    narrative: z
+      .object({
+        heroHeadline: z.string().min(1),
+        heroSupport: z.string().min(1),
+        stickyCtaLabel: z.string().min(1).optional(),
+        sections: z
+          .array(
+            z.object({
+              id: z.string().min(1),
+              title: z.string().min(1),
+              body: z.string().min(1),
+              primaryCta: z
+                .object({
+                  label: z.string().min(1),
+                  action: z.enum(["septiembre", "brochure"]),
+                })
+                .optional(),
+              secondaryCta: z
+                .object({
+                  label: z.string().min(1),
+                  action: z.enum(["septiembre", "brochure"]),
+                })
+                .optional(),
+            }),
+          )
+          .min(1),
+      })
+      .optional(),
   }),
 });
 
