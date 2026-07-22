@@ -10,6 +10,11 @@ import {
 } from "@lib/landingSectionStyles";
 
 const visiblePartners = partners.filter((p) => p.active !== false);
+const PARTNERS_PER_ROW = 5;
+const partnerRows: (typeof visiblePartners)[] = [];
+for (let i = 0; i < visiblePartners.length; i += PARTNERS_PER_ROW) {
+  partnerRows.push(visiblePartners.slice(i, i + PARTNERS_PER_ROW));
+}
 ---
 
 {
@@ -24,39 +29,51 @@ const visiblePartners = partners.filter((p) => p.active !== false);
           formación profesional.
         </p>
 
-        <div class={gridPartners} data-animate="fade-up" data-delay="80">
-          {visiblePartners.map((p) => {
-            const slot = p.onDark ? partnerLogoSlotOnDark : partnerLogoSlot;
-            return p.url ? (
-              <a
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class={slot}
-                title={p.name}
-              >
-                <img
-                  src={p.logo}
-                  alt={p.name}
-                  class={partnerLogoImg}
-                  loading="lazy"
-                  width="192"
-                  height="192"
-                />
-              </a>
-            ) : (
-              <span class={slot} title={p.name}>
-                <img
-                  src={p.logo}
-                  alt={p.name}
-                  class={partnerLogoImg}
-                  loading="lazy"
-                  width="192"
-                  height="192"
-                />
-              </span>
-            );
-          })}
+        <div
+          class="flex flex-col items-center gap-y-6 sm:gap-y-8"
+          data-animate="fade-up"
+          data-delay="80"
+        >
+          {
+            partnerRows.map((row) => (
+              <div class={gridPartners}>
+                {row.map((p) => {
+                  const slot = p.onDark
+                    ? partnerLogoSlotOnDark
+                    : partnerLogoSlot;
+                  return p.url ? (
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class={slot}
+                      title={p.name}
+                    >
+                      <img
+                        src={p.logo}
+                        alt={p.name}
+                        class={partnerLogoImg}
+                        loading="lazy"
+                        width="192"
+                        height="192"
+                      />
+                    </a>
+                  ) : (
+                    <span class={slot} title={p.name}>
+                      <img
+                        src={p.logo}
+                        alt={p.name}
+                        class={partnerLogoImg}
+                        loading="lazy"
+                        width="192"
+                        height="192"
+                      />
+                    </span>
+                  );
+                })}
+              </div>
+            ))
+          }
         </div>
       </div>
     </section>
