@@ -1290,9 +1290,10 @@ const seo = {
                             {
                                 requiresDegreeSteps ? (
                                     <>
-                                        Adjunte los documentos requeridos. Se
-                                        generará una sección por cada grado que
-                                        agregó en el paso anterior.
+                                        Todos los documentos de esta sección son
+                                        obligatorios. Incluya su expediente
+                                        personal y, por cada grado del paso
+                                        anterior, el título y la cédula.
                                     </>
                                 ) : (
                                     <>
@@ -1305,18 +1306,129 @@ const seo = {
                     </div>
 
                     <div class="max-w-4xl mx-auto space-y-8">
+                        {
+                            requiresDegreeSteps && (
+                                <div class="space-y-4">
+                                    <h3 class="font-bold text-primary text-lg font-serif mb-1">
+                                        Documentos personales
+                                    </h3>
+                                    <p class="text-xs text-gray-500 mb-3">
+                                        Obligatorios para completar su solicitud.
+                                        Formatos: PDF, JPG, PNG o HEIC (máx. 10
+                                        MB).
+                                    </p>
+
+                                    <div>
+                                        <label
+                                            for="enrollment-actaNacimiento"
+                                            class="block text-sm font-semibold text-gray-700 mb-2"
+                                        >
+                                            Acta de nacimiento *{" "}
+                                            <span class="font-normal text-gray-500">
+                                                (no mayor a 3 meses)
+                                            </span>
+                                        </label>
+                                        <input
+                                            id="enrollment-actaNacimiento"
+                                            type="file"
+                                            name="actaNacimiento"
+                                            required
+                                            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                        />
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Formatos aceptados: PDF, JPG, PNG,
+                                            HEIC (máx. 10 MB)
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            for="enrollment-curpDoc"
+                                            class="block text-sm font-semibold text-gray-700 mb-2"
+                                        >
+                                            CURP (archivo) *{" "}
+                                            <span class="font-normal text-gray-500">
+                                                (no mayor a 3 meses)
+                                            </span>
+                                        </label>
+                                        <input
+                                            id="enrollment-curpDoc"
+                                            type="file"
+                                            name="curpDoc"
+                                            required
+                                            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                        />
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Formatos aceptados: PDF, JPG, PNG,
+                                            HEIC (máx. 10 MB)
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            for="enrollment-ineDoc"
+                                            class="block text-sm font-semibold text-gray-700 mb-2"
+                                        >
+                                            INE o Pasaporte *
+                                        </label>
+                                        <input
+                                            id="enrollment-ineDoc"
+                                            type="file"
+                                            name="ineDoc"
+                                            required
+                                            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                        />
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Formatos aceptados: PDF, JPG, PNG,
+                                            HEIC (máx. 10 MB)
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            for="enrollment-comprobanteDom"
+                                            class="block text-sm font-semibold text-gray-700 mb-2"
+                                        >
+                                            Comprobante de domicilio *
+                                        </label>
+                                        <input
+                                            id="enrollment-comprobanteDom"
+                                            type="file"
+                                            name="comprobanteDom"
+                                            required
+                                            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"
+                                        />
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Formatos aceptados: PDF, JPG, PNG,
+                                            HEIC (máx. 10 MB)
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        }
+
                         <div>
                             <h3
                                 class="font-bold text-primary text-lg font-serif mb-3"
                             >
-                                Documentos generales
+                                {
+                                    requiresDegreeSteps
+                                        ? "Documentación académica / profesional"
+                                        : "Documentos generales"
+                                }
                             </h3>
                             <label
+                                for="enrollment-cv"
                                 class="block text-sm font-semibold text-gray-700 mb-2"
                             >
                                 Curriculum Vitae (CV) *
                             </label>
                             <input
+                                id="enrollment-cv"
                                 type="file"
                                 name="cv"
                                 required
@@ -1972,8 +2084,9 @@ const seo = {
     import {
         validateStepSection,
         reportStepValidationFailure,
-        formatStepValidationMessage,
+        flashInvalidFields,
     } from "@lib/client/multiStepFormValidation";
+    import { enrollmentFileFieldLabel } from "@lib/enrollmentAdmissionFlags";
     import {
         buildWireReferenceFromApplicant,
         wireReferenceFromSessionId,
@@ -3281,12 +3394,7 @@ const seo = {
                 reportStepValidationFailure(stepTitle(i), result);
                 // No `scrollTo(0)` aquí: anula el `scrollIntoView` de
                 // `reportStepValidationFailure` y parece que «Enviar» no hace nada.
-                alert(
-                    formatStepValidationMessage(
-                        stepTitle(i),
-                        result.missingLabels,
-                    ),
-                );
+                // Banner already lists missing labels — avoid a second alert.
                 return;
             }
             if (entry?.id === "step-2") {
@@ -3367,6 +3475,9 @@ const seo = {
                 applicationId?: string;
                 message?: string;
                 error?: string;
+                code?: string;
+                field?: string;
+                missing?: string[];
             } | null;
             const serverMsg =
                 (result &&
@@ -3396,10 +3507,111 @@ const seo = {
                     selectedDate,
                 });
             } else {
-                throw new Error(
+                const field =
+                    result && typeof result.field === "string"
+                        ? result.field
+                        : "";
+                const code =
+                    result && typeof result.code === "string"
+                        ? result.code
+                        : "";
+                const isFileFieldName = (name: string) =>
+                    name === "cv" ||
+                    name === "actaNacimiento" ||
+                    name === "curpDoc" ||
+                    name === "ineDoc" ||
+                    name === "comprobanteDom" ||
+                    /^degree_\d+_(titulo|cedula)$/.test(name);
+                const missingFileEntries = Array.isArray(result?.missing)
+                    ? result.missing.filter(
+                          (m): m is string =>
+                              typeof m === "string" && m.startsWith("file:"),
+                      )
+                    : [];
+                const isDocError =
+                    isFileFieldName(field) ||
+                    code === "file_too_large" ||
+                    code === "invalid_mime" ||
+                    code === "invalid_file_content" ||
+                    code === "mime_mismatch" ||
+                    code === "empty_file" ||
+                    code === "heic_convert_failed" ||
+                    code === "too_many_files" ||
+                    code === "unexpected_file" ||
+                    (code === "missing_fields" &&
+                        missingFileEntries.length > 0);
+
+                if (isDocError) {
+                    const step3Idx = indexOfStep("step-3");
+                    if (step3Idx > 0) {
+                        currentStep = step3Idx;
+                        updateUI();
+                    }
+                } else if (
+                    code === "missing_fields" &&
+                    Array.isArray(result?.missing) &&
+                    result.missing.includes("degrees")
+                ) {
+                    const step2Idx = indexOfStep("step-2");
+                    if (step2Idx > 0) {
+                        currentStep = step2Idx;
+                        updateUI();
+                    }
+                }
+
+                const targets: HTMLElement[] = [];
+                if (field && form) {
+                    const el = form.querySelector(
+                        `[name="${CSS.escape(field)}"]`,
+                    );
+                    if (el instanceof HTMLElement) targets.push(el);
+                }
+                if (
+                    targets.length === 0 &&
+                    Array.isArray(result?.missing)
+                ) {
+                    for (const m of result.missing) {
+                        if (typeof m !== "string" || !m.startsWith("file:"))
+                            continue;
+                        const name = m.slice("file:".length);
+                        const el = form?.querySelector(
+                            `[name="${CSS.escape(name)}"]`,
+                        );
+                        if (el instanceof HTMLElement) targets.push(el);
+                    }
+                }
+                if (targets.length > 0) flashInvalidFields(targets);
+
+                let detail =
                     serverMsg ||
-                        `No se pudo enviar la solicitud (${response.status}). Intenta de nuevo.`,
-                );
+                    `No se pudo enviar la solicitud (${response.status}). Intenta de nuevo.`;
+                if (
+                    !serverMsg &&
+                    field &&
+                    code === "missing_fields"
+                ) {
+                    detail = `Falta el documento obligatorio: ${enrollmentFileFieldLabel(field)}.`;
+                }
+
+                if (statusDiv) {
+                    statusDiv.textContent = detail;
+                    statusDiv.classList.remove("hidden");
+                    statusDiv.classList.add(
+                        "bg-red-100",
+                        "text-red-800",
+                        "border",
+                        "border-red-200",
+                    );
+                    statusDiv.scrollIntoView({
+                        behavior: "smooth",
+                        block: "nearest",
+                    });
+                }
+                console.error("Error submitting enrollment:", {
+                    code,
+                    field,
+                    detail,
+                });
             }
         } catch (error) {
             if (statusDiv) {
@@ -3407,7 +3619,7 @@ const seo = {
                     error instanceof Error && error.message
                         ? error.message
                         : "Hubo un error al enviar tu solicitud.";
-                statusDiv.textContent = `${detail} Verifica los archivos (PDF o imagen) o contáctanos.`;
+                statusDiv.textContent = detail;
                 statusDiv.classList.remove("hidden");
                 statusDiv.classList.add(
                     "bg-red-100",

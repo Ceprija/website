@@ -23,10 +23,17 @@ import {
   validatePhoneBasic,
 } from "@lib/validation/enrollmentText";
 import type { ProgramaNivel } from "@lib/programNiveles";
-import { requiresExtendedApplicantProfile } from "@lib/enrollmentAdmissionFlags";
+import {
+  enrollmentFileFieldLabel,
+  PERSONAL_DOSSIER_FILE_FIELDS,
+  requiresAcademicDegreeSteps,
+  requiresExtendedApplicantProfile,
+  requiresPersonalDossierUploads,
+} from "@lib/enrollmentAdmissionFlags";
 import { getEffectiveProgramStatus } from "@lib/programPublished";
 import { validateFullDossierFields } from "@lib/validation/enrollment";
 import {
+  EMAIL_ADMIN_ONLY_RECIPIENT,
   EMAIL_SOPORTE_WEB,
   NOTIFY_CONTROL_ESCOLAR_ENROLLMENT,
 } from "astro:env/server";
@@ -51,12 +58,36 @@ const ALLOWED_DEGREE_LEVELS = new Set<string>(DEGREE_LEVELS);
 /** Hard cap to bound memory when parsing indexed form fields. */
 const MAX_DEGREE_ENTRIES = 10;
 /**
- * Cap specific to this endpoint: one CV plus up to two documents per degree.
- * Overrides the shared `MAX_FILES_PER_REQUEST` because multi-degree submissions
- * can legitimately exceed the default cap of 12 used by simpler endpoints.
+ * Cap: personal dossier (4) + CV + (titulo + cedula) per degree.
+ * Overrides the shared `MAX_FILES_PER_REQUEST` for multi-degree applications.
  */
-const MAX_ENROLLMENT_FILES = 1 + MAX_DEGREE_ENTRIES * 2;
+const MAX_ENROLLMENT_FILES =
+  PERSONAL_DOSSIER_FILE_FIELDS.length + 1 + MAX_DEGREE_ENTRIES * 2;
 const MAX_ENROLLMENT_FILES_TALLER_ONLY = 1;
+
+const PERSONAL_DOSSIER_FIELD_SET = new Set<string>(PERSONAL_DOSSIER_FILE_FIELDS);
+
+function fileErrorMessage(
+  code: string,
+  field: string,
+  fallback: string,
+): string {
+  const label = enrollmentFileFieldLabel(field);
+  switch (code) {
+    case "file_too_large":
+      return `«${label}» es demasiado grande (máx. 10 MB). Comprime el archivo o súbelo en PDF.`;
+    case "empty_file":
+      return `«${label}» está vacío. Elige otro archivo.`;
+    case "invalid_mime":
+    case "invalid_file_content":
+    case "mime_mismatch":
+      return `«${label}» no es un formato válido. Usa PDF, JPG, PNG o HEIC.`;
+    case "heic_convert_failed":
+      return `No pudimos procesar la foto HEIC de «${label}». Guárdala como JPG/PDF e inténtalo de nuevo.`;
+    default:
+      return fallback.includes(label) ? fallback : `«${label}»: ${fallback}`;
+  }
+}
 
 function shouldNotifyControlEscolarOnEnrollment(): boolean {
   const raw = (NOTIFY_CONTROL_ESCOLAR_ENROLLMENT ?? "").trim().toLowerCase();
@@ -248,7 +279,7 @@ export const POST: APIRoute = async ({ request }) => {
         return enrollmentRespond({
             error: "Faltan datos del grado académico",
             code: "missing_degree_fields",
-            field: `degree_${i}`,
+            field: `degree_${i}_grado`,
           }, 400, requestId, programSlug);
       }
       degrees.push({
@@ -284,8 +315,11 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
     const nivel = program?.data.nivel as ProgramaNivel | undefined;
-    /** Talleres modulares (p. ej. con variantOptions) solo requieren CV, sin grados. */
-    const skipAcademicDegrees = nivel === "taller";
+    /** Talleres / cursos / webinars: solo CV (alineado con UI requiresAcademicDegreeSteps). */
+    const skipAcademicDegrees =
+      !!nivel && !requiresAcademicDegreeSteps(nivel);
+    const needsPersonalDossier =
+      !!nivel && requiresPersonalDossierUploads(nivel);
     const needsExtendedProfile =
       !!nivel && requiresExtendedApplicantProfile(nivel);
 
@@ -442,18 +476,18 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       // Conditional health details: required when the flag is "Sí".
-      const conditional: Array<[string, string, string]> = [
-        ["capacidadDif", capacidadDifS, detalleCapacidadS],
-        ["enfCronica", enfCronicaS, detalleEnfS],
-        ["alergia", alergiaS, detalleAlergiaS],
-        ["tratamiento", tratamientoS, detalleTratamientoS],
+      const conditional: Array<[string, string, string, string]> = [
+        ["capacidadDif", capacidadDifS, detalleCapacidadS, "detalleCapacidad"],
+        ["enfCronica", enfCronicaS, detalleEnfS, "detalleEnf"],
+        ["alergia", alergiaS, detalleAlergiaS, "detalleAlergia"],
+        ["tratamiento", tratamientoS, detalleTratamientoS, "detalleTratamiento"],
       ];
-      for (const [flag, flagVal, detail] of conditional) {
+      for (const [flag, flagVal, detail, detailField] of conditional) {
         if (flagVal === "Sí" && !detail) {
           return enrollmentRespond({
               error: `Indique el detalle para ${flag}`,
               code: "missing_health_detail",
-              field: `detalle${flag.charAt(0).toUpperCase()}${flag.slice(1)}`,
+              field: detailField,
             }, 400, requestId, programSlug);
         }
       }
@@ -507,10 +541,19 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Each declared degree must come with both its titulo and cedula. CV is a
-    // single global file shared across the application.
-    const uploadedFileFields = files.map((f) => f.fieldname);
+    // single global file shared across the application. Personal dossier fields
+    // match long inscription names for portal/expediente parity.
+    // Count only non-empty uploads as present (empty parts must not satisfy required docs).
+    const uploadedFileFields = files
+      .filter((f) => f.buffer.length > 0)
+      .map((f) => f.fieldname);
     const missingFiles: string[] = [];
     if (!uploadedFileFields.includes("cv")) missingFiles.push("cv");
+    if (needsPersonalDossier) {
+      for (const field of PERSONAL_DOSSIER_FILE_FIELDS) {
+        if (!uploadedFileFields.includes(field)) missingFiles.push(field);
+      }
+    }
     if (!skipAcademicDegrees) {
       for (const d of degrees) {
         if (!uploadedFileFields.includes(`degree_${d.index}_titulo`)) {
@@ -523,8 +566,15 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (missing.length > 0 || missingFiles.length > 0) {
+      const missingLabels = missingFiles.map((f) =>
+        enrollmentFileFieldLabel(f),
+      );
+      const detail =
+        missingLabels.length > 0
+          ? `Faltan documentos obligatorios: ${missingLabels.join(", ")}.`
+          : "Faltan campos requeridos";
       return enrollmentRespond({
-          error: "Faltan campos requeridos",
+          error: detail,
           code: "missing_fields",
           missing: [...missing, ...missingFiles.map((f) => `file:${f}`)],
         }, 400, requestId, programSlug);
@@ -533,6 +583,16 @@ export const POST: APIRoute = async ({ request }) => {
     // Reject stray files
     for (const f of files) {
       if (f.fieldname === "cv") continue;
+      if (PERSONAL_DOSSIER_FIELD_SET.has(f.fieldname)) {
+        if (!needsPersonalDossier) {
+          return enrollmentRespond({
+              error: "Archivo no esperado para este programa",
+              code: "unexpected_file",
+              field: f.fieldname,
+            }, 400, requestId, programSlug);
+        }
+        continue;
+      }
       if (skipAcademicDegrees) {
         return enrollmentRespond({
             error: "Archivo no esperado para este programa",
@@ -563,13 +623,24 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     for (const file of files) {
-      if (file.buffer.length === 0) continue;
+      if (file.buffer.length === 0) {
+        return enrollmentRespond({
+            error: fileErrorMessage(
+              "empty_file",
+              file.fieldname,
+              "Archivo vacío",
+            ),
+            code: "empty_file",
+            field: file.fieldname,
+          }, 400, requestId, programSlug);
+      }
       const v = validateUploadBuffer(file.buffer, file.mimetype, { field: file.fieldname });
       if (!v.ok) {
+        const field = v.err.field ?? file.fieldname;
         return enrollmentRespond({
-            error: v.err.error,
+            error: fileErrorMessage(v.err.code, field, v.err.error),
             code: v.err.code,
-            field: v.err.field ?? file.fieldname,
+            field,
           }, 400, requestId, programSlug);
       }
       const normalized = await normalizeUploadForDelivery(
@@ -582,10 +653,15 @@ export const POST: APIRoute = async ({ request }) => {
         { logRoute: "POST /api/enrollment", requestId },
       );
       if (!normalized.ok) {
+        const field = normalized.err.field ?? file.fieldname;
         return enrollmentRespond({
-            error: normalized.err.error,
+            error: fileErrorMessage(
+              normalized.err.code,
+              field,
+              normalized.err.error,
+            ),
             code: normalized.err.code,
-            field: normalized.err.field ?? file.fieldname,
+            field,
           }, 400, requestId, programSlug);
       }
       Object.assign(file, normalized.file);
@@ -718,7 +794,12 @@ export const POST: APIRoute = async ({ request }) => {
           })),
           fileCount: files.length,
           hasCV: files.some(f => f.fieldname === "cv"),
+          hasActaNacimiento: files.some(f => f.fieldname === "actaNacimiento"),
+          hasCurpDoc: files.some(f => f.fieldname === "curpDoc"),
+          hasIneDoc: files.some(f => f.fieldname === "ineDoc"),
+          hasComprobanteDom: files.some(f => f.fieldname === "comprobanteDom"),
           skipAcademicDegrees,
+          needsPersonalDossier,
         },
       },
       route,
@@ -745,9 +826,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     const senderEmail = (EMAIL_SOPORTE_WEB ?? "").trim() || "desarrolloweb@ceprija.edu.mx";
     const controlEscolar = programAdminEmail(program);
-    const adminRecipients = shouldNotifyControlEscolarOnEnrollment()
-      ? programAdminRecipients(program)
-      : [{ email: senderEmail }];
+    // EMAIL_ADMIN_ONLY_RECIPIENT always wins (local/test safety). Otherwise notify
+    // control escolar via program routing, or fall back to soporte web only.
+    const adminOnly = (EMAIL_ADMIN_ONLY_RECIPIENT ?? "").trim();
+    const adminRecipients = adminOnly
+      ? [{ email: adminOnly }]
+      : shouldNotifyControlEscolarOnEnrollment()
+        ? programAdminRecipients(program)
+        : [{ email: senderEmail }];
 
     // Prepare email content with escaped values (use sanitized strings)
     const safeNombre = escapeHtml(nombreS);
@@ -1064,12 +1150,20 @@ export const POST: APIRoute = async ({ request }) => {
       "code" in error &&
       (error as { code?: string }).code === "file_too_large"
     ) {
+      const field =
+        "field" in error && typeof (error as { field?: string }).field === "string"
+          ? (error as { field: string }).field
+          : undefined;
       return enrollmentRespond({
-          error: "Archivo demasiado grande (máx. 10 MB)",
+          error: field
+            ? fileErrorMessage(
+                "file_too_large",
+                field,
+                "Archivo demasiado grande (máx. 10 MB)",
+              )
+            : "Archivo demasiado grande (máx. 10 MB)",
           code: "file_too_large",
-          ...("field" in error && typeof (error as { field?: string }).field === "string"
-            ? { field: (error as { field: string }).field }
-            : {}),
+          ...(field ? { field } : {}),
         }, 400, requestId, programSlug);
     }
     console.error("[enrollment] Internal error:", error);

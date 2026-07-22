@@ -293,7 +293,7 @@ export function validateFieldFormatsInContainer(container: Element): StepValidat
     const mimeOk = !mimeRaw || isAllowedUploadMime(mimeRaw);
     if (!mimeOk && !extOk) {
       missingLabels.push(
-        `${getLabelForControl(el, container)} (solo PDF o imagen JPEG, PNG o WebP)`,
+        `${getLabelForControl(el, container)} (PDF, JPG, PNG o HEIC; máx. 10 MB)`,
       );
       highlightTargets.push(fileFormatHighlightTarget(el));
     }
