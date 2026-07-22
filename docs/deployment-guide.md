@@ -85,21 +85,51 @@ Then verify:
 4. Check `/api/health`.
 5. If Stripe webhooks fail during rollback, leave the same endpoint URL and secret in place.
 
-## 6. Nightly rebuild cron (server once — not each deploy)
+## 6. Nightly rebuild (server once — not each deploy)
 
 Catalog pages are prerendered. Educación continua with an ISO `date` on or before today
 (`America/Mexico_City`) only moves into “Cursos pasados” after a rebuild.
 Set `date` to the day enrollment should close (often the start / first session day).
 
-**Install once** on the production host (survives normal `git pull` + build deploys).
-You do **not** re-add this on every release; a normal deploy already rebuilds and
-refreshes listings.
+The production host timezone is **UTC**. Prefer a **systemd timer** with explicit
+`America/Mexico_City` (cron `CRON_TZ` is easy to mis-schedule on UTC hosts).
 
-```cron
-CRON_TZ=America/Mexico_City
-1 0 * * * /var/www/ceprija/scripts/nightly-rebuild.sh >> /var/www/ceprija/logs/nightly-rebuild.log 2>&1
+**Install once** (already applied on prod if using the timer unit below):
+
+```ini
+# /etc/systemd/system/ceprija-nightly-rebuild.service
+[Unit]
+Description=CEPRIJA nightly catalog rebuild (auto-past programs)
+
+[Service]
+Type=oneshot
+ExecStart=/var/www/ceprija/scripts/nightly-rebuild.sh
 ```
 
-Script: `scripts/nightly-rebuild.sh` (build + `pm2 restart ceprija-site`).
+```ini
+# /etc/systemd/system/ceprija-nightly-rebuild.timer
+[Unit]
+Description=Run CEPRIJA nightly rebuild at 00:01 Mexico City
 
-Check: `crontab -l` and `tail -n 50 /var/www/ceprija/logs/nightly-rebuild.log`.
+[Timer]
+OnCalendar=*-*-* 00:01:00
+Timezone=America/Mexico_City
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+```sh
+systemctl daemon-reload
+systemctl enable --now ceprija-nightly-rebuild.timer
+systemctl list-timers | grep ceprija
+```
+
+Script: `scripts/nightly-rebuild.sh` (sets `TZ=America/Mexico_City`, build + `pm2 restart`).
+
+Check: `journalctl -u ceprija-nightly-rebuild.service -n 50` and
+`tail -n 50 /var/www/ceprija/logs/nightly-rebuild.log`.
+
+If a legacy crontab entry exists, remove it to avoid double rebuilds:
+`crontab -l` → delete the `# BEGIN CEPRIJA nightly-rebuild` block.
