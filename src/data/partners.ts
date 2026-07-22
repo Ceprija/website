@@ -56,7 +56,7 @@ export const partners: Partner[] = [
   {
     name: "SICyT — Innovación, Ciencia y Tecnología",
     logo: "/images/convenios/sicy-t.png",
-    url: "",
+    url: "https://sicyt.jalisco.gob.mx/inicio",
     type: "institucion",
     active: true,
   },
