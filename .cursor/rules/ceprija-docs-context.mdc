@@ -1,0 +1,18 @@
+---
+description: Point agents at CEPRIJA docs/ as source of truth for flows (not auto-loaded otherwise)
+alwaysApply: true
+---
+
+# Project docs are agent context
+
+Before inventing enrollment, payments, Meta landing, or deploy behavior, read the matching doc under `docs/` (start at [docs/README.md](docs/README.md)).
+
+| Area | Doc |
+|------|-----|
+| Enrollment wizard / APIs / application documents | `docs/enrollment/flows-and-entrypoints.md` |
+| `/landing/*` Meta Ads (classic vs narrative) | `docs/landings-meta-ads.md` |
+| Stripe | `docs/stripe-configuration.md` |
+| Deploy / Brevo IP / email overrides | `docs/operational-runbook.md`, `docs/deployment-guide.md` |
+| Program content from marketing | `docs/marketing-program-handoff-checklist.md` |
+
+Update the relevant doc in the same change when user-visible flows change. Do not treat stale chat memory over these docs.

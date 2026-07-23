@@ -47,3 +47,27 @@ data/failed-emails.jsonl
 ```
 
 Each line is a manual follow-up task. Once resolved, keep the file as audit history or archive it off-server.
+
+### Local / staging email safety
+
+- `EMAIL_ADMIN_ONLY_RECIPIENT` — all admin notifications go only to that address (`programAdminRecipients`).
+- `EMAIL_PARTICIPANT_ONLY_RECIPIENT` — forces participant Brevo `to` in `sendBrevoEmail` (kind `participant`).
+- Playwright `webServer` sets both to a safe inbox and uses `reuseExistingServer: false` so a manual `astro dev` with production-like recipients is not reused.
+- Local Brevo `401 unauthorized` / “unrecognised IP” → add the current public IP (or disable IP allowlist) in Brevo Security → Authorized IPs. Prod server IP must stay allowlisted.
+
+## Production deploy (typical)
+
+Host: `root@165.22.147.212`, app dir `/var/www/ceprija`, PM2 name `ceprija-site`.
+
+```sh
+cd /var/www/ceprija
+git pull origin main
+npm ci --legacy-peer-deps --omit=dev
+set -a; source .env; set +a
+npm run build
+pm2 restart ceprija-site --update-env   # use delete+start if .env keys changed
+pm2 save
+curl -sS -o /dev/null -w "%{http_code}\n" https://ceprija.edu.mx/api/health
+```
+
+See also [deployment-guide.md](./deployment-guide.md).

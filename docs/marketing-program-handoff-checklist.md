@@ -49,6 +49,7 @@ En el sitio, la “validación fuerte” se acerca al campo **`requiresVerificat
 - ¿Exige **cédula profesional**, **CURP**, **comprobante de estudios**, **carta laboral** u otros documentos **antes** de permitir pago o cohorte?
 - ¿Hay **requisitos de perfil** (solo licenciatura en derecho, solo sector público, etc.) que deban ir en **descripción**, **prerrequisitos** o correo de bienvenida?
 - Si el programa usa **`enrollmentFlow: application`**, ¿la coordinación ya tiene el checklist de documentos y tiempos de respuesta?
+- En **application** el sitio ya exige expediente personal (`actaNacimiento`, `curpDoc`, `ineDoc`, `comprobanteDom`) más **CV** y, si aplica, **título/cédula** por grado. Ver `docs/enrollment/flows-and-entrypoints.md` §5.0. **Cartas de recomendación** aún no están en el form (intención: solo maestría/doctorado).
 - Programas de **posgrado / titulación** (`maestria`, `doctorado`, `especialidad`): alinear copy de “admisión” con lo que realmente pide el proceso (y con `requiresVerification` si debe activarse revisión explícita).
 
 ## 9. Inventario `src/content/programas/` — brechas y decisiones

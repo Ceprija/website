@@ -238,9 +238,27 @@ flowchart TD
 | Input | Source | Effect |
 |-------|--------|--------|
 | `variantOptions` in frontmatter | `getVariantOptions()` in `src/lib/programVariants.ts` | Prepends `step-variant` when modules and/or dates are configured |
-| `nivel` | `requiresExtendedApplicantProfile()` in `src/lib/enrollmentAdmissionFlags.ts` | Maestría, doctorado, especialidad: extra personal/address/emergency/health sections |
-| `nivel` | `requiresAcademicDegreeSteps()` | **Taller** skips degree steps; other niveles include academic formation where applicable |
+| `nivel` | `requiresExtendedApplicantProfile()` in `src/lib/enrollmentAdmissionFlags.ts` | Maestría, doctorado, especialidad, **diplomado**: extra personal/address/emergency/health sections |
+| `nivel` | `requiresAcademicDegreeSteps()` / `requiresPersonalDossierUploads()` | **Taller, curso, webinar** skip degree + personal-dossier uploads; other niveles include them |
 | Doctorado cédula rules | `src/lib/validation/enrollmentText.ts` (used by API) | Server-side validation complements the wizard |
+
+### 5.0 Documents on application (Step 3)
+
+When `requiresPersonalDossierUploads(nivel)` is true (same gate as academic degree steps), Step 3 requires a **personal dossier** plus academic files. Field names match long `/inscripciones` so Brevo attachments and School Hub `upload_files` stay consistent for the portal:
+
+| Field | Label (UI) | Required |
+|-------|------------|----------|
+| `actaNacimiento` | Acta de nacimiento (≤ 3 meses) | yes |
+| `curpDoc` | CURP (archivo) (≤ 3 meses) | yes |
+| `ineDoc` | INE o Pasaporte | yes |
+| `comprobanteDom` | Comprobante de domicilio | yes |
+| `cv` | Curriculum Vitae | yes (also for taller-only path) |
+| `degree_{i}_titulo` / `degree_{i}_cedula` | Per declared degree | yes when degrees apply |
+
+- Accept / normalize: PDF, JPG, PNG, HEIC (HEIC → JPEG via `normalizeUploadForDelivery`).
+- Empty buffers do **not** satisfy required docs (`empty_file` / treated as missing).
+- **Recommendation letters** (`cartaRecomendacion*`): **not** collected yet; product intent is maestría + doctorado only (not especialidad) — follow-up.
+- Long form [`InscriptionForm`](../../src/components/forms/InscriptionForm.astro) already has the four personal uploads; do **not** assume application and inscription are fully parity (inscription still lacks CV/título/cartas).
 
 After submit, the page can show **post-submit** UI (payment choice, wire upload, etc.) — see IDs such as `post-submit-panel` in the same file.
 
@@ -276,23 +294,23 @@ flowchart LR
     M[maestria]
     D[doctorado]
     E[especialidad]
-    T[taller]
-    O[curso diplomado in application override]
+    Dip[diplomado]
+    T[taller / curso / webinar]
   end
   subgraph blocks [Wizard blocks]
     Ext[Extended profile steps]
-    Deg[Degree steps]
-    Docs[Documents]
+    Deg[Degree + personal dossier docs]
+    Docs[CV / documents step]
   end
   M --> Ext
   D --> Ext
   E --> Ext
-  O --> Ext
+  Dip --> Ext
   T -.->|skips| Deg
   M --> Deg
   D --> Deg
   E --> Deg
-  O --> Deg
+  Dip --> Deg
   Ext --> Deg
   Deg --> Docs
   T --> Docs
