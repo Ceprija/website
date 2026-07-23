@@ -4,11 +4,7 @@ import AdsLandingCta from "./AdsLandingCta.astro";
 import BrochureLeadModal from "../forms/BrochureLeadModal.astro";
 import { images } from "@lib/assets";
 import { buildSeptiembre2026CtaHref } from "@lib/septiembre2026Programs";
-import {
-  adsProse,
-  adsProseClosing,
-  adsProseHero,
-} from "@lib/adsLandingStyles";
+import { adsProseClosing, adsProseHero } from "@lib/adsLandingStyles";
 import type { CollectionEntry } from "astro:content";
 
 interface Props {
@@ -33,9 +29,13 @@ const brochure =
     ? data.brochure.trim()
     : "";
 
-const sections = narrative.sections.map((section, index) => {
-  const tone = index % 3 === 1 ? "dark" : index % 3 === 2 ? "muted" : "light";
-  return { ...section, tone };
+const sections = narrative.sections.map((section) => {
+  const hasImage = Boolean(section.image?.trim());
+  return {
+    ...section,
+    tone: hasImage ? ("image" as const) : ("color" as const),
+    hasImage,
+  };
 });
 ---
 
@@ -113,28 +113,38 @@ const sections = narrative.sections.map((section, index) => {
 
   {
     sections.map((section) => {
-      const isDark = section.tone === "dark";
-      const isMuted = section.tone === "muted";
-      const sectionClass = isDark
-        ? "bg-primary py-20 text-white"
-        : isMuted
-          ? "bg-gray-50 py-20"
-          : "bg-white py-20";
-      const titleClass = isDark
-        ? "font-serif text-3xl font-bold sm:text-4xl"
-        : "font-serif text-3xl font-bold text-primary sm:text-4xl";
-      const bodyClass = isDark
-        ? "mt-6 text-base md:text-lg leading-relaxed text-white/90"
-        : `mt-6 ${adsProse}`;
-      const brochureOutlineClass = isDark
-        ? "inline-flex items-center justify-center rounded-full border-2 border-white/40 px-8 py-4 text-lg font-bold text-white transition hover:border-white hover:bg-white/10"
-        : "inline-flex items-center justify-center rounded-full border-2 border-primary/30 px-8 py-4 text-lg font-bold text-primary transition hover:border-primary hover:bg-primary/5";
+      const isImage = section.tone === "image";
+      // Color bands share one compact height (aligned with copy-only sections like diferencia).
+      const colorBandSize =
+        "flex h-[20rem] items-center bg-[#831200] py-10 text-white sm:h-[22rem] sm:py-12";
+      const sectionClass = isImage
+        ? "relative overflow-hidden py-20 text-white sm:py-24"
+        : colorBandSize;
+      const titleClass = "font-serif text-3xl font-bold sm:text-4xl";
+      const bodyClass =
+        "mt-5 text-base md:text-lg leading-relaxed text-white/90";
+      const brochureOutlineClass =
+        "inline-flex items-center justify-center rounded-full border-2 border-white/40 px-8 py-4 text-lg font-bold text-white transition hover:border-white hover:bg-white/10";
       const brochureSolidClass =
         "inline-flex items-center justify-center rounded-full bg-secondary px-8 py-4 text-lg font-bold text-primary transition hover:bg-yellow-400";
+      const ctaWrapClass = isImage
+        ? "mt-10 flex flex-wrap items-center justify-center gap-4"
+        : "mt-6 flex flex-wrap items-center justify-center gap-4";
 
       return (
         <section id={section.id} class={sectionClass}>
-          <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          {isImage && section.image ? (
+            <>
+              <img
+                src={section.image}
+                alt=""
+                class="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-b from-black/55 via-black/50 to-black/65" />
+            </>
+          ) : null}
+          <div class="relative z-10 mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
             <h2 class={titleClass} data-animate="fade-up">
               {section.title}
             </h2>
@@ -142,10 +152,7 @@ const sections = narrative.sections.map((section, index) => {
               {section.body}
             </p>
             {(section.primaryCta || section.secondaryCta) && (
-              <div
-                class="mt-10 flex flex-wrap items-center justify-center gap-4"
-                data-animate="fade-up"
-              >
+              <div class={ctaWrapClass} data-animate="fade-up">
                 {section.primaryCta?.action === "septiembre" ? (
                   <AdsLandingCta
                     programa={programSlug}
@@ -166,12 +173,8 @@ const sections = narrative.sections.map((section, index) => {
                   <AdsLandingCta
                     programa={programSlug}
                     label={section.secondaryCta.label}
-                    variant={isDark ? "outline" : "outline"}
-                    class={
-                      isDark
-                        ? "border-white/50 text-white hover:bg-white/10"
-                        : ""
-                    }
+                    variant="outline"
+                    class="border-white/50 text-white hover:bg-white/10"
                   />
                 ) : null}
                 {section.secondaryCta?.action === "brochure" && brochure ? (

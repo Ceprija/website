@@ -44,6 +44,7 @@ import {
   honeypotResponse,
 } from "@lib/server/publicEndpointGuards";
 import { sendBrevoEmail } from "@lib/email/brevoClient";
+import { buildPosgradoApplicationEmail } from "@lib/email/posgradoApplicationEmail";
 import {
   programAdminEmail,
   programAdminRecipients,
@@ -1011,24 +1012,27 @@ export const POST: APIRoute = async ({ request }) => {
 
     const applicationOnlyNivel =
       nivel === "maestria" || nivel === "especialidad" || nivel === "doctorado";
-    const proximosPasosOl = applicationOnlyNivel
-      ? `
-          <ol>
-            <li>Nuestro equipo revisará su solicitud y documentos en las próximas <strong>48-72 horas</strong>.</li>
-            <li>Le contactaremos por correo electrónico con el resultado de la evaluación y, en su caso, las indicaciones para completar su inscripción.</li>
-            <li>El proceso de pago y formalización se coordina con CEPRIJA después de la revisión de su expediente; <strong>no debe realizar pago en línea al enviar esta solicitud</strong>.</li>
-          </ol>
-        `
-      : `
-          <ol>
-            <li>Hemos recibido su registro y documentación académica.</li>
-            <li>Puede completar el pago en línea o por transferencia desde la pantalla de confirmación.</li>
-            <li>Control Escolar revisará su expediente y le dará seguimiento si se requiere alguna aclaración.</li>
-          </ol>
-        `;
 
-    // User confirmation email
-    const userHtml = `
+    let userSubject: string;
+    let userHtml: string;
+
+    if (applicationOnlyNivel) {
+      const posgradoMail = buildPosgradoApplicationEmail({
+        participantName: nombreS,
+        participantLastName: apellidosS,
+        programTitle,
+        programSlug,
+        applicationId,
+        modality: modality || "Por confirmar",
+        controlEscolarEmail: controlEscolar,
+        variantModuleDisplay: variantModuleDisplay || undefined,
+        variantDateDisplay: variantDateDisplay || undefined,
+      });
+      userSubject = posgradoMail.subject;
+      userHtml = posgradoMail.html;
+    } else {
+      userSubject = `Solicitud Recibida - ${programTitle}`;
+      userHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #003d82 0%, #0056b3 100%); color: white; padding: 30px; text-align: center;">
           <h1 style="margin: 0;">Solicitud Recibida</h1>
@@ -1048,7 +1052,11 @@ export const POST: APIRoute = async ({ request }) => {
           </div>
           
           <h3 style="color: #003d82;">Próximos Pasos</h3>
-          ${proximosPasosOl}
+          <ol>
+            <li>Hemos recibido su registro y documentación académica.</li>
+            <li>Puede completar el pago en línea o por transferencia desde la pantalla de confirmación.</li>
+            <li>Control Escolar revisará su expediente y le dará seguimiento si se requiere alguna aclaración.</li>
+          </ol>
           
           <p>Si tiene alguna pregunta, no dude en contactarnos:</p>
           <p>📧 Email: ${escapeHtml(controlEscolar)}<br>
@@ -1065,12 +1073,13 @@ export const POST: APIRoute = async ({ request }) => {
         </div>
       </div>
     `;
+    }
 
     const userRes = await sendBrevoEmail(
       {
         sender: { email: senderEmail, name: "CEPRIJA" },
         to: [{ email }],
-        subject: `Solicitud Recibida - ${programTitle}`,
+        subject: userSubject,
         htmlContent: userHtml,
       },
       {
@@ -1088,7 +1097,7 @@ export const POST: APIRoute = async ({ request }) => {
         route,
         kind: "participant",
         recipients: [email],
-        subject: `Solicitud Recibida - ${programTitle}`,
+        subject: userSubject,
         status: userRes.ok ? "sent" : "failed",
         brevoMessageId: undefined,
         failureReason: userRes.ok ? undefined : `brevo_status_${userRes.status}`,

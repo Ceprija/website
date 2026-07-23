@@ -33,6 +33,7 @@ import {
 import { persistSubmission, logEmailAttempt } from "@lib/db/submissions";
 import { logPersistenceFailure } from "@lib/db/logPersistenceFailure";
 import { buildFreeWebinarParticipantEmail } from "@lib/email/freeWebinarConfirmationEmail";
+import { emailLogoImgTag } from "@lib/email/emailLogo";
 
 type ProgramPriceMatch = {
   matches: boolean;
@@ -487,70 +488,50 @@ export const POST: APIRoute = async ({ request }) => {
         `Confirmación de Inscripción - ${programTitle}`,
       );
       userEmailBody = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #003d82 0%, #0056b3 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; background: #003d82; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                    .info-box { background: white; border-left: 4px solid #003d82; padding: 15px; margin: 15px 0; }
-                    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>¡Bienvenido(a) a CEPRIJA!</h1>
-                    </div>
-                    <div class="content">
-                        <h2>Confirmación de Inscripción</h2>
-                        <p>Hola <strong>${safeName}</strong>,</p>
-                        ${
-                          requiresVerification
-                            ? "<p>Tu pago ha sido confirmado exitosamente.</p><p><strong>Nota:</strong> Tu información y requisitos serán revisados por nuestro equipo. Te contactaremos si necesitamos documentación adicional.</p>"
-                            : "<p>Tu inscripción al programa ha sido confirmada exitosamente.</p>"
-                        }
-                        
-                        <div class="info-box">
-                            <h3 style="margin-top: 0;">Detalles de tu Inscripción:</h3>
-                            <p><strong>Programa:</strong> ${safeTitle}</p>
-                            <p><strong>Modalidad:</strong> ${safeModality}</p>
-                            <p><strong>ID de Pago:</strong> ${escapeHtml(piId)}</p>
-                            <p><strong>Monto Pagado:</strong> $${amountStr} ${currency}</p>
-                        </div>
-
-                        ${eventDetailsBlock}
-                        
-                        ${
-                          eventDetailsBlock
-                            ? ""
-                            : `<p>Pronto recibirás información adicional sobre:</p>
-                        <ul>
-                            <li>Fecha de inicio del programa</li>
-                            <li>Materiales necesarios</li>
-                            <li>Acceso a plataforma (si aplica)</li>
-                            <li>Información de contacto de tu coordinador</li>
-                        </ul>`
-                        }
-                        
-                        <p>Si tienes alguna pregunta, no dudes en contactarnos:</p>
-                        <p>📧 Email: ${escapeHtml(controlEscolar)}<br>
-                        📞 Teléfono: (33) 3826-4863</p>
-                        
-                        <div style="text-align: center;">
-                            <a href="https://ceprija.edu.mx" class="button">Visitar nuestro sitio web</a>
-                        </div>
-                    </div>
-                    <div class="footer">
-                        <p>Centro de Preparación Integral en Materia Jurídica y Administrativa (CEPRIJA)</p>
-                        <p>Lope de Vega #273, Col. Americana Arcos, Guadalajara, Jalisco</p>
-                    </div>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+              <div style="background-color: #f8fafc; padding: 20px 20px 16px; text-align: center; border-bottom: 2px solid #1e3a8a;">
+                ${emailLogoImgTag()}
+              </div>
+              <div style="padding: 28px 20px; background-color: #ffffff;">
+                <h1 style="font-size: 22px; line-height: 1.35; color: #1e3a8a; margin: 0 0 8px;">¡Bienvenido(a) a CEPRIJA!</h1>
+                <h2 style="font-size: 18px; color: #333; margin: 0 0 16px;">Confirmación de Inscripción</h2>
+                <p>Hola <strong>${safeName}</strong>,</p>
+                ${
+                  requiresVerification
+                    ? "<p>Tu pago ha sido confirmado exitosamente.</p><p><strong>Nota:</strong> Tu información y requisitos serán revisados por nuestro equipo. Te contactaremos si necesitamos documentación adicional.</p>"
+                    : "<p>Tu inscripción al programa ha sido confirmada exitosamente.</p>"
+                }
+                <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 16px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #1e3a8a; font-size: 16px;">Detalles de tu Inscripción</h3>
+                  <p style="margin: 0 0 8px;"><strong>Programa:</strong> ${safeTitle}</p>
+                  <p style="margin: 0 0 8px;"><strong>Modalidad:</strong> ${safeModality}</p>
+                  <p style="margin: 0 0 8px;"><strong>ID de Pago:</strong> ${escapeHtml(piId)}</p>
+                  <p style="margin: 0;"><strong>Monto Pagado:</strong> $${amountStr} ${currency}</p>
                 </div>
-            </body>
-            </html>
+                ${eventDetailsBlock}
+                ${
+                  eventDetailsBlock
+                    ? ""
+                    : `<p>Pronto recibirás información adicional sobre:</p>
+                <ul>
+                    <li>Fecha de inicio del programa</li>
+                    <li>Materiales necesarios</li>
+                    <li>Acceso a plataforma (si aplica)</li>
+                    <li>Información de contacto de tu coordinador</li>
+                </ul>`
+                }
+                <p>Si tienes alguna pregunta, no dudes en contactarnos:</p>
+                <p>📧 Email: ${escapeHtml(controlEscolar)}<br>
+                📞 Teléfono: (33) 3826-4863</p>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="https://ceprija.edu.mx" style="display: inline-block; background-color: #1e3a8a; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Visitar nuestro sitio web</a>
+                </div>
+              </div>
+              <div style="background: #1e3a8a; color: white; padding: 20px; text-align: center; font-size: 12px;">
+                <p style="margin: 0 0 6px;">Centro de Preparación Integral en Materia Jurídica y Administrativa (CEPRIJA)</p>
+                <p style="margin: 0;">Lope de Vega #273, Col. Americana Arcos, Guadalajara, Jalisco</p>
+              </div>
+            </div>
         `;
     }
 

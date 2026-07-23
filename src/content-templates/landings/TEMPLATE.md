@@ -44,6 +44,9 @@ faqs:
 
 # Layout narrativo MKT (opcional). Si está presente, la página usa
 # AdsNarrativeLanding en lugar del layout ficha clásico.
+# Ritmo recomendado tras el hero: color → image → color → image → color.
+# Pon `image` solo en las franjas que deben ser foto + overlay; sin `image`
+# la franja es color sólido (#831200) con texto claro.
 # narrative:
 #   heroHeadline: "La evidencia habla. Prepárate para interpretarla."
 #   heroSupport: "Fórmate con peritos en activo…"
@@ -58,12 +61,29 @@ faqs:
 #     - id: disciplinas
 #       title: "Domina las disciplinas…"
 #       body: "…"
+#       image: "/images/landings/ejemplo/disciplinas.webp"
 #       primaryCta:
 #         label: "Necesito esta especialidad"
 #         action: septiembre
 #       secondaryCta:
 #         label: "Descargar plan de estudios"
 #         action: brochure
+#     - id: diferencia
+#       title: "…"
+#       body: "…"
+#     - id: rvoe
+#       title: "…"
+#       body: "…"
+#       image: "/images/landings/ejemplo/rvoe.webp"
+#       primaryCta:
+#         label: "Reservar mi lugar"
+#         action: septiembre
+#     - id: siguiente-paso
+#       title: "…"
+#       body: "…"
+#       primaryCta:
+#         label: "Completar mi registro"
+#         action: septiembre
 ---
 
 <!-- Cuerpo Markdown opcional; la página Ads usa sobre todo el frontmatter. -->

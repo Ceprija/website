@@ -29,6 +29,7 @@ narrative:
     - id: disciplinas
       title: "Domina las disciplinas que impulsan la investigación forense"
       body: "Desde los fundamentos de la criminalística hasta áreas como medicina forense, balística, genética, grafoscopía y derecho procesal forense, desarrollarás una formación integral para afrontar los retos de la investigación actual."
+      image: "/images/landings/criminalistica/disciplinas-tablero.png"
       primaryCta:
         label: "Necesito esta especialidad"
         action: septiembre
@@ -41,6 +42,7 @@ narrative:
     - id: rvoe
       title: "Una especialidad con reconocimiento oficial"
       body: "CEPRIJA cuenta con un programa de Especialidad en Criminalística y Ciencias Forenses con Reconocimiento de Validez Oficial de Estudios (RVOE), lo que brinda respaldo académico a tu formación."
+      image: "/images/landings/criminalistica/rvoe-tablero.png"
       primaryCta:
         label: "Reservar mi lugar"
         action: septiembre

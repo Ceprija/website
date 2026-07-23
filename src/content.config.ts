@@ -320,6 +320,12 @@ const landings = defineCollection({
               id: z.string().min(1),
               title: z.string().min(1),
               body: z.string().min(1),
+              /**
+               * Optional full-bleed section background. When set, the narrative
+               * band renders as an image + overlay (text/CTAs on top). Omit for
+               * solid color bands (light / dark / muted by index).
+               */
+              image: z.string().min(1).optional(),
               primaryCta: z
                 .object({
                   label: z.string().min(1),

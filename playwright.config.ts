@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 /** Force all Brevo traffic from the test server to this inbox only. */
-const TEST_EMAIL_ONLY = "jorgestebanmr@gmail.com";
+const TEST_EMAIL_ONLY = "desarrolloweb@ceprija.edu.mx";
 
 export default defineConfig({
   testDir: "./tests",

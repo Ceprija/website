@@ -109,6 +109,14 @@ test("criminalística narrative landing: hero, CTAs, brochure plan", async ({
     }),
   ).toBeVisible();
 
+  // Image bands (disciplinas + rvoe) alternate with solid color sections.
+  await expect(
+    page.locator("#disciplinas img[src*='disciplinas-tablero']"),
+  ).toHaveCount(1);
+  await expect(
+    page.locator("#rvoe img[src*='rvoe-tablero']"),
+  ).toHaveCount(1);
+
   await expect(
     page.getByRole("link", { name: "Oferta Académica" }),
   ).toHaveCount(0);

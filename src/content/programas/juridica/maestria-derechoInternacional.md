@@ -11,7 +11,7 @@ rvoe: "ESM142024140"
 horario: "Por confirmar"
 startDate: "Septiembre 2026"
 duracion: "6 cuatrimestres"
-modalidad: "Presencial / En línea"
+modalidad: "En línea"
 galleryFolder: "/images/programs/maestriaDerechosHumanos/gallery"
 brochure: "/brochures/maestriaDerechosHumanos.pdf"
 featured: true
@@ -61,5 +61,5 @@ includes:
   - "Plan de estudios de 18 asignaturas en 6 cuatrimestres"
   - "Impartido por doctores nacionales e internacionales"
   - "Proceso de admisión en línea"
-  - "Plan de estudios y materiales según modalidad"
+  - "Plan de estudios y materiales en línea"
 ---

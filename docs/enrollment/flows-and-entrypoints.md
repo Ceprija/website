@@ -316,6 +316,18 @@ flowchart LR
   T --> Docs
 ```
 
+### 5.2 Participant emails after application submit
+
+| Audience | Builder / location | Notes |
+|----------|-------------------|--------|
+| Maestría / especialidad / doctorado | `buildPosgradoApplicationEmail` in `src/lib/email/posgradoApplicationEmail.ts` | MKT congrats copy; Control Escolar contact within **48 hours**; **Guía de Trámites** via absolute URL under `public/images/email/` (same pattern as `logo-email.png` — assets must be on production). Map: `ADMISSION_GUIDE_IMAGE_BY_SLUG`. |
+| Diplomado (application flow) | Inline HTML in `POST /api/enrollment` | Payment-oriented próximos pasos (not the posgrado congrats template). |
+| Free webinar | `buildFreeWebinarParticipantEmail` | Separate product copy — do not overwrite with posgrado template. |
+
+Ficha UI for application programs: “Respuesta en **48 horas**” (`oferta-academica/[slug].astro`).
+
+**Known follow-up:** Narrative color-band hex may be refined when MKT sends the official color code.
+
 ---
 
 ## 6. Optional program variants (módulos / fechas)
